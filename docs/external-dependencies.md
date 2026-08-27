@@ -8,6 +8,6 @@
 
 ## Repositorio del equipo
 
-- URL: pendiente de configurar como remoto `origin`.
+- URL: https://github.com/Bootcamp-IA-MAD-P7/Proyecto-DataEngineer-Grupo1
+- Rama de integración: `develop`.
 - Regla: no se suben secretos, `.env`, datos de ejecución ni volúmenes de Docker.
-

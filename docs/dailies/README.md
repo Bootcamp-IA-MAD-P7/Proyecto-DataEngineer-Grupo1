@@ -10,4 +10,3 @@ Cada daily se registra en un archivo Markdown con el formato `YYYY-MM-DD.md`. Es
 - Registrar bloqueos con una acción concreta y una persona responsable.
 
 Usar [`_template.md`](_template.md) para cada nueva daily.
-

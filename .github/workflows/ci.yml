@@ -2,8 +2,9 @@ name: quality
 
 on:
   pull_request:
+    branches: [develop]
   push:
-    branches: [main, develop]
+    branches: [develop]
 
 jobs:
   checks:
@@ -19,4 +20,3 @@ jobs:
       - run: ruff format --check .
       - run: mypy src
       - run: pytest
-

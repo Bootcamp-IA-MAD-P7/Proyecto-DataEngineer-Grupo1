@@ -14,4 +14,3 @@ Los logs serán estructurados y contendrán, cuando estén disponibles: `event_i
 - Eventos pendientes o incompletos en Redis.
 
 Prometheus y un dashboard básico se implementarán en el Sprint 5.
-

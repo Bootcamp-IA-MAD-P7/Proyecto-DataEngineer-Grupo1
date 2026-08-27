@@ -1,26 +1,65 @@
-# Arnés de pruebas
+# Arnés de validación
 
-## Finalidad
+El arnés permite demostrar que el pipeline cumple el briefing sin depender del
+generador educativo ni de un entorno manual irrepetible. Es un contrato ejecutable:
+fixtures autorizados + pruebas + datos de salida esperados + métricas.
 
-El arnés comprueba de manera repetible que un evento pasa desde la entrada hasta los almacenes correctos, sin depender del generador educativo ni de datos externos.
+## Pirámide de pruebas
 
-## Capas
+| Capa | Objetivo | Dependencias | Ejecución |
+|---|---|---|---|
+| Unitarias | Reglas puras de clasificación, validación y correlación | Ninguna | Cada commit |
+| Contrato | Validar eventos contra el contrato observado | Fixtures JSON | Cada PR |
+| Integración | MongoDB, Redis y PostgreSQL reales | Docker Compose/test containers | Cada PR relevante |
+| E2E | Kafka fixture → raw → curado | Stack local completo | Antes de demo/release |
+| Carga | Medir volumen, latencia y errores | Reproductor de fixtures | Sprint de rendimiento |
 
-1. **Unitarias:** clasificación, validación, claves de agrupación e idempotencia usando fixtures JSON.
-2. **Integración:** MongoDB, PostgreSQL y Redis en contenedores temporales.
-3. **E2E:** evento fixture -> ingesta -> raw_events -> transformación -> PostgreSQL.
-4. **Carga:** reproducción controlada de fixtures para medir consumo y persistencia.
+## Política de fixtures
 
-## Fixtures
+1. HRP-29 observa datos desde Kafka sin inspeccionar el generador.
+2. Se extrae el mínimo ejemplo estructural necesario.
+3. Se eliminan o reemplazan valores que no sean esenciales para probar el esquema.
+4. El fixture referencia la spec y la fecha de observación en un comentario o README.
+5. Nunca se comitean capturas de tráfico completas, secretos o datos locales.
 
-Los fixtures se crean a partir de la observación autorizada de mensajes, eliminando cualquier dato irrelevante. Se guardan en `tests/fixtures/` y se versionan junto a la spec que los justifica.
+## Matriz mínima de comportamiento
 
-## Casos mínimos
+| ID | Caso | Nivel | Resultado esperado |
+|---|---|---|---|
+| H-01 | Evento válido por categoría | Unitario/contrato | Clasificación correcta |
+| H-02 | Campo obligatorio ausente | Unitario | Error aislado y auditado |
+| H-03 | Payload no parseable | Unitario/integración | Consumer continúa |
+| H-04 | Repetición de topic-partition-offset | Integración | Un único raw event |
+| H-05 | Fragmentos de una persona desordenados | Integración | Persona correcta al completarse |
+| H-06 | Claves de correlación inconsistentes | Unitario/integración | No se mezcla información |
+| H-07 | Redis expira estado parcial | Integración | Sin corrupción; reproceso posible |
+| H-08 | Reinicio del worker | E2E | Sin duplicados ni pérdida observable |
+| H-09 | Falla MongoDB/PostgreSQL transitoria | Integración | Reintento/registro y métrica |
+| H-10 | Carga sostenida de fixtures | Carga | Métricas de consumo y latencia |
 
-- Evento válido de cada tipo.
-- Evento con campos ausentes.
-- Evento duplicado.
-- Datos de una persona recibidos en distinto orden.
-- Claves de unión inconsistentes.
-- Error transitorio de almacenamiento.
+## Convención de nombres
 
+```text
+tests/unit/test_classifier.py
+tests/contract/test_kafka_event_contract.py
+tests/integration/test_raw_event_repository.py
+tests/e2e/test_kafka_to_postgres.py
+tests/fixtures/observed/<categoria>-valid.json
+tests/fixtures/invalid/<caso>.json
+```
+
+Cada prueba tiene nombre de comportamiento: `test_duplicate_offset_is_not_persisted_twice`,
+no `test_case_1`.
+
+## Comandos de calidad
+
+```powershell
+pre-commit run --all-files
+ruff check .
+ruff format --check .
+mypy src
+pytest
+```
+
+Los comandos de integración, E2E y carga se documentarán en `docs/07-runbook.md`
+cuando sus servicios existan. Una tarea no puede afirmar que están ejecutados antes.

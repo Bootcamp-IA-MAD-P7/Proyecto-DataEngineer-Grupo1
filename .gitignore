@@ -7,6 +7,7 @@ __pycache__/
 .coverage
 coverage.xml
 htmlcov/
+*.egg-info/
 .venv/
 venv/
 
@@ -26,4 +27,3 @@ data/
 logs/
 prometheus_data/
 grafana_data/
-

@@ -1,2 +1,1 @@
 """Kafka ingestion boundary."""
-

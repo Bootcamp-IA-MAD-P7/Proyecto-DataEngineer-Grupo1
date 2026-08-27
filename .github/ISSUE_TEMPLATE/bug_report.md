@@ -16,4 +16,3 @@ labels: bug
 ## Regresión
 
 ¿Qué fixture o prueba debe añadirse para evitar que se repita?
-

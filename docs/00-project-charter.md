@@ -32,4 +32,3 @@ No se accede, clona, lee, analiza ni intenta inferir el código que genera los d
 ## Criterio de éxito
 
 El sistema se puede iniciar de forma reproducible, procesa datos de Kafka de forma continua, permite demostrar trazabilidad del evento crudo al registro SQL final y ofrece consultas desde una API y un frontend sencillo.
-

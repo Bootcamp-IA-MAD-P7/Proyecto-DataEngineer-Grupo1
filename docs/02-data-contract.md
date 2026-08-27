@@ -31,4 +31,3 @@ El README advierte que los datos pueden ser inconsistentes. Las claves potencial
 - Identificador técnico del evento.
 - Orden de llegada de tipos de datos.
 - Reglas de resolución cuando una clave no coincide.
-

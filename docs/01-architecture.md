@@ -1,37 +1,96 @@
-# Arquitectura
+# Arquitectura de referencia
 
-## Diseño objetivo
+## Propósito y límite
 
-```text
-Kafka (externo)
-       |
-       v
-Ingest worker -----> MongoDB / raw_events
-       |                    |
-       |                    v
-       +---------------> auditoría y reproceso
-       |
-       v
-Process worker <----> Redis / estado temporal
-       |
-       v
-PostgreSQL / datos integrados
-       |
-       v
-FastAPI -----> Streamlit
+La plataforma integra eventos de RR. HH. generados externamente. Nuestro sistema
+empieza en el broker Kafka: no contiene ni controla al productor y no inspecciona el
+código que crea los eventos. La arquitectura debe soportar una ingesta alta, conservar
+la evidencia original, tolerar repeticiones y producir datos consultables.
 
-Todos los servicios -> logs estructurados + métricas Prometheus
+```mermaid
+flowchart LR
+    K[Kafka externo] -->|evento + topic/partición/offset| I[ingest-worker]
+    I -->|raw inmutable| M[(MongoDB raw_events)]
+    I -->|métrica/log| O[Prometheus + logs]
+    M -->|evento pendiente| P[process-worker]
+    P <-->|estado temporal / TTL| R[(Redis)]
+    P -->|upsert curado| SQL[(PostgreSQL)]
+    P --> O
+    SQL --> A[FastAPI]
+    A --> UI[Streamlit]
+    A --> O
 ```
 
-## Decisiones de diseño
+## Responsabilidades y contratos
 
-- Un repositorio y un monolito modular, con procesos separados (`ingest`, `process`, `api`) cuando haya código.
-- El servidor Kafka educativo es una dependencia externa configurable con variables de entorno.
-- MongoDB recibe los eventos sin modificar y con metadatos técnicos.
-- PostgreSQL contiene datos curados e idempotentes para consultas.
-- Redis no es fuente de verdad; solo almacena información parcial mientras se agrupa una persona.
+| Componente | Responsabilidad | Entrada | Salida | No responsabilidad |
+|---|---|---|---|---|
+| Kafka externo | Publicar eventos | — | Eventos | Garantizar el esquema final |
+| `ingest-worker` | Leer, validar mínimamente y persistir raw | Evento Kafka | Documento raw y métrica | Agrupar personas |
+| MongoDB | Conservación inmutable y reproceso | Evento + metadatos técnicos | `raw_events` | Consultas de negocio |
+| `process-worker` | Clasificar, correlacionar, normalizar y hacer upsert | Eventos raw | Registro curado / auditoría | Exponer HTTP |
+| Redis | Estado parcial con TTL | Fragmentos correlacionados | Estado temporal | Ser fuente de verdad |
+| PostgreSQL | Datos curados, consistentes y consultables | Registro integrado | Tablas e índices | Retener payload raw |
+| API | Consultas controladas a datos curados | HTTP | JSON | Transformar eventos |
+| Dashboard | Experiencia de consulta y métricas | API / Prometheus | Vista web | Acceso directo a bases |
 
-## Límites del sistema
+## Flujo lógico de datos
 
-No se crea ni mantiene el productor Kafka. El equipo solo consume los mensajes publicados y no inspecciona el código generador.
+1. Kafka entrega un registro identificado técnicamente por `topic`, `partition` y
+   `offset`.
+2. El worker de ingesta añade la fecha de recepción y persiste el payload sin mutarlo
+   en MongoDB. Un índice único técnico hace la operación idempotente.
+3. El worker de proceso recupera o recibe el evento raw, lo clasifica según el
+   contrato validado y registra errores de validación sin detener la ingesta.
+4. Redis guarda únicamente fragmentos necesarios para completar una persona y expira
+   según una política explícita.
+5. El worker publica un upsert de la persona en PostgreSQL y un registro de auditoría.
+6. API y dashboard consumen PostgreSQL; jamás acceden a `raw_events` para presentar
+   una consulta de negocio.
 
+## Zonas de datos y propiedad
+
+| Zona | Tecnología | Propietario lógico | Retención / uso |
+|---|---|---|---|
+| Transporte | Kafka externo | Proveedor educativo | Solo consumo |
+| Raw | MongoDB | Ingesta | Auditoría, trazabilidad y reproceso |
+| Temporal | Redis | Proceso ETL | Correlación de fragmentos, con TTL |
+| Curada | PostgreSQL | Proceso ETL | Consultas y API |
+| Operativa | Prometheus/logs | Plataforma | Métricas y diagnóstico; sin payload sensible |
+
+## Invariantes de diseño
+
+- Un evento raw conserva payload original y metadatos Kafka antes de transformarse.
+- `topic + partition + offset` identifica unívocamente la lectura de un evento.
+- Redis no puede ser necesaria para reconstruir la verdad de negocio: MongoDB y
+  PostgreSQL permiten recuperar/reprocesar.
+- Reprocesar un evento no puede crear una segunda persona ni duplicar una operación.
+- Errores de un mensaje se aíslan, registran y miden; no detienen el consumer.
+- Los nombres de campos y la clave de correlación son **desconocidos hasta HRP-29**.
+
+## Escalabilidad y tolerancia a fallos
+
+| Riesgo | Respuesta de diseño | Métrica / prueba |
+|---|---|---|
+| Ráfaga de eventos | Consumer por grupo, lotes y persistencia idempotente | Mensajes/s y lag |
+| Mensaje duplicado | Índice único raw y upsert curado | Duplicados descartados |
+| Orden variable | Estado parcial en Redis y reglas de correlación | Fixture reordenado |
+| Base temporal caída | Reintento acotado; evento raw recuperable | Errores de persistencia |
+| Esquema inesperado | Envío a `invalid_events` / auditoría | Conteo de inválidos |
+| Reinicio del worker | Relectura segura desde offset y deduplicación | Prueba de reinicio |
+
+## Despliegue progresivo
+
+| Nivel del briefing | Servicios habilitados | Evidencia de aceptación |
+|---|---|---|
+| Esencial | Kafka, ingest-worker, MongoDB, process-worker, PostgreSQL | Kafka → raw → persona curada |
+| Medio | Docker Compose, logs, tests, CI | `docker compose` y arnés en verde |
+| Avanzado | Redis, Prometheus, API | Métricas y consultas HTTP |
+| Experto | Reinicio automático y Streamlit | Pipeline continuo y demo navegable |
+
+## Decisiones asociadas
+
+- [ADR-0001](adr/0001-monolito-modular.md): monolito modular con workers.
+- [ADR-0002](adr/0002-raw-and-curated-storage.md): datos raw y curados separados.
+- [ADR-0003](adr/0003-evidence-first-data-contract.md): contrato basado en evidencia.
+- [ADR-0004](adr/0004-configuration-and-secrets.md): configuración y secretos externos.

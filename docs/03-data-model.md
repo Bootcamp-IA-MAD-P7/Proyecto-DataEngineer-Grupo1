@@ -22,4 +22,3 @@ Tablas previstas:
 - `processing_audit`
 
 El diseño final se aprobará en la tarea Jira de modelo relacional después de validar el contrato de eventos reales.
-

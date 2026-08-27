@@ -8,7 +8,7 @@
 
 ## Cambio realizado
 
-- 
+-
 
 ## Pruebas ejecutadas
 
@@ -19,5 +19,4 @@
 
 ## Riesgos o decisiones
 
-- 
-
+-

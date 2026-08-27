@@ -30,5 +30,4 @@ Sprint X — Nombre
 
 ## Acuerdos y riesgos
 
-- 
-
+-

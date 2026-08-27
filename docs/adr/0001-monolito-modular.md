@@ -17,4 +17,3 @@ Se utilizará un único repositorio Python, organizado por módulos. Los compone
 - Menor complejidad operativa que una arquitectura de microservicios.
 - Separación clara de responsabilidades y posibilidad de escalar workers.
 - Docker Compose coordinará los servicios locales.
-

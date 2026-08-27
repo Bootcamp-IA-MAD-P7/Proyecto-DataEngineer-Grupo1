@@ -20,4 +20,3 @@
 1. Consultar logs del servicio.
 2. Comprobar conectividad a Kafka y estado de contenedores.
 3. No eliminar volúmenes ni datos sin acuerdo explícito del equipo.
-

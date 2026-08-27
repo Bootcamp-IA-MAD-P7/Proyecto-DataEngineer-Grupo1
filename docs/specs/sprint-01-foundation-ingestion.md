@@ -28,4 +28,3 @@ Dejar una base reproducible, documentada y conectable a Kafka para observar mens
 - Pull requests vinculadas a Jira.
 - Daily compartida.
 - Log o captura de conexión a Kafka sin exponer datos innecesarios.
-
