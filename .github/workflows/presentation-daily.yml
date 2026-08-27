@@ -1,0 +1,45 @@
+name: Generate presentation daily
+
+on:
+  workflow_dispatch:
+    inputs:
+      date:
+        description: "Fecha YYYY-MM-DD; se usa la fecha actual si se deja vacía"
+        required: false
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: develop
+          fetch-depth: 0
+
+      - name: Generate daily source
+        shell: pwsh
+        env:
+          DAILY_DATE: ${{ inputs.date }}
+        run: |
+          if ([string]::IsNullOrWhiteSpace($env:DAILY_DATE)) {
+            ./scripts/new-presentation-daily.ps1
+          } else {
+            ./scripts/new-presentation-daily.ps1 -Date $env:DAILY_DATE
+          }
+
+      - name: Commit generated source
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add docs/presentation-sources/daily
+          if git diff --cached --quiet; then
+            echo "No hay cambios que commitear."
+            exit 0
+          fi
+          git commit -m "docs: generate presentation daily"
+          git push origin HEAD:develop
