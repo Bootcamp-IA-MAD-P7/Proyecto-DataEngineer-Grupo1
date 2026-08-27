@@ -5,6 +5,44 @@ conserva el evento original en MongoDB y publica una vista integrada, trazable e
 idempotente en PostgreSQL. Redis, métricas, API y frontend se incorporan en los
 sprints posteriores definidos en Jira.
 
+[![Quality](https://github.com/Bootcamp-IA-MAD-P7/Proyecto-DataEngineer-Grupo1/actions/workflows/ci.yml/badge.svg?branch=develop)](https://github.com/Bootcamp-IA-MAD-P7/Proyecto-DataEngineer-Grupo1/actions/workflows/ci.yml)
+[![PR governance](https://github.com/Bootcamp-IA-MAD-P7/Proyecto-DataEngineer-Grupo1/actions/workflows/pr-governance.yml/badge.svg?branch=develop)](https://github.com/Bootcamp-IA-MAD-P7/Proyecto-DataEngineer-Grupo1/actions/workflows/pr-governance.yml)
+![Sprint 1](https://img.shields.io/badge/Sprint%201-active-F59E0B)
+![Integration branch](https://img.shields.io/badge/integration-develop-2563EB)
+
+## Estado verificable
+
+| Área | Estado | Evidencia actual | Siguiente condición |
+|---|---|---|---|
+| Gobernanza Git y CI | En funcionamiento | PR, CODEOWNERS, etiquetas y workflows activos | Añadir los checks de CI como requisitos de merge |
+| Arquitectura y SDD | En revisión | Arquitectura, ADRs, arnés y capa IA versionados | Revisión de HRP-23 |
+| Conexión Kafka | Completada | HRP-28 finalizada | HRP-29 debe registrar observación real |
+| Consumer Kafka | En corrección de integración | Existe prototipo en rama aislada | Migrarlo a una rama nacida desde `develop` |
+| Contrato y modelo de datos | Provisional | README autorizado y decisiones documentadas | Evidencia de HRP-29 desbloquea HRP-24 y HRP-25 |
+| Persistencia, ETL y producto final | Planificado | Sprints 2 a 6 en Jira | Desarrollo incremental por PR |
+
+El estado del proyecto se basa en evidencias revisables, no en supuestos. Las tareas
+de datos no se consideran terminadas hasta observar el broker autorizado y dejar la
+evidencia versionada.
+
+## Mapa de entrega
+
+```mermaid
+flowchart LR
+    A[Git, Jira y calidad\nEn funcionamiento] --> B[Descubrimiento Kafka\nEn curso]
+    B --> C[MongoDB raw\nPlanificado]
+    C --> D[ETL + Redis\nPlanificado]
+    D --> E[PostgreSQL curado\nPlanificado]
+    E --> F[API + Streamlit\nPlanificado]
+
+    classDef done fill:#DCFCE7,stroke:#16A34A,color:#14532D;
+    classDef active fill:#FEF3C7,stroke:#D97706,color:#78350F;
+    classDef planned fill:#DBEAFE,stroke:#2563EB,color:#1E3A8A;
+    class A done;
+    class B active;
+    class C,D,E,F planned;
+```
+
 > Estado: Sprint 1 — descubrimiento, diseño y contrato de datos. No se considera
 > válido ningún supuesto sobre el payload hasta que HRP-29 lo haya observado desde
 > Kafka y lo haya dejado documentado.
@@ -48,6 +86,30 @@ Cada cambio recorre el mismo camino:
 
 Consulta [CONTRIBUTING.md](CONTRIBUTING.md) antes de abrir una rama o una PR.
 
+## Inicio rápido para el equipo
+
+Tras clonar el repositorio, cada integrante debe preparar el entorno y seguir el
+flujo guiado. No hace falta conocer SDD de antemano: la guía explica el orden y
+proporciona prompts reutilizables.
+
+```powershell
+git clone https://github.com/Bootcamp-IA-MAD-P7/Proyecto-DataEngineer-Grupo1.git
+cd Proyecto-DataEngineer-Grupo1
+git switch develop
+git pull --ff-only
+python -m venv .venv
+.\.venv\Scripts\Activate.ps1
+python -m pip install -e ".[dev]"
+pre-commit install
+pre-commit run --all-files
+pytest
+```
+
+Lee la [guía de trabajo asistido por IA](docs/onboarding/ai-assisted-workflow.md)
+antes de iniciar una tarea. Incluye la instalación opcional de OpenSpec, prompts de
+inicio, implementación, revisión y cierre, y la política de no consultar el
+generador educativo.
+
 ## Documentación de referencia
 
 | Necesidad | Documento |
@@ -64,6 +126,7 @@ Consulta [CONTRIBUTING.md](CONTRIBUTING.md) antes de abrir una rama o una PR.
 | Fuentes para presentación | [Presentation sources](docs/presentation-sources/README.md) |
 | Especificaciones por tarea | [docs/specs](docs/specs/README.md) |
 | Acuerdos y decisiones | [ADRs](docs/adr) y [dailies](docs/dailies/README.md) |
+| Onboarding y prompts del equipo | [Guía IA](docs/onboarding/ai-assisted-workflow.md) y [AGENTS.md](AGENTS.md) |
 
 ## Estructura
 
