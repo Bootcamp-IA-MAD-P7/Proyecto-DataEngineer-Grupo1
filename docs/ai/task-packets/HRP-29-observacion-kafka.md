@@ -1,10 +1,10 @@
 # Paquete de tarea — HRP-29
 
-**Estado:** Borrador  
-**Responsable:** Anahí  
-**Revisor humano:** Gaby  
-**Jira:** HRP-29  
-**Spec:** `docs/specs/HRP-29-*.md`  
+**Estado:** Borrador
+**Responsable:** Anahí
+**Revisor humano:** Gaby
+**Jira:** HRP-29
+**Spec:** `docs/specs/HRP-29-*.md`
 **Rama prevista:** `feature/HRP-29-observacion-kafka`
 
 ## Resultado esperado
@@ -16,7 +16,7 @@ repeticiones. La evidencia permite actualizar el contrato sin revelar PII.
 ## Contexto autorizado
 
 - Briefing / documento: requisitos esenciales y README público autorizado.
-- Documentación local relevante: `docs/02-data-contract.md`, `docs/01-architecture.md`, ADR-0003.
+- Documentación local relevante: `docs/observations/_template.md`, `docs/02-data-contract.md`, `docs/01-architecture.md`, ADR-0003.
 - Evidencia Kafka observada (si aplica): pendiente de registrar; no sustituir con ejemplos del README.
 - Decisiones o ADRs relacionadas: `docs/adr/0003-evidence-first-data-contract.md`.
 
@@ -29,9 +29,9 @@ repeticiones. La evidencia permite actualizar el contrato sin revelar PII.
 
 ## Petición al asistente
 
-**Rol:** Diseñador de pruebas o analista de spec.  
-**Pregunta concreta:** ¿Qué observaciones mínimas y no sensibles hacen falta para que HRP-24 pueda fijar un contrato inicial?  
-**Formato de salida esperado:** tabla de campos de observación, casos límite y checklist de evidencia.  
+**Rol:** Diseñador de pruebas o analista de spec.
+**Pregunta concreta:** ¿Qué observaciones mínimas y no sensibles hacen falta para que HRP-24 pueda fijar un contrato inicial?
+**Formato de salida esperado:** tabla de campos de observación, casos límite y checklist de evidencia.
 **Criterios con los que se evaluará:** rúbrica de `docs/ai/evaluation-rubric.md` y ausencia de supuestos sobre payload.
 
 ## Revisión humana del resultado
@@ -49,4 +49,3 @@ repeticiones. La evidencia permite actualizar el contrato sin revelar PII.
 - Salida resumida:
 - Decisión humana:
 - Revisor:
-
