@@ -34,7 +34,10 @@ def validate_spec(path: Path) -> list[str]:
         content,
         flags=re.MULTILINE | re.DOTALL,
     )
-    if acceptance_match and not re.search(r"^- \[[ xX]\] .+", acceptance_match.group(1), re.MULTILINE):
+    has_checklist_item = acceptance_match and re.search(
+        r"^- \[[ xX]\] .+", acceptance_match.group(1), re.MULTILINE
+    )
+    if acceptance_match and not has_checklist_item:
         errors.append(f"{path}: acceptance criteria must contain at least one checklist item")
 
     return errors
