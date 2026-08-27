@@ -10,6 +10,7 @@ on:
 
 permissions:
   contents: write
+  pull-requests: write
 
 jobs:
   generate:
@@ -31,15 +32,25 @@ jobs:
             ./scripts/new-presentation-daily.ps1 -Date $env:DAILY_DATE
           }
 
-      - name: Commit generated source
-        shell: bash
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add docs/presentation-sources/daily
-          if git diff --cached --quiet; then
-            echo "No hay cambios que commitear."
-            exit 0
-          fi
-          git commit -m "docs: generate presentation daily"
-          git push origin HEAD:develop
+      - name: Open reviewable pull request
+        uses: peter-evans/create-pull-request@v7
+        with:
+          branch: automation/presentation-daily
+          delete-branch: true
+          commit-message: "docs: generate presentation daily"
+          title: "HRP-22 docs: generate presentation daily"
+          body: |
+            ## Context and traceability
+
+            - **Jira:** HRP-22
+            - **Source:** `scripts/new-presentation-daily.ps1`
+            - **Purpose:** generated daily source for the project presentation
+
+            ## Review requirements
+
+            - [ ] The daily contains only verifiable project facts.
+            - [ ] No secret, PII, raw Kafka payload or generator information is included.
+            - [ ] A human reviewer has checked the generated changes.
+
+            This workflow intentionally opens a pull request instead of pushing directly
+            to `develop`.
