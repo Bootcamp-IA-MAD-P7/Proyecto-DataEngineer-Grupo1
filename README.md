@@ -60,6 +60,7 @@ Consulta [CONTRIBUTING.md](CONTRIBUTING.md) antes de abrir una rama o una PR.
 | Pirámide y matriz de pruebas | [Arnés de pruebas](docs/05-test-harness.md) |
 | Métricas y operación | [Observabilidad](docs/06-observability.md) y [runbook](docs/07-runbook.md) |
 | Ramas, PRs, automatizaciones y tags | [Gobernanza Git](docs/08-git-governance.md) |
+| Fuentes para presentación | [Presentation sources](docs/presentation-sources/README.md) |
 | Especificaciones por tarea | [docs/specs](docs/specs/README.md) |
 | Acuerdos y decisiones | [ADRs](docs/adr) y [dailies](docs/dailies/README.md) |
 
