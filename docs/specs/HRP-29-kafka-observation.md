@@ -33,7 +33,7 @@ The observation document is the sole evidence that Gaby may use to update the da
 
 ## Acceptance criteria
 
-- [x] An observation document records topic, timestamp range, partitions and an approximate number of messages observed, without credentials.
+- [x] An observation document records its observation date, topic, partitions and an approximate number of messages observed, without credentials. A precise time range was not retained and is explicitly out of scope for this sanitised evidence.
 - [x] Categories, field names, types, nullability and safe structural examples are recorded without complete payloads or PII.
 - [x] Potential correlation key, out-of-order messages, duplicates and incomplete groups are recorded as observed, not observed or pending.
 - [x] The document confirms that the educational generator was not read, cloned or analysed.
