@@ -1,47 +1,47 @@
-<!-- Título obligatorio: HRP-XX tipo: resumen breve. Ej.: HRP-30 feat: add Kafka consumer -->
+<!-- Required title: HRP-XX type: short summary. Example: HRP-30 feat: add Kafka consumer -->
 
-## Contexto y trazabilidad
+## Context and traceability
 
 - **Jira:** HRP-XX
 - **Spec:** `docs/specs/HRP-XX-*.md`
-- **Responsable:**
-- **Revisor propuesto:**
-- **Asistencia IA:** ninguna / nombre de la herramienta y rol usado
+- **Owner:**
+- **Suggested reviewer:**
+- **AI assistance:** none / tool name and role used
 
-## Qué cambia y por qué
+## What changes and why
 
-<!-- Explica el resultado y el límite. No describas solo archivos modificados. -->
+<!-- Describe the outcome and its boundary, not only the modified files. -->
 
-## Criterios de aceptación
+## Acceptance criteria
 
-- [ ] Criterio 1 cumplido.
-- [ ] Caso de error o límite cubierto.
-- [ ] No se ha ampliado el alcance sin actualizar la spec.
+- [ ] Acceptance criterion 1 is met.
+- [ ] An error path or boundary case is covered.
+- [ ] Scope has not expanded without updating the spec.
 
-## Validación ejecutada
+## Validation performed
 
 - [ ] `pre-commit run --all-files`
 - [ ] `ruff check .`
 - [ ] `ruff format --check .`
 - [ ] `mypy src`
 - [ ] `pytest`
-- [ ] Integración / E2E (si aplica; enlazar resultado):
+- [ ] Integration / E2E (if applicable; link result):
 
-## Datos, seguridad y operación
+## Data, security and operations
 
-- [ ] No incluye secretos, `.env`, volúmenes Docker ni capturas completas de mensajes.
-- [ ] No se ha leído, clonado ni analizado el generador educativo.
-- [ ] Logs, métricas, migraciones o runbook actualizados si aplican.
+- [ ] No secrets, `.env` files, Docker volumes or complete message captures are included.
+- [ ] The educational data generator has not been read, cloned or analyzed.
+- [ ] Logs, metrics, migrations or runbook have been updated when applicable.
 
-## Riesgos, decisiones y reversión
+## Risks, decisions and rollback
 
-- ADR relacionada / decisión tomada:
-- Riesgo conocido:
-- Cómo revertir este cambio:
+- Related ADR / decision made:
+- Known risk:
+- How to roll back this change:
 
-## Checklist de revisión
+## Review checklist
 
-- [ ] Una persona distinta de quien propone la PR ha revisado el cambio.
-- [ ] La spec, documentación y evidencia de Jira están actualizadas.
-- [ ] La tarea solo se moverá a Finalizada después de merge y evidencia verificable.
-- [ ] Si se utilizó IA, su resultado se ha contrastado con la spec, el diff y las pruebas.
+- [ ] Someone other than the author has reviewed the change.
+- [ ] The spec, documentation and Jira evidence are up to date.
+- [ ] The Jira task will move to Done only after merge and verifiable evidence.
+- [ ] If AI was used, its output has been checked against the spec, diff and tests.
