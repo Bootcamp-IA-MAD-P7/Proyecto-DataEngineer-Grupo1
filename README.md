@@ -24,14 +24,57 @@ sprints posteriores definidos en Jira.
 | Consulta operativa | PostgreSQL, API y frontend en fases posteriores | Datos preparados para análisis y consultas de negocio |
 | Operación segura | Configuración por entorno, logs técnicos y calidad automatizada | Menos riesgo de exponer PII, secretos o payloads completos |
 
-## Entrega por niveles del briefing
+## Estado frente a los niveles del briefing
 
-| Nivel | Resultado comprometido | Estado actual |
-|---|---|---|
-| Esencial | Kafka → MongoDB raw → agrupación ETL → PostgreSQL | En construcción: Kafka observado y consumer en revisión |
-| Medio | Docker, logs y tests | Base de calidad disponible; servicios e integración pendientes |
-| Avanzado | Redis y métricas con Prometheus | Planificado después del flujo esencial |
-| Experto | Actualización continua, API y Streamlit | Planificado después de persistencia y observabilidad |
+El progreso se mide contra cada criterio explícito del briefing. Un criterio solo se
+marca como `Verificado` cuando existe evidencia reproducible en código, pruebas,
+documentación o una PR integrada en `develop`.
+
+### 🟢 Nivel esencial
+
+| ID | Criterio del briefing | Estado | Evidencia / siguiente paso |
+|---|---|---|---|
+| ESS-01 | Consumer Kafka capaz de consumir mensajes en tiempo real | `En revisión` | Consumer configurable en HRP-30; pendiente de validación final contra el broker |
+| ESS-02 | Persistencia de los mensajes originales en MongoDB | `Planificado` | Implementar persistencia raw conservando el evento recibido |
+| ESS-03 | Procesamiento y agrupación de los distintos tipos de datos de cada persona | `Preparado para continuar` | HRP-29 aporta evidencia estructural; HRP-24 debe cerrar el contrato y las reglas de correlación |
+| ESS-04 | Persistencia de los datos procesados en PostgreSQL | `Planificado` | HRP-25 define el modelo; implementación posterior a contrato y transformación |
+| ESS-05 | Repositorio Git con ramas organizadas y commits limpios y descriptivos | `Verificado` | `develop`, feature branches, PRs, ruleset, CI, revisión y convenciones de commits |
+| ESS-06 | Código documentado y README del proyecto | `Verificado` | README, arquitectura, ADRs, specs, runbook y documentación técnica versionados |
+
+**Progreso esencial: 2 verificados · 1 en revisión · 1 preparado · 2 planificados**
+
+### 🟡 Nivel medio
+
+| ID | Criterio del briefing | Estado | Evidencia / siguiente paso |
+|---|---|---|---|
+| MED-01 | Sistema de logs | `Planificado` | Aplicar logging estructurado a los servicios cuando entren en ejecución |
+| MED-02 | Tests unitarios | `En curso` | Arnés, `pytest` y CI disponibles; ampliar cobertura con cada componente funcional |
+| MED-03 | Aplicación dockerizada con Docker y Docker Compose | `Planificado` | Dockerizar los servicios propios y validar el stack integrado |
+
+**Progreso medio: 0 verificados · 1 en curso · 2 planificados**
+
+### 🟠 Nivel avanzado
+
+| ID | Criterio del briefing | Estado | Evidencia / siguiente paso |
+|---|---|---|---|
+| ADV-01 | Redis como almacenamiento intermedio para mejorar el procesamiento en tiempo real | `Planificado` | Incorporar estado temporal entre transformación y persistencia |
+| ADV-02 | Monitorización del consumo, velocidad, procesamiento, persistencia y rendimiento | `Planificado` | Métricas Prometheus y observabilidad definidas para una fase posterior |
+| ADV-03 | API para consultar la información final almacenada en PostgreSQL | `Planificado` | Implementar después de disponer del modelo curado y la persistencia SQL |
+
+**Progreso avanzado: 0 verificados · 3 planificados**
+
+### 🔴 Nivel experto
+
+| ID | Criterio del briefing | Estado | Evidencia / siguiente paso |
+|---|---|---|---|
+| EXP-01 | Actualización continua de las bases de datos mientras Kafka permanece activo | `Planificado` | Validar el pipeline completo como proceso continuo e idempotente |
+| EXP-02 | Frontend sencillo para consultar los datos | `Planificado` | Streamlit sobre la API y los datos curados |
+
+**Progreso experto: 0 verificados · 2 planificados**
+
+> Los niveles son acumulativos: el objetivo prioritario es cerrar primero el flujo
+> esencial `Kafka → MongoDB raw → transformación → PostgreSQL` antes de añadir Redis,
+> observabilidad, API o frontend.
 
 ## Estado verificable
 
