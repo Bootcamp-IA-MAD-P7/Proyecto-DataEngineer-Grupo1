@@ -16,9 +16,8 @@ venv/
 .env.*
 !.env.example
 
-# uv 
+# uv
 .python-version
-pyproject.toml
 uv.lock
 
 # Editors and OS
