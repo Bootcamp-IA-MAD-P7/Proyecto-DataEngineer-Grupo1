@@ -16,6 +16,8 @@ arquitectura y el flujo de contribución sin recorrer el código.
 - [x] La prohibición de inspeccionar el generador es visible y explícita.
 - [x] Enlaza la documentación operativa, SDD, specs, ADRs y dailies.
 - [x] Describe la rama de integración y la forma de iniciar una tarea.
+- [x] Define un punto de entrada común para Codex, Gemini y Claude, estándares
+      centralizados y roles/workflows de IA versionados con una adaptación de Specboot.
 - [ ] Añade instrucciones de arranque reproducibles cuando Docker Compose exista.
 
 ## Pendiente deliberado

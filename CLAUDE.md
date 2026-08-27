@@ -1,3 +1,5 @@
 # Claude project context
 
-Read and follow [`AGENTS.md`](AGENTS.md), then use the task-specific material in `docs/ai/`, `docs/specs/` and `docs/adr/`. Never use or request the educational data generator source code.
+Read `AGENTS.md` first. Apply `docs/base-standards.md` as the canonical project
+context, then load the task's role and workflow from `ai-specs/` before proposing or
+editing an artifact.

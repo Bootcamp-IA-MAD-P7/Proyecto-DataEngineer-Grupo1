@@ -1,25 +1,24 @@
-# HR Pro Data Platform — Agent Instructions
+# HR Pro Data Platform — AI Agent Entry Point
 
-Read this file before proposing or changing any artifact in this repository.
+This file follows the portable structure used by LIDR Specboot. It is the entry point
+for every coding assistant, regardless of the tool used.
 
-## Non-negotiable rule
+## Read in this order before changing anything
 
-Do not read, clone, search, analyse, infer or reconstruct the educational data generator. Treat it as a black box. Use only the public README, the project briefing and sanitised observations obtained from the authorised Kafka broker.
+1. `docs/base-standards.md` — single source of truth for global rules.
+2. The applicable standard: `docs/backend-standards.md` or
+   `docs/documentation-standards.md`.
+3. `docs/04-sdd-workflow.md`, the Jira task and its `docs/specs/HRP-XX-*.md` file.
+4. The relevant role under `ai-specs/agents/` and workflow under `ai-specs/skills/`.
 
-## Required workflow
+## Mandatory project boundary
 
-1. Read `README.md`, `CONTRIBUTING.md`, `docs/04-sdd-workflow.md` and the Jira task spec before editing.
-2. Identify the Jira key, owner, dependencies, acceptance criteria and verification.
-3. If AI assistance is used, create or update `docs/ai/task-packets/HRP-XX-*.md`.
-4. Work from a branch created from `develop`; never push directly to `develop`.
-5. Change code, tests and documentation together in the smallest reviewable step.
-6. Run `pre-commit run --all-files` and relevant tests.
-7. Open a pull request using the English template, request a human reviewer and record evidence in Jira after merge.
+Never read, clone, search, analyse, infer or reconstruct the educational data
+generator. Treat it as a black box. Use only the public README, project briefing and
+sanitised observations obtained from the authorised Kafka broker.
 
-## Data safety
+## Authority boundary
 
-Never commit secrets, `.env` files, tokens, private Kafka endpoints, full event payloads, personal data, banking data or raw customer-like data. Use sanitised and minimal fixtures only after authorised observation.
-
-## Quality and authority
-
-An AI may draft, analyse or suggest. Humans approve specs, architecture decisions, Jira changes, pull requests, merges, releases and external actions. State facts, assumptions and open questions separately.
+AI may draft, analyse, plan and implement inside an approved branch. A human approves
+specifications, architecture decisions, Jira mutations, pull requests, merges,
+releases and external actions. Separate facts, assumptions and open questions.
