@@ -30,8 +30,8 @@ Si falta un eslabón, la tarea no está terminada aunque el código funcione loc
    tarea de descubrimiento o ADR; no se adivina.
 5. **Crear rama.** `feature/HRP-XX-resumen` desde `develop`.
 6. **Implementar en vertical.** Cambio mínimo + prueba + documentación juntos.
-7. **Ejecutar el arnés.** Pre-commit, pruebas unitarias y las integraciones que
-   afecte la tarea.
+7. **Ejecutar el arnés.** Pre-commit valida además la estructura mínima de las
+   specs; después se ejecutan pruebas unitarias y las integraciones que afecte la tarea.
 8. **Abrir PR.** Enlaza spec, evidencia, riesgos y tarea Jira.
 9. **Revisión de pares.** Otra persona revisa diseño, pruebas y operación; no solo
    sintaxis.
