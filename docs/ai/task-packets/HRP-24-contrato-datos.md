@@ -48,4 +48,3 @@ validación, marcando claramente los elementos pendientes.
 - Salida resumida:
 - Decisión humana:
 - Revisor:
-

@@ -49,4 +49,3 @@ contrato disponible.
 - Salida resumida:
 - Decisión humana:
 - Revisor:
-

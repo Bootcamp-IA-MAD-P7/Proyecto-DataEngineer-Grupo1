@@ -4,6 +4,21 @@ El arnés permite demostrar que el pipeline cumple el briefing sin depender del
 generador educativo ni de un entorno manual irrepetible. Es un contrato ejecutable:
 fixtures autorizados + pruebas + datos de salida esperados + métricas.
 
+## Mapa del harness
+
+No se añade una capa documental distinta para cada concepto: este repositorio usa las
+guías existentes para prevenir errores y los sensores para detectarlos antes del merge.
+
+| Capa | Artefactos canónicos | Función |
+|---|---|---|
+| Guías | `AGENTS.md`, arquitectura, contrato, SDD, ADRs y specs | Delimitan contexto, reglas y alcance antes de trabajar |
+| Sandbox | Rama de tarea + entorno local + Docker Compose cuando exista | Aísla cambios y servicios de desarrollo |
+| Sensores | Pre-commit, `validate_specs.py`, Ruff, mypy, pytest, CI y revisión humana | Rechazan errores y desviaciones comprobables |
+| Evidencia persistente | Spec, pruebas, PR, daily y comentario Jira | Mantiene el estado fuera de la conversación del agente |
+
+La regla es deliberadamente simple: no se añade RAG, un servicio extra o una librería
+de guardrails mientras las guías y sensores actuales sean suficientes.
+
 ## Pirámide de pruebas
 
 | Capa | Objetivo | Dependencias | Ejecución |
@@ -51,10 +66,16 @@ tests/fixtures/invalid/<caso>.json
 Cada prueba tiene nombre de comportamiento: `test_duplicate_offset_is_not_persisted_twice`,
 no `test_case_1`.
 
+Cuando una spec tenga varios criterios de aceptación que afecten comportamiento, estos
+se identifican como `AC-01`, `AC-02`, etc. El nombre o docstring de la prueba debe
+referenciar ese identificador. No se exige esta convención a las specs de diseño ya
+existentes ni se inventan pruebas antes de que exista implementación.
+
 ## Comandos de calidad
 
 ```powershell
 pre-commit run --all-files
+python scripts/validate_specs.py
 ruff check .
 ruff format --check .
 mypy src

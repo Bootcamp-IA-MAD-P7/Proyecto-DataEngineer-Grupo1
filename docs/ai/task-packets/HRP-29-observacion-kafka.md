@@ -49,4 +49,3 @@ repeticiones. La evidencia permite actualizar el contrato sin revelar PII.
 - Salida resumida:
 - Decisión humana:
 - Revisor:
-
