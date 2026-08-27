@@ -7,6 +7,35 @@
 3. Crear rama asociada.
 4. Ejecutar las comprobaciones locales antes de abrir PR.
 
+## Entorno Kafka educativo autorizado
+
+Este entorno es externo al repositorio del equipo. Se obtiene únicamente para ejecutar
+el Docker Compose documentado; el código del generador nunca se abre, inspecciona,
+busca, analiza ni se emplea como fuente de contrato.
+
+1. Crear una carpeta independiente del repositorio del equipo.
+2. Obtener el repositorio educativo y, desde su raíz, ejecutar:
+
+   ```powershell
+   docker compose up --build -d
+   docker compose ps
+   ```
+
+3. Usar el puerto publicado por el servicio Kafka en `docker compose ps` para
+   configurar localmente `KAFKA_BOOTSTRAP_SERVERS` en `.env`.
+4. Mantener `.env` fuera de Git y no copiar credenciales al chat, Jira o una PR.
+5. Para HRP-29, realizar una observación limitada en memoria y registrar solo
+   estructura, tipos aparentes y metadatos agregados. No guardar valores ni capturas
+   completas de mensajes.
+6. Para detener el entorno al finalizar la sesión:
+
+   ```powershell
+   docker compose down
+   ```
+
+No consultar logs del generador como mecanismo de descubrimiento. La evidencia válida
+se registra en `docs/observations/` mediante una tarea HRP-29 revisable.
+
 ## Incidencia de datos
 
 1. Localizar el evento con sus metadatos Kafka en `raw_events`.

@@ -14,11 +14,11 @@ sprints posteriores definidos en Jira.
 
 | Área | Estado | Evidencia actual | Siguiente condición |
 |---|---|---|---|
-| Gobernanza Git y CI | En funcionamiento | PR, CODEOWNERS, etiquetas y workflows activos | Añadir los checks de CI como requisitos de merge |
-| Arquitectura y SDD | En revisión | Arquitectura, ADRs, arnés y capa IA versionados | Revisión de HRP-23 |
-| Conexión Kafka | Completada | HRP-28 finalizada | HRP-29 debe registrar observación real |
-| Consumer Kafka | En corrección de integración | Existe prototipo en rama aislada | Migrarlo a una rama nacida desde `develop` |
-| Contrato y modelo de datos | Provisional | README autorizado y decisiones documentadas | Evidencia de HRP-29 desbloquea HRP-24 y HRP-25 |
+| Gobernanza Git y CI | En funcionamiento | PR, CODEOWNERS, etiquetas, ruleset y workflows activos | Mantener revisión de pares y checks obligatorios |
+| Arquitectura y SDD | Completada | Arquitectura, ADRs, arnés y capa IA versionados | Mantenerlos al día con cada cambio de alcance |
+| Conexión y observación Kafka | En revisión | HRP-28 finalizada; observación segura registrada en HRP-29 | Revisión y merge de la evidencia HRP-29 |
+| Consumer Kafka | En revisión | PR limpia y configurable para HRP-30 | Validación manual contra el broker y revisión de pares |
+| Contrato y modelo de datos | Preparado para continuar | Evidencia estructural disponible, sin semántica inventada | HRP-24 actualiza el contrato; HRP-25 diseña el modelo |
 | Persistencia, ETL y producto final | Planificado | Sprints 2 a 6 en Jira | Desarrollo incremental por PR |
 
 El estado del proyecto se basa en evidencias revisables, no en supuestos. Las tareas
@@ -29,7 +29,7 @@ evidencia versionada.
 
 ```mermaid
 flowchart LR
-    A[Git, Jira y calidad\nEn funcionamiento] --> B[Descubrimiento Kafka\nEn curso]
+    A[Git, Jira y calidad\nEn funcionamiento] --> B[Kafka observado\nEn revisión]
     B --> C[MongoDB raw\nPlanificado]
     C --> D[ETL + Redis\nPlanificado]
     D --> E[PostgreSQL curado\nPlanificado]
@@ -43,15 +43,17 @@ flowchart LR
     class C,D,E,F planned;
 ```
 
-> Estado: Sprint 1 — descubrimiento, diseño y contrato de datos. No se considera
-> válido ningún supuesto sobre el payload hasta que HRP-29 lo haya observado desde
-> Kafka y lo haya dejado documentado.
+> Estado: Sprint 1 — descubrimiento, diseño y contrato de datos. HRP-29 ya ha
+> registrado una observación estructural segura; las reglas de negocio y de
+> correlación siguen pendientes de validación en HRP-24.
 
 ## Regla no negociable
 
-El generador de datos educativo es una caja negra: **no se lee, clona, inspecciona
-ni analiza su código**. Solo se usan el README público, las instrucciones de
-ejecución permitidas y los mensajes realmente recibidos del broker.
+El generador de datos educativo es una caja negra: **su código no se abre, lee,
+inspecciona, busca, analiza ni se usa como fuente de contrato**. El repositorio
+educativo solo puede obtenerse de forma operativa para ejecutar el entorno Docker
+documentado; no se navegan sus archivos. Solo se usan el README público, las
+instrucciones de ejecución permitidas y los mensajes realmente recibidos del broker.
 
 ## Arquitectura objetivo
 
@@ -109,6 +111,24 @@ Lee la [guía de trabajo asistido por IA](docs/onboarding/ai-assisted-workflow.m
 antes de iniciar una tarea. Incluye la instalación opcional de OpenSpec, prompts de
 inicio, implementación, revisión y cierre, y la política de no consultar el
 generador educativo.
+
+## Entorno Kafka educativo
+
+Kafka se ejecuta fuera de este repositorio, en una carpeta independiente. Una persona
+del equipo puede obtener el repositorio educativo únicamente para arrancar su Compose,
+sin abrir los archivos del generador:
+
+```powershell
+git clone https://github.com/Factoria-F5-madrid/data-engineering-educational-project.git kafka-educational-runtime
+cd kafka-educational-runtime
+docker compose up --build -d
+docker compose ps
+```
+
+El puerto publicado por `docker compose ps` determina el valor local de
+`KAFKA_BOOTSTRAP_SERVERS`. Nunca se versiona `.env`, no se consultan logs con
+payloads y no se copian mensajes fuera de la observación estructural autorizada.
+El procedimiento completo de arranque y parada está en el [runbook](docs/07-runbook.md).
 
 ## Documentación de referencia
 
