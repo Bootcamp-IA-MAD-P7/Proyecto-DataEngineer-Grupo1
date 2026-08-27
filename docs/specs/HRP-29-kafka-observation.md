@@ -1,6 +1,6 @@
 # HRP-29 — Observe and document Kafka messages
 
-**Status:** Ready for observation
+**Status:** Observation recorded; pending human review
 **Owner:** Anahí (or a team member with authorised broker access)
 **Jira:** HRP-29
 **Dependencies:** HRP-28 completed
@@ -9,6 +9,14 @@
 ## Objective
 
 Produce a sanitised, reproducible observation of real Kafka messages that allows the team to define a data contract without reading or analysing the educational data generator.
+
+## Recorded evidence
+
+The bounded observation is recorded in
+`docs/observations/2026-08-27-HRP-29-kafka.md`. It records one observed topic,
+one partition, a twenty-message structural sample and five distinct field sets
+without retaining message values. The remaining unknowns stay visible in that
+document for HRP-24.
 
 ## Scope and boundaries
 
@@ -25,10 +33,10 @@ The observation document is the sole evidence that Gaby may use to update the da
 
 ## Acceptance criteria
 
-- [ ] An observation document records topic, timestamp range, partitions and an approximate number of messages observed, without credentials.
-- [ ] Categories, field names, types, nullability and safe structural examples are recorded without complete payloads or PII.
-- [ ] Potential correlation key, out-of-order messages, duplicates and incomplete groups are recorded as observed, not observed or pending.
-- [ ] The document confirms that the educational generator was not read, cloned or analysed.
+- [x] An observation document records topic, timestamp range, partitions and an approximate number of messages observed, without credentials.
+- [x] Categories, field names, types, nullability and safe structural examples are recorded without complete payloads or PII.
+- [x] Potential correlation key, out-of-order messages, duplicates and incomplete groups are recorded as observed, not observed or pending.
+- [x] The document confirms that the educational generator was not read, cloned or analysed.
 - [ ] A PR links the document, passes quality checks and receives human review.
 - [ ] HRP-24 is notified with the document and evidence link.
 
@@ -42,8 +50,8 @@ The observation document is the sole evidence that Gaby may use to update the da
 
 ## Completion evidence
 
-- Branch / PR:
-- Observation document:
-- Commands or authorised tool used, without secrets:
-- Reviewer:
+- Branch / PR: `feature/HRP-29-kafka-observation-evidence` / PR #2
+- Observation document: `docs/observations/2026-08-27-HRP-29-kafka.md`
+- Commands or authorised tool used, without secrets: authorised metadata query and bounded in-memory observer
+- Reviewer: Pending (Gaby)
 - Jira closure comment:
