@@ -1,9 +1,9 @@
 # Observación Kafka — YYYY-MM-DD — HRP-29
 
-**Observó:**  
-**Revisor:**  
-**Entorno autorizado:**  
-**Método de observación:** consumer temporal / herramienta autorizada  
+**Observó:**
+**Revisor:**
+**Entorno autorizado:**
+**Método de observación:** consumer temporal / herramienta autorizada
 **Restricción confirmada:** no se ha leído, clonado ni analizado el generador educativo.
 
 ## Resumen de sesión
