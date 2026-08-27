@@ -21,11 +21,9 @@ feature/docs/fix/chore (HRP-XX) -> pull request + CI + revisión -> develop
 - `develop` es la integración actual.
 - Cada rama contiene una sola tarea Jira.
 - Las PRs se abren contra `develop`; no se fusionan por cuenta propia.
-- El ruleset **Protect develop** exige pull request, una aprobación, revisión de
-  `CODEOWNERS`, conversaciones resueltas y bloquea borrados y force-pushes.
-- Pendiente de comprobación manual: configurar `quality`, `PR governance` y
-  `PR labels` como checks obligatorios del ruleset después de que GitHub los haya
-  detectado en al menos una PR.
+- La protección de rama se activa en GitHub cuando el propietario de la organización
+  tenga permisos: PR obligatoria, una aprobación, revisión de `CODEOWNERS` y
+  workflows `quality` y `PR governance` en verde.
 
 ## Automatizaciones activas
 
@@ -34,7 +32,6 @@ feature/docs/fix/chore (HRP-XX) -> pull request + CI + revisión -> develop
 | `quality` | PR o push a `develop` | Formato, lint, tipos y tests |
 | `PR governance` | PR a `develop` | Rechaza títulos sin clave Jira y tipo convencional |
 | `PR labels` | PR a `develop` | Etiqueta por área modificada |
-| `Generate presentation daily` | Ejecución manual | Genera una daily y abre una PR; nunca hace push directo a `develop` |
 | `Create release tag` | Ejecución manual | Valida y crea un tag anotado inmutable |
 
 Antes de usar `PR labels`, un administrador debe crear una vez estas etiquetas:

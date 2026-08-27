@@ -31,8 +31,7 @@ Ejecuta desde la raíz del repositorio:
 El script crea `daily/YYYY-MM-DD.md` con fecha, participantes, commits recientes y
 estado local de Git. Después cada miembro completa las secciones de Jira, decisiones,
 evidencia y bloqueos. También existe el workflow manual **Generate presentation daily**
-en GitHub Actions: genera el fichero y abre una pull request para revisión humana; no
-puede hacer *push* directo a `develop`.
+en GitHub Actions, que genera y commitea el mismo fichero en `develop`.
 
 No se programa un commit diario automático: el contenido de una presentación debe
 representar actividad real y una ejecución vacía añadiría ruido al historial.
