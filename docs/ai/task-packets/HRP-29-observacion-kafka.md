@@ -1,10 +1,10 @@
 # Paquete de tarea — HRP-29
 
-**Estado:** Evidencia registrada; pendiente de revisión humana
+**Estado:** Borrador
 **Responsable:** Anahí
 **Revisor humano:** Gaby
 **Jira:** HRP-29
-**Spec:** `docs/specs/HRP-29-kafka-observation.md`
+**Spec:** `docs/specs/HRP-29-*.md`
 **Rama prevista:** `feature/HRP-29-observacion-kafka`
 
 ## Resultado esperado
@@ -44,8 +44,8 @@ repeticiones. La evidencia permite actualizar el contrato sin revelar PII.
 
 ## Registro del uso de IA
 
-- Herramienta / rol: observador técnico limitado y analista de spec supervisado
-- Fecha: 2026-08-27
-- Salida resumida: una partición, veinte objetos JSON válidos y cinco variantes estructurales; sin payloads persistidos.
-- Decisión humana: registrar evidencia y solicitar revisión antes de actualizar el contrato.
-- Revisor: pendiente (Gaby)
+- Herramienta / rol:
+- Fecha:
+- Salida resumida:
+- Decisión humana:
+- Revisor:
