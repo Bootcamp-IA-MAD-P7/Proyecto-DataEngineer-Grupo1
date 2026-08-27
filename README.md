@@ -10,6 +10,29 @@ sprints posteriores definidos en Jira.
 ![Sprint 1](https://img.shields.io/badge/Sprint%201-active-F59E0B)
 ![Integration branch](https://img.shields.io/badge/integration-develop-2563EB)
 
+> **Objetivo de producto.** Convertir eventos heterogéneos de RR. HH. en datos
+> consultables, sin perder el evento original, sin exponer datos sensibles y sin
+> asumir significado donde todavía solo existe evidencia técnica.
+
+## Qué aporta la plataforma
+
+| Capacidad | Decisión de diseño | Valor para HR Pro |
+|---|---|---|
+| Ingesta en tiempo real | Consumer configurable, desacoplado del productor educativo | Entrada continua y portable de eventos |
+| Trazabilidad | Evento original conservado en MongoDB | Posibilidad de auditar y reprocesar sin alterar la fuente |
+| Integración de perfiles | Correlación temporal y transformación controlada | Una visión unificada por persona cuando el contrato lo permita |
+| Consulta operativa | PostgreSQL, API y frontend en fases posteriores | Datos preparados para análisis y consultas de negocio |
+| Operación segura | Configuración por entorno, logs técnicos y calidad automatizada | Menos riesgo de exponer PII, secretos o payloads completos |
+
+## Entrega por niveles del briefing
+
+| Nivel | Resultado comprometido | Estado actual |
+|---|---|---|
+| Esencial | Kafka → MongoDB raw → agrupación ETL → PostgreSQL | En construcción: Kafka observado y consumer en revisión |
+| Medio | Docker, logs y tests | Base de calidad disponible; servicios e integración pendientes |
+| Avanzado | Redis y métricas con Prometheus | Planificado después del flujo esencial |
+| Experto | Actualización continua, API y Streamlit | Planificado después de persistencia y observabilidad |
+
 ## Estado verificable
 
 | Área | Estado | Evidencia actual | Siguiente condición |
@@ -72,6 +95,18 @@ Kafka externo -> ingest-worker -> MongoDB (raw_events)
 La descripción completa, los límites y las decisiones viven en
 [docs/01-architecture.md](docs/01-architecture.md).
 
+## Responsabilidades del equipo
+
+| Persona | Área principal | Entregables bajo su responsabilidad |
+|---|---|---|
+| Miguel | Plataforma y calidad | Arquitectura, Docker, gobernanza Git, documentación, CI y demo |
+| Anahí | Ingesta | Conexión Kafka, consumer y persistencia raw en MongoDB |
+| Gaby | Transformación | Contrato observado, agrupación ETL, Redis y métricas |
+| Johans | Serving layer | Modelo PostgreSQL, API y experiencia de consulta |
+
+La responsabilidad indica quién lidera una tarea; toda PR requiere revisión de otra
+persona según [CONTRIBUTING.md](CONTRIBUTING.md).
+
 ## Forma de trabajo
 
 Cada cambio recorre el mismo camino:
@@ -87,6 +122,28 @@ Cada cambio recorre el mismo camino:
   `docs/dailies/`.
 
 Consulta [CONTRIBUTING.md](CONTRIBUTING.md) antes de abrir una rama o una PR.
+
+## Calidad como condición de entrega
+
+Cada PR pasa por el arnés de calidad del repositorio. No sustituye la revisión humana:
+evita errores mecánicos y deja evidencia repetible de que el cambio se ha comprobado.
+
+```text
+Formato y reglas del repositorio  →  análisis estático  →  tests  →  PR con checks
+                                                        →  revisión humana  →  merge
+```
+
+Antes de abrir una PR, ejecuta:
+
+```powershell
+pre-commit run --all-files
+ruff check .
+ruff format --check .
+mypy src
+pytest
+```
+
+Si un control no aplica, se explica en la PR; no se oculta ni se elimina.
 
 ## Inicio rápido para el equipo
 
@@ -164,3 +221,17 @@ scripts/    Comandos reproducibles de desarrollo y calidad
 3. Crea `feature/HRP-XX-resumen` desde `develop`.
 4. Implementa el cambio y las pruebas descritas por la spec.
 5. Ejecuta el arnés, abre PR contra `develop` y aporta la evidencia de cierre.
+
+## Guion de demostración
+
+La demo final seguirá el recorrido de un dato, no una lista de tecnologías:
+
+1. Mostrar el broker educativo funcionando, sin abrir el generador.
+2. Mostrar el consumer y sus logs exclusivamente técnicos.
+3. Mostrar el evento raw en MongoDB y la evidencia de trazabilidad.
+4. Mostrar el perfil integrado en PostgreSQL.
+5. Consultarlo mediante API y Streamlit.
+6. Mostrar métricas, checks de CI, PR revisadas y trazabilidad en Jira.
+
+Las fuentes y evidencias reutilizables para la presentación se mantienen en
+[docs/presentation-sources](docs/presentation-sources/README.md).
