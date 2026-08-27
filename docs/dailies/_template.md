@@ -4,25 +4,25 @@
 
 Sprint X — Nombre
 
-## Miguel — Persona 1
+## Miguel
 
 - Ayer:
 - Hoy:
 - Bloqueos:
 
-## Anahí — Persona 2
+## Anahí
 
 - Ayer:
 - Hoy:
 - Bloqueos:
 
-## Gaby — Persona 3
+## Gaby
 
 - Ayer:
 - Hoy:
 - Bloqueos:
 
-## Johans — Persona 4
+## Johans
 
 - Ayer:
 - Hoy:

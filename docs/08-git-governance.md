@@ -2,12 +2,12 @@
 
 ## Roles del equipo
 
-| Persona | Responsable | Áreas principales |
-|---|---|---|
-| Persona 1 | Miguel | Coordinación, Git, Docker, calidad, documentación y demo |
-| Persona 2 | Anahí | Kafka y MongoDB |
-| Persona 3 | Gaby | ETL, Redis y monitorización |
-| Persona 4 | Johans | PostgreSQL, API y frontend |
+| Responsable | Áreas principales |
+|---|---|
+| Miguel | Coordinación, Git, Docker, calidad, documentación y demo |
+| Anahí | Kafka y MongoDB |
+| Gaby | ETL, Redis y monitorización |
+| Johans | PostgreSQL, API y frontend |
 
 ## Flujo de ramas
 

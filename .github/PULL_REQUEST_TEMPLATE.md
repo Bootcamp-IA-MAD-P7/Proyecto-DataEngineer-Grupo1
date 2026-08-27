@@ -6,6 +6,7 @@
 - **Spec:** `docs/specs/HRP-XX-*.md`
 - **Responsable:**
 - **Revisor propuesto:**
+- **Asistencia IA:** ninguna / nombre de la herramienta y rol usado
 
 ## Qué cambia y por qué
 
@@ -43,3 +44,4 @@
 - [ ] Una persona distinta de quien propone la PR ha revisado el cambio.
 - [ ] La spec, documentación y evidencia de Jira están actualizadas.
 - [ ] La tarea solo se moverá a Finalizada después de merge y evidencia verificable.
+- [ ] Si se utilizó IA, su resultado se ha contrastado con la spec, el diff y las pruebas.

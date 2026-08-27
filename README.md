@@ -57,6 +57,7 @@ Consulta [CONTRIBUTING.md](CONTRIBUTING.md) antes de abrir una rama o una PR.
 | Contrato Kafka y reglas de evidencia | [Contrato de datos](docs/02-data-contract.md) |
 | Persistencia raw y curada | [Modelo de datos](docs/03-data-model.md) |
 | Método Specification-Driven Development | [Flujo SDD](docs/04-sdd-workflow.md) |
+| Uso responsable de asistentes IA | [Capa agéntica y SDD](docs/ai/README.md) |
 | Pirámide y matriz de pruebas | [Arnés de pruebas](docs/05-test-harness.md) |
 | Métricas y operación | [Observabilidad](docs/06-observability.md) y [runbook](docs/07-runbook.md) |
 | Ramas, PRs, automatizaciones y tags | [Gobernanza Git](docs/08-git-governance.md) |

@@ -23,16 +23,19 @@ Si falta un eslabón, la tarea no está terminada aunque el código funcione loc
    aceptación.
 2. **Escribir la spec.** Parte de `docs/specs/template.md`; establece alcance,
    exclusiones, riesgos, pruebas y evidencia esperada.
-3. **Comprobar el Definition of Ready.** Si falta un dato o decisión, se crea una
+3. **Preparar el contexto de asistencia (opcional).** Si se usa IA, crear un paquete
+   en `docs/ai/task-packets/`, seleccionar un rol y aplicar la política de aprobación
+   humana. La salida es un borrador que debe evaluarse, nunca una autorización.
+4. **Comprobar el Definition of Ready.** Si falta un dato o decisión, se crea una
    tarea de descubrimiento o ADR; no se adivina.
-4. **Crear rama.** `feature/HRP-XX-resumen` desde `develop`.
-5. **Implementar en vertical.** Cambio mínimo + prueba + documentación juntos.
-6. **Ejecutar el arnés.** Pre-commit, pruebas unitarias y las integraciones que
+5. **Crear rama.** `feature/HRP-XX-resumen` desde `develop`.
+6. **Implementar en vertical.** Cambio mínimo + prueba + documentación juntos.
+7. **Ejecutar el arnés.** Pre-commit, pruebas unitarias y las integraciones que
    afecte la tarea.
-7. **Abrir PR.** Enlaza spec, evidencia, riesgos y tarea Jira.
-8. **Revisión de pares.** Otra persona revisa diseño, pruebas y operación; no solo
+8. **Abrir PR.** Enlaza spec, evidencia, riesgos y tarea Jira.
+9. **Revisión de pares.** Otra persona revisa diseño, pruebas y operación; no solo
    sintaxis.
-9. **Cerrar.** Tras merge y evidencia verificable, actualiza Jira con la plantilla
+10. **Cerrar.** Tras merge y evidencia verificable, actualiza Jira con la plantilla
    de HRP-22.
 
 ## Definition of Ready
