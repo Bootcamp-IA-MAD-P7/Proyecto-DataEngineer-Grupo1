@@ -34,19 +34,15 @@ def validate_spec(path: Path) -> list[str]:
         errors.append(f"{path}: heading must start with '# {jira_key}'")
 
     if f"**Jira:** {jira_key}" not in content:
-        errors.append(
-            f"{path}: missing matching '**Jira:** {jira_key}' metadata"
-        )
+        errors.append(f"{path}: missing matching '**Jira:** {jira_key}' metadata")
 
     if not any(section in content for section in OBJECTIVE_SECTIONS):
         errors.append(
-            f"{path}: missing required objective section "
-            "('## Objetivo' or '## Objective')"
+            f"{path}: missing required objective section ('## Objetivo' or '## Objective')"
         )
 
     acceptance_match = re.search(
-        r"^## (?:Criterios de aceptación|Acceptance criteria)\s*$"
-        r"(.*?)(?=^## |\Z)",
+        r"^## (?:Criterios de aceptación|Acceptance criteria)\s*$(.*?)(?=^## |\Z)",
         content,
         flags=re.MULTILINE | re.DOTALL,
     )
@@ -65,8 +61,7 @@ def validate_spec(path: Path) -> list[str]:
 
         if not has_checklist_item:
             errors.append(
-                f"{path}: acceptance criteria must contain "
-                "at least one checklist item"
+                f"{path}: acceptance criteria must contain at least one checklist item"
             )
 
     return errors
@@ -78,8 +73,7 @@ def main() -> int:
         "--root",
         type=Path,
         default=Path("docs/specs"),
-        help="directory containing HRP task specifications "
-        "(default: docs/specs)",
+        help="directory containing HRP task specifications (default: docs/specs)",
     )
     args = parser.parse_args()
 
@@ -87,30 +81,20 @@ def main() -> int:
         print(f"Specification directory not found: {args.root}")
         return 1
 
-    files = sorted(
-        path
-        for path in args.root.glob("HRP-*.md")
-        if path.is_file()
-    )
+    files = sorted(path for path in args.root.glob("HRP-*.md") if path.is_file())
 
     if not files:
         print(f"No HRP specifications found in {args.root}")
         return 1
 
-    errors = [
-        error
-        for path in files
-        for error in validate_spec(path)
-    ]
+    errors = [error for path in files for error in validate_spec(path)]
 
     if errors:
         print("Specification validation failed:")
         print("\n".join(f"- {error}" for error in errors))
         return 1
 
-    print(
-        f"Specification validation passed for {len(files)} file(s)."
-    )
+    print(f"Specification validation passed for {len(files)} file(s).")
     return 0
 
 
