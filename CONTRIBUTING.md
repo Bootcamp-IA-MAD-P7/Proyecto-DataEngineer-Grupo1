@@ -55,14 +55,14 @@ La distribución preferente es:
 
 | Área afectada | Responsable | Revisor recomendado |
 |---|---|---|
-| Gestión, Git, Docker, calidad, documentación | Miguel | Anahí, Gaby o Johans |
-| Kafka y MongoDB | Anahí | Gaby o Miguel |
-| ETL, Redis y monitorización | Gaby | Johans o Anahí |
-| PostgreSQL, API y frontend | Johans | Miguel o Gaby |
+| Gestión, Git, Docker, calidad, documentación | Miguel (`@miguelRedondoWeb`) | Anahí, Gaby o Johans |
+| Kafka y MongoDB | Anahí (`@anahi-am`) | Gaby o Miguel |
+| ETL, Redis y monitorización | Gaby (`@gabrielagranja`) | Johans o Anahí |
+| PostgreSQL, API y frontend | Johans (`@johans-salas`) | Miguel o Gaby |
 
 Una PR que cambia límites entre áreas debe tener, como mínimo, un revisor de cada
-área afectada. Los usuarios de GitHub no se automatizan con `CODEOWNERS` hasta que
-cada miembro confirme su identificador de GitHub.
+área afectada. `.github/CODEOWNERS` solicita automáticamente la revisión por rutas;
+la protección de `develop` debe exigir la revisión de propietarios de código.
 
 ## Reglas de datos y secretos
 

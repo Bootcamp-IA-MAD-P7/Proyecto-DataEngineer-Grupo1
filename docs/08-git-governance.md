@@ -22,8 +22,8 @@ feature/docs/fix/chore (HRP-XX) -> pull request + CI + revisión -> develop
 - Cada rama contiene una sola tarea Jira.
 - Las PRs se abren contra `develop`; no se fusionan por cuenta propia.
 - La protección de rama se activa en GitHub cuando el propietario de la organización
-  tenga permisos: PR obligatoria, una aprobación y workflows `quality` y
-  `PR governance` en verde.
+  tenga permisos: PR obligatoria, una aprobación, revisión de `CODEOWNERS` y
+  workflows `quality` y `PR governance` en verde.
 
 ## Automatizaciones activas
 
@@ -59,9 +59,12 @@ releases de GitHub ni modifica ramas.
 Un tag publicado es inmutable. Si aparece un error, se crea uno nuevo; no se mueve ni
 se sobrescribe el anterior.
 
-## CODEOWNERS, cuando se conozcan los usuarios
+## CODEOWNERS activo
 
-No se usan nombres personales como si fueran identificadores de GitHub. Cuando Miguel,
-Anahí, Gaby y Johans confirmen sus handles, se crea `.github/CODEOWNERS` para asignar
-revisión automática por rutas. Hasta entonces, la tabla de revisión de
-[CONTRIBUTING.md](../CONTRIBUTING.md) es la fuente de verdad.
+`.github/CODEOWNERS` está configurado con los handles confirmados: Miguel
+(`@miguelRedondoWeb`), Anahí (`@anahi-am`), Gaby (`@gabrielagranja`) y Johans
+(`@johans-salas`). GitHub solicitará automáticamente revisión según las rutas
+modificadas cuando se abra una PR.
+
+La organización debe activar **Require review from Code Owners** para convertir esa
+solicitud en requisito de merge.

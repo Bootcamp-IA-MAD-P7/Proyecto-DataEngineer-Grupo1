@@ -1,0 +1,28 @@
+# Revisión automática por área. La última regla aplicable gana.
+# Activa "Require review from Code Owners" en la protección de develop.
+
+# Coordinación, documentación, calidad, automatizaciones y despliegue
+* @miguelRedondoWeb
+/README.md @miguelRedondoWeb
+/CONTRIBUTING.md @miguelRedondoWeb
+/docs/ @miguelRedondoWeb
+/infra/ @miguelRedondoWeb
+/scripts/ @miguelRedondoWeb
+/.github/ @miguelRedondoWeb
+/pyproject.toml @miguelRedondoWeb
+/.pre-commit-config.yaml @miguelRedondoWeb
+
+# Ingesta y persistencia raw
+/src/hr_pro_platform/ingestion/ @anahi-am
+
+# Transformación, correlación, Redis y observabilidad
+/src/hr_pro_platform/transformation/ @gabrielagranja
+
+# API y presentación
+/src/hr_pro_platform/api/ @johans-salas
+
+# Almacenamiento: los cambios pueden afectar a MongoDB, Redis o PostgreSQL.
+/src/hr_pro_platform/storage/ @anahi-am @gabrielagranja @johans-salas
+
+# Cada propietario de área revisa sus pruebas; Miguel revisa las comunes de calidad.
+/tests/ @miguelRedondoWeb @anahi-am @gabrielagranja @johans-salas
