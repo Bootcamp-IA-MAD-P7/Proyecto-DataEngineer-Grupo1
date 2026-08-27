@@ -60,9 +60,7 @@ def validate_spec(path: Path) -> list[str]:
         )
 
         if not has_checklist_item:
-            errors.append(
-                f"{path}: acceptance criteria must contain at least one checklist item"
-            )
+            errors.append(f"{path}: acceptance criteria must contain at least one checklist item")
 
     return errors
 
