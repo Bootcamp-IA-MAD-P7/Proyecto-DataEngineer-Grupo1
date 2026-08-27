@@ -1,9 +1,9 @@
 # HRP-XX — Título de la tarea
 
-**Estado:** Borrador  
-**Responsable:**  
-**Jira:** HRP-XX  
-**Dependencias:**  
+**Estado:** Borrador
+**Responsable:**
+**Jira:** HRP-XX
+**Dependencias:**
 **ADR relacionada:**
 
 ## Objetivo

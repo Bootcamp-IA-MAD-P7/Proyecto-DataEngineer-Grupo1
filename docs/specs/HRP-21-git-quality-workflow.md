@@ -1,8 +1,8 @@
 # HRP-21 — Configurar ramas, pull requests y norma de commits
 
-**Estado:** Lista para implementar  
-**Responsable:** Miguel Redondo Núñez  
-**Jira:** HRP-21  
+**Estado:** Lista para implementar
+**Responsable:** Miguel Redondo Núñez
+**Jira:** HRP-21
 **Dependencia:** HRP-20 (finalizada)
 
 ## Objetivo

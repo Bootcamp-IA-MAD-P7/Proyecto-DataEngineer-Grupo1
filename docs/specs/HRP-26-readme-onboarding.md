@@ -1,8 +1,8 @@
 # HRP-26 — Crear README inicial con objetivo, tecnologías e instrucciones
 
-**Estado:** Lista para implementar  
-**Responsable:** Miguel Redondo Núñez  
-**Jira:** HRP-26  
+**Estado:** Lista para implementar
+**Responsable:** Miguel Redondo Núñez
+**Jira:** HRP-26
 **Dependencias:** HRP-23 y HRP-24
 
 ## Objetivo

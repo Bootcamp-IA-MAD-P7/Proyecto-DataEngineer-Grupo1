@@ -1,9 +1,9 @@
 # HRP-23 — Definir arquitectura del proyecto
 
-**Estado:** Lista para implementar  
-**Responsable:** Miguel Redondo Núñez  
-**Jira:** HRP-23  
-**Dependencias:** ninguna  
+**Estado:** Lista para implementar
+**Responsable:** Miguel Redondo Núñez
+**Jira:** HRP-23
+**Dependencias:** ninguna
 **ADRs:** 0001, 0002, 0003 y 0004
 
 ## Objetivo
@@ -37,4 +37,4 @@ mantienen dentro del repositorio:
 
 - Documento de arquitectura actualizado.
 - ADRs enlazadas.
-- Revisión de Persona 2, Persona 3 y Persona 4 sobre los límites de sus componentes.
+- Revisión de Anahí, Gaby y Johans sobre los límites de sus componentes.

@@ -1,0 +1,27 @@
+# Etiquetas para la acción manual o futura automatización de PR.
+# Deben existir una vez en el repositorio: area:docs, area:quality, area:ingestion,
+# area:storage, area:api e area:infra.
+
+"area:docs":
+  - changed-files:
+      - any-glob-to-any-file: ["README.md", "CONTRIBUTING.md", "docs/**"]
+
+"area:quality":
+  - changed-files:
+      - any-glob-to-any-file: ["tests/**", "pyproject.toml", ".pre-commit-config.yaml", ".github/**"]
+
+"area:ingestion":
+  - changed-files:
+      - any-glob-to-any-file: ["src/hr_pro_platform/ingestion/**"]
+
+"area:storage":
+  - changed-files:
+      - any-glob-to-any-file: ["src/hr_pro_platform/storage/**"]
+
+"area:api":
+  - changed-files:
+      - any-glob-to-any-file: ["src/hr_pro_platform/api/**"]
+
+"area:infra":
+  - changed-files:
+      - any-glob-to-any-file: ["infra/**", "docker-compose*.yml", "Dockerfile*"]

@@ -48,6 +48,22 @@ pytest
 Las pruebas de integración se añadirán cuando Docker Compose esté disponible. Si una
 prueba no aplica, debe explicarse en la PR, no silenciarse.
 
+## Revisión por áreas
+
+La persona responsable de una tarea propone la PR; la revisión la hace otra persona.
+La distribución preferente es:
+
+| Área afectada | Responsable | Revisor recomendado |
+|---|---|---|
+| Gestión, Git, Docker, calidad, documentación | Miguel | Anahí, Gaby o Johans |
+| Kafka y MongoDB | Anahí | Gaby o Miguel |
+| ETL, Redis y monitorización | Gaby | Johans o Anahí |
+| PostgreSQL, API y frontend | Johans | Miguel o Gaby |
+
+Una PR que cambia límites entre áreas debe tener, como mínimo, un revisor de cada
+área afectada. Los usuarios de GitHub no se automatizan con `CODEOWNERS` hasta que
+cada miembro confirme su identificador de GitHub.
+
 ## Reglas de datos y secretos
 
 - Nunca subas `.env`, credenciales, eventos completos capturados ni volúmenes Docker.

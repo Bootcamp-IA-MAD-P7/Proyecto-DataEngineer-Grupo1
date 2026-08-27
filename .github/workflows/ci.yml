@@ -6,6 +6,13 @@ on:
   push:
     branches: [develop]
 
+concurrency:
+  group: quality-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
 jobs:
   checks:
     runs-on: ubuntu-latest

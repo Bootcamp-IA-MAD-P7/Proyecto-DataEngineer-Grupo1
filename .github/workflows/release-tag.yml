@@ -1,0 +1,51 @@
+name: Create release tag
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Tag SemVer anotado (ejemplo: v0.1.0-foundation)"
+        required: true
+        type: string
+      target_ref:
+        description: "Commit o rama que representa el hito (normalmente develop)"
+        required: true
+        default: "develop"
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  tag:
+    name: Validate and create immutable tag
+    runs-on: ubuntu-latest
+    env:
+      TAG: ${{ inputs.tag }}
+      TARGET_REF: ${{ inputs.target_ref }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.target_ref }}
+          fetch-depth: 0
+
+      - name: Validate release request
+        shell: bash
+        run: |
+          if [[ ! "$TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+(-[a-z0-9.-]+)?$ ]]; then
+            echo "El tag debe seguir SemVer, por ejemplo v0.1.0-foundation o v1.0.0."
+            exit 1
+          fi
+          if git ls-remote --exit-code --tags origin "refs/tags/$TAG" >/dev/null 2>&1; then
+            echo "El tag $TAG ya existe y no puede sobrescribirse."
+            exit 1
+          fi
+          git rev-parse --verify "$TARGET_REF^{commit}" >/dev/null
+
+      - name: Create annotated tag
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git tag -a "$TAG" -m "Release milestone $TAG"
+          git push origin "$TAG"
