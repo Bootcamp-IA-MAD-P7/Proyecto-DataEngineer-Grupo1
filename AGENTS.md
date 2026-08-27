@@ -1,7 +1,6 @@
 # HR Pro Data Platform — AI Agent Entry Point
 
-This file follows the portable structure used by LIDR Specboot. It is the entry point
-for every coding assistant, regardless of the tool used.
+This file is the entry point for every coding assistant, regardless of the tool used.
 
 ## Read in this order before changing anything
 

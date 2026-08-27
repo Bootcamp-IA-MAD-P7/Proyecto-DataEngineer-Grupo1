@@ -108,9 +108,8 @@ pytest
 ```
 
 Lee la [guía de trabajo asistido por IA](docs/onboarding/ai-assisted-workflow.md)
-antes de iniciar una tarea. Incluye la instalación opcional de OpenSpec, prompts de
-inicio, implementación, revisión y cierre, y la política de no consultar el
-generador educativo.
+antes de iniciar una tarea. Incluye prompts de inicio, implementación, revisión y
+cierre, y la política de no consultar el generador educativo.
 
 ## Entorno Kafka educativo
 

@@ -17,7 +17,7 @@ arquitectura y el flujo de contribución sin recorrer el código.
 - [x] Enlaza la documentación operativa, SDD, specs, ADRs y dailies.
 - [x] Describe la rama de integración y la forma de iniciar una tarea.
 - [x] Define un punto de entrada común para Codex, Gemini y Claude, estándares
-      centralizados y roles/workflows de IA versionados con una adaptación de Specboot.
+      centralizados y roles/workflows de IA versionados.
 - [x] Añade instrucciones reproducibles para arrancar el entorno Kafka educativo
       autorizado, sin inspeccionar el generador ni versionar configuración local.
 

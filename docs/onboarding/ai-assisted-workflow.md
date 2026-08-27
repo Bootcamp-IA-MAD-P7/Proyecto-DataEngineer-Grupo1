@@ -1,8 +1,8 @@
 # Guía de trabajo asistido por IA
 
-Esta guía adopta la estructura de **LIDR Specboot** adaptada a HR Pro: una fuente
-única de estándares, roles reutilizables de IA y workflows versionados. La IA acelera
-el trabajo, pero nunca sustituye la revisión humana ni convierte supuestos en hechos.
+Esta guía define el trabajo asistido por IA en HR Pro: una fuente única de estándares,
+roles reutilizables y workflows versionados. La IA acelera el trabajo, pero nunca
+sustituye la revisión humana ni convierte supuestos en hechos.
 
 ## Estructura instalada
 
@@ -41,7 +41,6 @@ Instalar estas herramientas antes de clonar:
 | Python 3.11 | Aplicación y tests | Sí |
 | VS Code + extensión Python | Edición y terminal | Recomendada |
 | Docker Desktop | MongoDB, PostgreSQL y Redis | Instalar ya; usar desde Sprint 2 |
-| Node.js 20.19+ | Solo OpenSpec opcional | No |
 
 ## 2. Primera clonación y verificación
 
@@ -86,25 +85,16 @@ python -m pip install -e ".[dev]"
 
 Las herramientas Python de calidad se instalan con `.[dev]`; no hay que instalarlas una a una. Docker solo será necesario cuando una tarea use servicios locales.
 
-## 5. Specboot y OpenSpec: qué está instalado y qué es opcional
+## 5. Herramientas adicionales
 
-La capa Specboot ya está integrada y adaptada al proyecto: no hay que descargar ni
-copiar otra plantilla. Cada clon recibe `AGENTS.md`, `docs/` y `ai-specs/`.
+La capa de trabajo asistido ya está integrada en el repositorio. No hace falta
+instalar una plantilla, una extensión ni una herramienta adicional para seguir el
+método del equipo.
 
-OpenSpec añade comandos para gestionar cambios (`/ff`, `/apply`, `/verify`,
-`/adversarial-review`, `/archive`). Es opcional para este bootcamp y se instala una vez
-por ordenador, no una vez por rama. Requiere Node.js 20.19 o superior:
-
-```powershell
-node --version
-npm install -g @fission-ai/openspec@latest
-openspec --version
-```
-
-No ejecutar `openspec init` individualmente. Si se adopta, Miguel abrirá una única PR
-de integración, revisará los artefactos generados y dejará su configuración compartida.
-Hasta entonces, el workflow `ai-specs/skills/spec-driven-task/SKILL.md` es el flujo
-oficial y no depende de Node.js.
+Si en el futuro el equipo adopta una herramienta externa, se incorporará mediante una
+PR revisada. Hasta entonces, el flujo oficial es el descrito en
+`ai-specs/skills/spec-driven-task/SKILL.md`, las specs de tarea y los controles de
+calidad del repositorio.
 
 ## 6. Flujo obligatorio por tarea Jira
 
