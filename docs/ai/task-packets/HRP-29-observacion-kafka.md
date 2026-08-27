@@ -4,7 +4,7 @@
 **Responsable:** Anahí
 **Revisor humano:** Gaby
 **Jira:** HRP-29
-**Spec:** `docs/specs/HRP-29-*.md`
+**Spec:** `docs/specs/HRP-29-kafka-observation.md`
 **Rama prevista:** `feature/HRP-29-observacion-kafka`
 
 ## Resultado esperado
