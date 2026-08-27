@@ -1,10 +1,10 @@
 # Paquete de tarea — HRP-24
 
-**Estado:** Borrador  
-**Responsable:** Gaby  
-**Revisor humano:** Anahí  
-**Jira:** HRP-24  
-**Spec:** `docs/specs/HRP-24-*.md`  
+**Estado:** Borrador
+**Responsable:** Gaby
+**Revisor humano:** Anahí
+**Jira:** HRP-24
+**Spec:** `docs/specs/HRP-24-*.md`
 **Rama prevista:** `feature/HRP-24-contrato-datos`
 
 ## Resultado esperado
@@ -28,9 +28,9 @@ validación, marcando claramente los elementos pendientes.
 
 ## Petición al asistente
 
-**Rol:** Analista de spec.  
-**Pregunta concreta:** Con la evidencia HRP-29, ¿qué contrato mínimo permite validar y agrupar sin inventar semántica?  
-**Formato de salida esperado:** propuesta de criterios de aceptación y huecos abiertos.  
+**Rol:** Analista de spec.
+**Pregunta concreta:** Con la evidencia HRP-29, ¿qué contrato mínimo permite validar y agrupar sin inventar semántica?
+**Formato de salida esperado:** propuesta de criterios de aceptación y huecos abiertos.
 **Criterios con los que se evaluará:** rúbrica de `docs/ai/evaluation-rubric.md`, revisión Anahí y trazabilidad a HRP-29.
 
 ## Revisión humana del resultado
