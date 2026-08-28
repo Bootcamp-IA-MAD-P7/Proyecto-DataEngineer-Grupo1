@@ -1,5 +1,6 @@
 import os
 from pathlib import Path
+
 from dotenv import load_dotenv
 
 load_dotenv(Path(__file__).parent.parent.parent.parent / ".env")
@@ -8,7 +9,7 @@ load_dotenv(Path(__file__).parent.parent.parent.parent / ".env")
 def _require(var: str) -> str:
     value = os.getenv(var)
     if value is None:
-        raise EnvironmentError(f"Missing required environment variable: {var}")
+        raise OSError(f"Missing required environment variable: {var}")
     return value
 
 

@@ -1,6 +1,7 @@
 import json
 import signal
 
+import mongo
 from config import KAFKA_CONFIG, KAFKA_TOPICS
 from confluent_kafka import Consumer, KafkaError
 from error_handler import get_logger
@@ -38,31 +39,38 @@ def run_consumer():
     try:
         while running:
             try:
-                msg = consumer.poll(timeout=1.0)
+                messages = consumer.consume(num_messages=500, timeout=1.0)
 
-                if msg is None:
+                if not messages:
                     continue
 
-                if msg.error():
-                    _handle_kafka_error(msg)
-                    continue
+                valid = []
 
-                topic = msg.topic()
+                for msg in messages:
+                    if msg.error():
+                        _handle_kafka_error(msg)
+                        continue
 
-                try:
-                    data = json.loads(msg.value().decode("utf-8"))
-                except (json.JSONDecodeError, UnicodeDecodeError) as e:
-                    logger.warning(
-                        f"Could not deserialise | topic={topic} offset={msg.offset()} | {e}"
-                    )
-                    consumer.commit(message=msg)
-                    continue
+                    topic = msg.topic()
 
-                logger.info(f"Received | topic={topic} | offset={msg.offset()}")
+                    try:
+                        data = json.loads(msg.value().decode("utf-8"))
+                    except (json.JSONDecodeError, UnicodeDecodeError) as e:
+                        logger.warning(
+                            f"Could not deserialise | topic={topic} offset={msg.offset()} | {e}"
+                        )
+                        consumer.commit(message=msg)
+                        continue
 
-                msg_count += 1
-                if msg_count % 1000 == 0:
-                    logger.info(f"Heartbeat | {msg_count} messages processed")
+                    valid.append((topic, data, msg))
+
+                if valid:
+                    mongo.insert_many_fragments(valid)
+                    consumer.commit(message=valid[-1][2])
+                    logger.info(f"Batch saved | {len(valid)} messages")
+                    msg_count += len(valid)
+                    if msg_count % 1000 == 0:
+                        logger.info(f"Heartbeat | {msg_count} messages processed")
 
             except Exception as e:
                 logger.error(f"Unexpected error: {e}")
