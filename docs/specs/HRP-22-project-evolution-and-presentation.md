@@ -56,8 +56,9 @@ validated in CI without starting services.
 
 ## Completion evidence
 
-- Branch / PR: `feature/HRP-22-project-evolution-readme` / pending.
-- Commit: pending.
+- Branch / PR: `feature/HRP-22-project-evolution-readme` /
+  [PR #15](https://github.com/Bootcamp-IA-MAD-P7/Proyecto-DataEngineer-Grupo1/pull/15).
+- Primary commit: `e96d841`.
 - Commands and result: pre-commit, spec validation, Ruff lint/format, mypy, pytest and
   Compose configuration passed locally; 7 tests passed with 78.50% measured coverage.
 - Jira closing comment: HRP-22 remains open because board and documentation maintenance

@@ -28,7 +28,9 @@ solo está iniciado.
   reutilizables sin copiar código ni convertirlo en dependencia.
 - Preparó un umbral inicial de cobertura, validación de Compose en CI, ADR de
   confirmación Kafka y persistencia raw, DAFO evolutivo y renovación del README.
-- Siguiente paso: abrir PR de HRP-22 y solicitar revisión humana.
+- Abrió la PR #15 de HRP-22 con los checks en verde y solicitó revisión humana a Gaby.
+- Siguiente paso: revisar observaciones, integrar cuando exista aprobación y mantener
+  HRP-22 abierta como responsabilidad continua de tablero y documentación.
 
 ### Anahí — ingesta y almacenamiento raw
 
@@ -100,4 +102,3 @@ solo está iniciado.
 - Gaby presenta la propuesta de clasificación de HRP-43 con pruebas de casos ambiguos.
 - Johans presenta el modelo lógico de HRP-25 y sus decisiones pendientes.
 - Miguel revisa que los tres cambios respeten contrato, ADRs, checks y trazabilidad Jira.
-

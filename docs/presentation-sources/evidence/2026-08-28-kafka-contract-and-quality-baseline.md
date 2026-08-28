@@ -12,6 +12,7 @@
 | PR #14 / HRP-31 | Consumer continuo validado contra Kafka autorizado | No demuestra persistencia ni ETL |
 | Suite local | 7 tests, 79 % de cobertura de línea | No incluye aún integración MongoDB |
 | Compose de desarrollo | MongoDB local reproducible y aislado | Disponibilidad no equivale a persistencia correcta |
+| PR #15 | Quality gate, ADR, benchmark, DAFO, daily y README renovado | Pendiente de aprobación y merge |
 
 ## Evolución de arquitectura
 
@@ -35,4 +36,3 @@ ausencia de CI visible, confirmación insegura de Kafka y mezcla de responsabili
 - Checks de CI y resultados agregados de tests.
 
 No incluir payloads, valores de campos, secretos, `.env` ni código del generador.
-
