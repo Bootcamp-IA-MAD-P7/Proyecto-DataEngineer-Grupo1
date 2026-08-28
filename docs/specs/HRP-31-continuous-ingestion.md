@@ -42,10 +42,11 @@ cuerpo de ningún mensaje.
 - [x] Un error de polling recuperable no interrumpe el bucle.
 - [x] El cierre controlado invoca `consumer.close()`.
 - [x] La configuración de broker, grupo y topics procede del entorno.
-- [ ] Una validación manual contra el broker autorizado recibe mensajes desde el
+- [x] Una validación manual contra el broker autorizado recibe mensajes desde el
       topic configurado sin mostrar payloads.
-- [ ] Las comprobaciones de calidad aplicables pasan en la rama de integración.
-- [ ] La evidencia de ejecución y el comentario de cierre se registran en Jira.
+- [x] Las comprobaciones de calidad aplicables pasan en la rama de integración.
+- [x] La evidencia de ejecución se registra en Jira; queda pendiente la revisión
+      humana antes del cierre.
 
 ## Estrategia de pruebas
 
@@ -60,8 +61,9 @@ cuerpo de ningún mensaje.
 
 - Rama / PR: `feature/HRP-31-continuous-ingestion` / pendiente.
 - Commit: pendiente.
-- Validación manual inicial (2026-08-28): el consumer arrancó y se suscribió a un
-  topic configurado; el motor Linux de Docker Desktop no estaba disponible, por lo
-  que no se pudo validar recepción contra el broker. No se registraron payloads.
-- Pendiente: arrancar el runtime Kafka autorizado, repetir la prueba manual y
-  registrar solo el resultado técnico en Jira.
+- Validación manual (2026-08-28): con el runtime Kafka autorizado disponible en
+  `localhost:29092` y `KAFKA_TOPICS=probando` en entorno local no versionado, el
+  consumer recibió mensajes durante una ventana acotada, emitió exclusivamente
+  metadatos técnicos y se cerró correctamente. No se registraron payloads ni valores
+  de mensajes.
+- Pendiente: revisión humana de la PR y cierre formal de Jira.
