@@ -15,7 +15,7 @@ exception handler that hides a failed raw write and lets the consumer commit cre
 the same risk. Conversely, refusing to acknowledge an already persisted event can
 create an endless redelivery loop unless raw persistence is idempotent.
 
-## Decision
+## Proposed decision
 
 1. The raw envelope preserves the decoded JSON object without canonicalising its field
    names or values and adds `topic`, `partition`, `offset` and `received_at`.
@@ -30,7 +30,7 @@ create an endless redelivery loop unless raw persistence is idempotent.
 6. Batch writers return the exact coordinates durably persisted before the caller can
    advance the committed offset.
 
-## Consequences
+## Expected consequences if accepted
 
 - The raw path provides at-least-once delivery with idempotent storage.
 - Reprocessing can start from MongoDB without reading the educational producer.
@@ -45,3 +45,11 @@ create an endless redelivery loop unless raw persistence is idempotent.
 - A successful insert permits a commit.
 - Logs contain transport metadata and error type, never payload values.
 - Restarting the worker does not produce observable loss or duplicate raw events.
+
+## Acceptance gate
+
+The status may change from `Proposed` to `Accepted` only after HRP-34 provides the
+required failure-path and idempotency evidence and a peer reviewer explicitly approves
+the ingestion/storage boundary. The review reference and date must be added here when
+that happens. Until then, surrounding documentation must describe this policy as a
+proposal rather than an implemented invariant.

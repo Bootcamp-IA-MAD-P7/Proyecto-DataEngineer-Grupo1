@@ -40,8 +40,9 @@ flowchart LR
    `offset`.
 2. El worker de ingesta añade la fecha de recepción y persiste el payload sin mutarlo
    en MongoDB. Un índice único técnico hace la operación idempotente.
-   Kafka solo confirma el mensaje cuando MongoDB informa de una inserción correcta o
-   de que esas mismas coordenadas técnicas ya estaban persistidas.
+   ADR-0005 propone confirmar Kafka solo cuando MongoDB informe de una inserción
+   correcta o de que esas mismas coordenadas ya estaban persistidas. HRP-34 debe
+   validar esta política antes de convertirla en invariante.
 3. El worker de proceso recupera o recibe el evento raw, lo clasifica según el
    contrato validado y registra errores de validación sin detener la ingesta.
 4. Redis guarda únicamente fragmentos necesarios para completar una persona y expira
@@ -71,14 +72,15 @@ flowchart LR
 - Los nombres raw proceden de la evidencia HRP-29 y no se normalizan por intuición;
   la clave final de correlación sigue pendiente de aprobación.
 
-## Límite de confirmación Kafka y persistencia raw
+## Límite propuesto de confirmación Kafka y persistencia raw
 
-La confirmación de Kafka forma parte del contrato entre ingesta y el repositorio raw,
-no de la transformación posterior. El repositorio devuelve las coordenadas realmente
-persistidas y el consumer confirma únicamente esas lecturas. Un fallo de MongoDB deja
-el offset sin confirmar para permitir su reentrega; una colisión con el índice único
-se considera una persistencia ya realizada y sí permite confirmarlo. Clasificación,
-validación de negocio y ETL se ejecutan después de este límite durable.
+Esta política está **propuesta, no aprobada**. ADR-0005 plantea que la confirmación de
+Kafka forme parte del contrato entre ingesta y el repositorio raw, no de la
+transformación posterior. El repositorio devolvería las coordenadas realmente
+persistidas y el consumer confirmaría únicamente esas lecturas. Un fallo de MongoDB
+dejaría el offset sin confirmar; una colisión con el índice único podría considerarse
+una persistencia ya realizada. HRP-34 debe aportar pruebas y revisión de pares antes de
+adoptar este límite como invariante.
 
 La decisión y sus consecuencias están registradas en
 [ADR-0005](adr/0005-kafka-acknowledgement-after-raw-persistence.md).
@@ -109,5 +111,5 @@ La decisión y sus consecuencias están registradas en
 - [ADR-0002](adr/0002-raw-and-curated-storage.md): datos raw y curados separados.
 - [ADR-0003](adr/0003-evidence-first-data-contract.md): contrato basado en evidencia.
 - [ADR-0004](adr/0004-configuration-and-secrets.md): configuración y secretos externos.
-- [ADR-0005](adr/0005-kafka-acknowledgement-after-raw-persistence.md): confirmación Kafka
-  después de persistir raw.
+- [ADR-0005](adr/0005-kafka-acknowledgement-after-raw-persistence.md): propuesta de
+  confirmación Kafka después de persistir raw; pendiente de HRP-34.

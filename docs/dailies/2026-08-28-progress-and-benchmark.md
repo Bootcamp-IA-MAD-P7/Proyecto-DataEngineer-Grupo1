@@ -26,8 +26,9 @@ solo está iniciado.
 - Cerró la trazabilidad de HRP-31 tras revisión y merge de la PR #14.
 - Comparó la arquitectura con un proyecto educativo de referencia para extraer patrones
   reutilizables sin copiar código ni convertirlo en dependencia.
-- Preparó un umbral inicial de cobertura, validación de Compose en CI, ADR de
-  confirmación Kafka y persistencia raw, DAFO evolutivo y renovación del README.
+- Preparó un umbral inicial de cobertura, validación de Compose en CI, la propuesta
+  ADR-0005 sobre confirmación Kafka y persistencia raw, el DAFO evolutivo y la
+  renovación del README.
 - Abrió la PR #15 de HRP-22 con los checks en verde y solicitó revisión humana a Gaby.
 - Siguiente paso: revisar observaciones, integrar cuando exista aprobación y mantener
   HRP-22 abierta como responsabilidad continua de tablero y documentación.
@@ -36,8 +37,8 @@ solo está iniciado.
 
 - HRP-30 y HRP-31 están terminadas: existe un consumer configurable, con logs
   exclusivamente técnicos, cierre limpio y validación real de ejecución continua.
-- HRP-34 está en curso y dispone ahora de un contrato técnico más claro para guardar
-  payload y metadatos Kafka sin confirmar offsets antes de tiempo.
+- HRP-34 está en curso y dispone de una propuesta técnica revisable para guardar
+  payload y metadatos Kafka. Debe validar con pruebas cuándo confirmar offsets.
 - Su PR de trabajo acumulado permanece separada y no se altera desde esta tarea.
 - Siguiente paso: implementar el repositorio raw mínimo y demostrar idempotencia.
 
@@ -46,10 +47,10 @@ solo está iniciado.
 - HRP-24 está terminada y versionada con cinco variantes estructurales neutrales,
   campos observados y límites explícitos de la evidencia.
 - Revisó el límite de HRP-31 para evitar que ingesta invada transformación o ETL.
-- HRP-43 está en curso: debe convertir evidencia en una decisión de clasificación
-  revisable, sin usar coincidencias parciales ambiguas como regla de negocio.
-- Siguiente paso: proponer clasificación y casos de prueba a partir del contrato
-  aprobado, manteniendo la correlación como incógnita si no hay evidencia suficiente.
+- HRP-43 está en curso y corresponde a la correlación de fragmentos de una persona;
+  no es la tarea de clasificación.
+- Siguiente paso: proponer y probar una regla de correlación sin mezclar personas. La
+  clasificación corresponde a HRP-44 y la validación/limpieza a HRP-45.
 
 ### Johans — modelo relacional y capa de consulta
 
@@ -60,10 +61,11 @@ solo está iniciado.
 - Siguiente paso: presentar modelo lógico, restricciones, índices y decisiones
   pendientes para revisión de Gaby y Miguel.
 
-## Decisiones de hoy
+## Decisiones y propuestas de hoy
 
-1. Kafka solo podrá confirmar un mensaje cuando MongoDB haya insertado el raw o
-   demuestre que esas coordenadas ya existían.
+1. ADR-0005 propone que Kafka solo pueda confirmar un mensaje cuando MongoDB haya
+   insertado el raw o demuestre que esas coordenadas ya existían. Sigue pendiente de
+   validación y revisión mediante HRP-34.
 2. El mínimo raw conserva `payload`, `topic`, `partition`, `offset`, `received_at` y
    un estado técnico; no renombra campos ni añade semántica de negocio.
 3. La cobertura empieza con un suelo del 75 % y evolucionará al alza. No sustituye
@@ -77,8 +79,9 @@ solo está iniciado.
 
 | Riesgo | Impacto | Responsable | Próxima acción |
 |---|---|---|---|
-| Confirmar Kafka antes de persistir | Pérdida silenciosa de eventos | Miguel + Anahí | Aplicar ADR-0005 en HRP-34/35/36 |
-| Clasificar por coincidencia parcial | Mezcla incorrecta de fragmentos | Gaby | Definir reglas exactas y tests en HRP-43 |
+| Confirmar Kafka antes de persistir | Pérdida silenciosa de eventos | Miguel + Anahí | Validar ADR-0005 con pruebas en HRP-34 |
+| Correlacionar por coincidencia débil | Mezcla de personas distintas | Gaby | Definir regla y tests en HRP-43 |
+| Clasificar por coincidencia parcial | Tipo de fragmento incorrecto | Gaby | Definir reglas exactas y tests en HRP-44 |
 | Diseñar SQL con correlación supuesta | Modelo curado difícil de corregir | Johans | Marcar clave final como pendiente en HRP-25 |
 | PRs demasiado amplias | Conflictos y revisiones bloqueantes | Todo el equipo | Una historia y un objetivo principal por PR |
 | Documentación adelantada al código | Presentación no demostrable | Miguel | Mantener matriz de capacidad y DAFO con evidencia |
@@ -99,6 +102,7 @@ solo está iniciado.
 ## Próxima sincronización
 
 - Anahí presenta el cambio mínimo de HRP-34 con idempotencia y resultado de persistencia.
-- Gaby presenta la propuesta de clasificación de HRP-43 con pruebas de casos ambiguos.
+- Gaby presenta la propuesta de correlación de HRP-43 con pruebas de casos ambiguos;
+  HRP-44 abordará clasificación y HRP-45 validación/limpieza.
 - Johans presenta el modelo lógico de HRP-25 y sus decisiones pendientes.
 - Miguel revisa que los tres cambios respeten contrato, ADRs, checks y trazabilidad Jira.

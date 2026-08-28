@@ -41,8 +41,10 @@ generador y sin versionar datos personales.
 | Consumer configurable | Completado | HRP-30, tests unitarios y configuración por entorno | No persiste ni transforma payloads |
 | Consumo continuo | Completado | HRP-31, integrada mediante PR #14 | Validación de runtime, no prueba E2E |
 | MongoDB local | Disponible | HRP-33 y `infra/compose.dev.yml` | El `ping` no demuestra persistencia raw |
-| Persistencia raw | En curso | HRP-34 | Falta integrar idempotencia y confirmación Kafka |
-| Clasificación ETL | En curso | HRP-43 | Las variantes aún son etiquetas neutrales |
+| Persistencia raw | En curso | HRP-34 | Debe validar idempotencia y la propuesta de confirmación Kafka |
+| Correlación de fragmentos | En curso | HRP-43 | La clave de persona aún no está aprobada |
+| Clasificación de variantes | Planificada | HRP-44 | Las variantes A–E siguen siendo etiquetas neutrales |
+| Validación y limpieza | Planificada | HRP-45 | Reglas de negocio y normalización pendientes |
 | Modelo PostgreSQL | En curso | HRP-25 | La clave de persona no está aprobada |
 | Pipeline completo | Pendiente | — | No debe presentarse todavía como funcional |
 
@@ -88,16 +90,19 @@ flowchart LR
     class R,P,A,U,O planned;
 ```
 
-### Invariante de seguridad del dato
+### Propuesta de seguridad del dato — pendiente de validación
 
-El consumer no debe confirmar un offset solo por haber recibido el mensaje. Kafka se
-confirma después de que MongoDB:
+ADR-0005 propone que el consumer no confirme un offset solo por haber recibido el
+mensaje. Si HRP-34 valida la decisión con pruebas, Kafka se confirmará después de que
+MongoDB:
 
 - inserte el documento raw, o
 - demuestre que ese mismo `topic + partition + offset` ya estaba persistido.
 
-Si MongoDB falla, el offset queda sin confirmar y Kafka puede volver a entregar el
-evento. Esta decisión evita pérdida silenciosa y está formalizada en
+Según la propuesta, un fallo de MongoDB dejaría el offset sin confirmar para permitir
+la reentrega. La política pretende evitar pérdida silenciosa, pero todavía no es un
+invariante aprobado: requiere evidencia y revisión junto con HRP-34. El estado y la
+condición de aceptación viven en
 [ADR-0005](docs/adr/0005-kafka-acknowledgement-after-raw-persistence.md).
 
 ### Sobre raw mínimo
@@ -113,8 +118,9 @@ evento. Esta decisión evita pérdida silenciosa y está formalizada en
 }
 ```
 
-El ejemplo expresa estructura, no datos reales. La combinación
-`topic + partition + offset` tendrá un índice único para garantizar idempotencia.
+El ejemplo expresa la propuesta de estructura, no datos reales. La combinación
+`topic + partition + offset` deberá validarse como índice único en HRP-34 antes de
+considerar aprobada la política de idempotencia.
 
 ## Evidencia Kafka disponible
 
@@ -334,21 +340,23 @@ en límites de componentes se revisan con el área afectada.
 
 1. **Kafka -> MongoDB raw.** Implementar HRP-34/35/36/37 con índice único, manejo de
    fallos y confirmación posterior a persistencia.
-2. **Raw -> fragmentos clasificados.** Resolver HRP-43 y validaciones con reglas
-   exactas respaldadas por contrato y fixtures sanitizados.
-3. **Fragmentos -> persona curada.** Aprobar correlación, gestionar orden e
+2. **Correlación de fragmentos.** Resolver HRP-43 con evidencia y casos que impidan
+   mezclar personas distintas.
+3. **Clasificación y calidad.** Resolver HRP-44 para clasificar las variantes y HRP-45
+   para validarlas y limpiarlas con reglas exactas y fixtures sanitizados.
+4. **Fragmentos -> persona curada.** Gestionar orden e
    incompletitud y publicar mediante upsert en PostgreSQL.
-4. **Operación reproducible.** Completar Compose de aplicación, logs estructurados,
+5. **Operación reproducible.** Completar Compose de aplicación, logs estructurados,
    integración y E2E.
-5. **Observabilidad y producto.** Añadir Redis, Prometheus, API y Streamlit cuando el
+6. **Observabilidad y producto.** Añadir Redis, Prometheus, API y Streamlit cuando el
    flujo esencial ya tenga una referencia estable.
 
 ## Diferenciales del proyecto
 
 - **Evidence-first:** el contrato nace del broker observado, no de conocer el
   generador ni de adivinar nombres.
-- **Pérdida de datos tratada como decisión arquitectónica:** el límite de confirmación
-  Kafka queda diseñado antes de implementar MongoDB.
+- **Pérdida de datos tratada antes de implementar:** el límite de confirmación Kafka
+  se formula como propuesta revisable y solo se aprobará con evidencia de HRP-34.
 - **Documentación ejecutable:** specs, tests y CI reducen la distancia entre lo escrito
   y lo que realmente puede demostrarse.
 - **Asistencia IA supervisada:** todos usan el mismo contexto, restricciones y criterios,

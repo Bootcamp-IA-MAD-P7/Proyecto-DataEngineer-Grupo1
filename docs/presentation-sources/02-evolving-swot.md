@@ -16,7 +16,8 @@ Este resumen está preparado para diapositivas. La fuente técnica canónica es
 
 - El pipeline esencial aún no persiste en MongoDB ni publica en PostgreSQL.
 - Solo hay 7 tests y todavía no existen pruebas de integración de almacenamiento.
-- La correlación de los cinco fragmentos de una persona sigue sin aprobarse.
+- La correlación de HRP-43, la clasificación de HRP-44 y la validación/limpieza de
+  HRP-45 siguen sin aprobarse.
 - Parte del trabajo previo llegó en PRs con más de una historia y generó conflictos.
 
 ### Oportunidades

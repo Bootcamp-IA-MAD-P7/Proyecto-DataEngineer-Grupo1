@@ -32,10 +32,11 @@ Todos los componentes emiten logs y métricas para Prometheus.
 | Prometheus | Observabilidad | Mide volumen, latencia y errores |
 | FastAPI + Streamlit | Consulta y demo | Hace visible el valor final |
 
-## Invariantes que se demuestran
+## Invariantes objetivo y propuestas pendientes
 
 - El evento raw se persiste antes de transformarse.
-- Kafka se confirma después de insertar raw o reconocer un duplicado técnico.
+- ADR-0005 propone confirmar Kafka después de insertar raw o reconocer un duplicado
+  técnico; HRP-34 debe validarlo antes de considerarlo un invariante demostrado.
 - Reprocesar el mismo evento no duplica información.
 - Un mensaje erróneo no detiene la ingesta.
 - Redis no es fuente de verdad y sus datos expiran.

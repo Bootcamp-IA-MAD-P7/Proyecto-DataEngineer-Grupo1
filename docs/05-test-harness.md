@@ -51,7 +51,7 @@ de guardrails mientras las guías y sensores actuales sean suficientes.
 | H-08 | Reinicio del worker | E2E | Sin duplicados ni pérdida observable |
 | H-09 | Falla MongoDB/PostgreSQL transitoria | Integración | Reintento/registro y métrica |
 | H-10 | Carga sostenida de fixtures | Carga | Métricas de consumo y latencia |
-| H-11 | MongoDB falla antes de persistir | Integración | El offset Kafka no se confirma |
+| H-11 | MongoDB falla antes de persistir | Integración prevista para HRP-34 | La propuesta ADR-0005 impide confirmar el offset |
 
 ## Convención de nombres
 

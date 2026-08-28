@@ -10,7 +10,7 @@ Colecciones previstas:
 
 Índice técnico previsto para evitar duplicados: `topic + partition + offset`.
 
-Sobre mínimo del documento raw:
+Sobre mínimo propuesto del documento raw:
 
 | Campo | Tipo | Propósito |
 |---|---|---|
@@ -21,9 +21,11 @@ Sobre mínimo del documento raw:
 | `received_at` | datetime UTC | Momento de recepción en la plataforma |
 | `processing_status` | string técnico | Estado operativo, no clasificación de negocio |
 
-El índice compuesto debe ser único. La confirmación del offset solo ocurre tras una
-inserción correcta o cuando MongoDB demuestra que las mismas coordenadas ya existen.
-HRP-34, HRP-35 y HRP-36 implementarán este contrato conforme a
+ADR-0005 propone que el índice compuesto sea único y que la confirmación del offset
+solo ocurra tras una inserción correcta o cuando MongoDB demuestre que las mismas
+coordenadas ya existen. HRP-34 debe validar este diseño con pruebas antes de que la
+propuesta pueda aceptarse; HRP-35 y HRP-36 deberán respetar la decisión finalmente
+aprobada. Véase
 [ADR-0005](adr/0005-kafka-acknowledgement-after-raw-persistence.md).
 
 ## PostgreSQL: zona curada
