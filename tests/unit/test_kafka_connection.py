@@ -1,52 +1,41 @@
-import json
-from confluent_kafka import Consumer, KafkaError
+import pytest
 
-c = Consumer(
-    {
-        "bootstrap.servers": "localhost:9092",
-        "group.id": "explorer-tmp",
-        "auto.offset.reset": "earliest",
-    }
-)
+from hr_pro_platform.ingestion.detector import detect_topic
 
-c.subscribe(
+
+@pytest.mark.parametrize(
+    ("fields", "expected"),
     [
-        "personal-data",
-        "location",
-        "professional-data",
-        "bank-data",
-        "net-data",
-    ]
+        ({"IBAN": "", "passport": "", "salary": ""}, "bank-data"),
+        (
+            {
+                "company": "",
+                "company address": "",
+                "company_email": "",
+                "company_telfnumber": "",
+                "fullname": "",
+                "job": "",
+            },
+            "professional-data",
+        ),
+        ({"address": "", "city": "", "fullname": ""}, "location"),
+        (
+            {
+                "email": "",
+                "last_name": "",
+                "name": "",
+                "passport": "",
+                "sex": [],
+                "telfnumber": "",
+            },
+            "personal-data",
+        ),
+        ({"IPv4": "", "address": ""}, "net-data"),
+    ],
 )
+def test_detect_topic_uses_observed_field_names(fields: dict[str, object], expected: str) -> None:
+    assert detect_topic(fields) == expected
 
-print("Reading messages... Ctrl+C to stop\n")
 
-try:
-    count = 0
-    while count < 30:
-        msg = c.poll(timeout=5.0)
-
-        if msg is None:
-            print("No message in 5 seconds — is Kafka running?")
-            continue
-
-        if msg.error():
-            if msg.error().code() == KafkaError._PARTITION_EOF:
-                print(f"End of partition: {msg.topic()} [{msg.partition()}]")
-            else:
-                print(f"Error: {msg.error()}")
-            continue
-
-        data = json.loads(msg.value().decode("utf-8"))
-
-        print(f"TOPIC:     {msg.topic()}")
-        print(f"PARTITION: {msg.partition()}")
-        print(f"OFFSET:    {msg.offset()}")
-        print(f"DATA:      {json.dumps(data, indent=2)}")
-        print("---")
-
-        count += 1
-
-finally:
-    c.close()
-    print("Done.")
+def test_detect_topic_returns_none_for_unknown_structure() -> None:
+    assert detect_topic({"unknown": ""}) is None
