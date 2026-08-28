@@ -42,4 +42,3 @@ Este resumen está preparado para diapositivas. La fuente técnica canónica es
 | Nivel medio | Operación manual | Stack Docker, logs y tests de integración |
 | Nivel avanzado | Sin visibilidad de rendimiento | Redis, Prometheus y API medidos |
 | Nivel experto | Sin experiencia de consulta | Pipeline continuo y frontend demostrable |
-
