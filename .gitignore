@@ -27,6 +27,9 @@ uv.lock
 .DS_Store
 Thumbs.db
 
+# Project config
+AGENTS.md
+
 # Runtime data
 data/
 logs/

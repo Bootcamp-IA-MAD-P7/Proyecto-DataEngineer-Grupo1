@@ -69,8 +69,9 @@ def run_consumer():
                     consumer.commit(message=valid[-1][2])
                     logger.info(f"Batch saved | {len(valid)} messages")
                     msg_count += len(valid)
-                    if msg_count % 1000 == 0:
+                    if msg_count >= 1000:
                         logger.info(f"Heartbeat | {msg_count} messages processed")
+                        msg_count = 0
 
             except Exception as e:
                 logger.error(f"Unexpected error: {e}")
