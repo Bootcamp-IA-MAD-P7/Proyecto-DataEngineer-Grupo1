@@ -20,7 +20,8 @@ Ejemplos:
 - **Implementada**: enlaza código/PR y evidencia de validación.
 - **Sustituida**: referencia la spec o ADR que la reemplaza.
 
-No se usa una spec como sustituto de la observación real. En especial, el contrato de
-Kafka seguirá siendo provisional hasta que HRP-29 aporte evidencia obtenida del broker.
+No se usa una spec como sustituto de la observación real. HRP-29 ya aportó evidencia
+obtenida del broker; el contrato Kafka sigue siendo provisional por el alcance acotado
+de esa observación y debe mantener explícitas las incógnitas no demostradas.
 
 Usa [la plantilla](template.md) para nuevas tareas.
