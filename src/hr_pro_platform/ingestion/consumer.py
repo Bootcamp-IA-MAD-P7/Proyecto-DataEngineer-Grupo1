@@ -1,7 +1,8 @@
 import json
 import signal
-from confluent_kafka import Consumer, KafkaError
+
 from config import KAFKA_CONFIG, KAFKA_TOPICS
+from confluent_kafka import Consumer, KafkaError
 from error_handler import get_logger
 
 logger = get_logger("consumer")
@@ -54,6 +55,7 @@ def run_consumer():
                     logger.warning(
                         f"Could not deserialise | topic={topic} offset={msg.offset()} | {e}"
                     )
+                    consumer.commit(message=msg)
                     continue
 
                 logger.info(f"Received | topic={topic} | offset={msg.offset()}")
