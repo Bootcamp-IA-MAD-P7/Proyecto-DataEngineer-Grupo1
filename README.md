@@ -1,155 +1,207 @@
 # HR Pro Data Platform
 
-Plataforma de datos de RR. HH. en tiempo real. Consume eventos publicados en Kafka,
-conserva el evento original en MongoDB y publica una vista integrada, trazable e
-idempotente en PostgreSQL. Redis, métricas, API y frontend se incorporan en los
-sprints posteriores definidos en Jira.
+Plataforma de ingeniería de datos en tiempo real para convertir eventos heterogéneos
+de RR. HH. en información trazable, integrada y consultable. El proyecto conserva la
+evidencia original en MongoDB, construye una vista curada en PostgreSQL y evoluciona
+por niveles hasta ofrecer monitorización, API y frontend.
 
 [![Quality](https://github.com/Bootcamp-IA-MAD-P7/Proyecto-DataEngineer-Grupo1/actions/workflows/ci.yml/badge.svg?branch=develop)](https://github.com/Bootcamp-IA-MAD-P7/Proyecto-DataEngineer-Grupo1/actions/workflows/ci.yml)
 [![PR governance](https://github.com/Bootcamp-IA-MAD-P7/Proyecto-DataEngineer-Grupo1/actions/workflows/pr-governance.yml/badge.svg?branch=develop)](https://github.com/Bootcamp-IA-MAD-P7/Proyecto-DataEngineer-Grupo1/actions/workflows/pr-governance.yml)
-![Sprint 1](https://img.shields.io/badge/Sprint%201-active-F59E0B)
-![Integration branch](https://img.shields.io/badge/integration-develop-2563EB)
+[![Python 3.11](https://img.shields.io/badge/Python-3.11-3776AB)](pyproject.toml)
+[![Integration branch](https://img.shields.io/badge/integration-develop-2563EB)](https://github.com/Bootcamp-IA-MAD-P7/Proyecto-DataEngineer-Grupo1/tree/develop)
+[![SDD](https://img.shields.io/badge/delivery-SDD-6D28D9)](docs/04-sdd-workflow.md)
+[![Briefing level](https://img.shields.io/badge/briefing-Essential%20in%20progress-D97706)](#estado-frente-al-briefing)
 
-> **Objetivo de producto.** Convertir eventos heterogéneos de RR. HH. en datos
-> consultables, sin perder el evento original, sin exponer datos sensibles y sin
-> asumir significado donde todavía solo existe evidencia técnica.
+> Convertimos evidencia de Kafka en contratos, contratos en software comprobable y
+> software comprobable en una demo que puede explicarse de principio a fin.
 
-## Qué aporta la plataforma
+## Resumen ejecutivo
 
-| Capacidad | Decisión de diseño | Valor para HR Pro |
-|---|---|---|
-| Ingesta en tiempo real | Consumer configurable, desacoplado del productor educativo | Entrada continua y portable de eventos |
-| Trazabilidad | Evento original conservado en MongoDB | Posibilidad de auditar y reprocesar sin alterar la fuente |
-| Integración de perfiles | Correlación temporal y transformación controlada | Una visión unificada por persona cuando el contrato lo permita |
-| Consulta operativa | PostgreSQL, API y frontend en fases posteriores | Datos preparados para análisis y consultas de negocio |
-| Operación segura | Configuración por entorno, logs técnicos y calidad automatizada | Menos riesgo de exponer PII, secretos o payloads completos |
+HR Pro necesita unificar cinco tipos de información que llegan de forma fragmentada:
+datos personales, ubicación, información profesional, bancaria y de red. La solución
+se diseña como un flujo continuo y recuperable:
 
-## Entrega por niveles del briefing
+1. Kafka transporta los eventos producidos por el entorno educativo externo.
+2. El worker de ingesta conserva cada mensaje original y sus metadatos en MongoDB.
+3. El proceso ETL clasifica, valida y agrupa fragmentos sin perder trazabilidad.
+4. PostgreSQL publica el modelo curado para consultas, API y frontend.
+5. Redis y Prometheus se incorporan cuando el flujo esencial ya es correcto.
 
-| Nivel | Resultado comprometido | Estado actual |
-|---|---|---|
-| Esencial | Kafka → MongoDB raw → agrupación ETL → PostgreSQL | En construcción: Kafka observado y consumer en revisión |
-| Medio | Docker, logs y tests | Base de calidad disponible; servicios e integración pendientes |
-| Avanzado | Redis y métricas con Prometheus | Planificado después del flujo esencial |
-| Experto | Actualización continua, API y Streamlit | Planificado después de persistencia y observabilidad |
+El proyecto no presupone el contenido de los mensajes. El contrato inicial se obtuvo
+mediante observación limitada y revisada del broker, sin consultar el código del
+generador y sin versionar datos personales.
 
-## Estado verificable
+## Estado verificable — 28 de agosto de 2026
 
-| Área | Estado | Evidencia actual | Siguiente condición |
+| Capacidad | Estado | Evidencia | Límite actual |
 |---|---|---|---|
-| Gobernanza Git y CI | En funcionamiento | PR, CODEOWNERS, etiquetas, ruleset y workflows activos | Mantener revisión de pares y checks obligatorios |
-| Arquitectura y SDD | Completada | Arquitectura, ADRs, arnés y capa IA versionados | Mantenerlos al día con cada cambio de alcance |
-| Conexión y observación Kafka | En revisión | HRP-28 finalizada; observación segura registrada en HRP-29 | Revisión y merge de la evidencia HRP-29 |
-| Consumer Kafka | En revisión | PR limpia y configurable para HRP-30 | Validación manual contra el broker y revisión de pares |
-| Contrato y modelo de datos | Preparado para continuar | Evidencia estructural disponible, sin semántica inventada | HRP-24 actualiza el contrato; HRP-25 diseña el modelo |
-| Persistencia, ETL y producto final | Planificado | Sprints 2 a 6 en Jira | Desarrollo incremental por PR |
+| Gobernanza Git y CI | Operativa | Ruleset, CODEOWNERS y 5 workflows | Toda PR sigue necesitando revisión humana |
+| Observación Kafka | Completada | HRP-29 y documento de observación seguro | Muestra acotada; no demuestra semántica |
+| Contrato inicial | Completado | HRP-24, integrada mediante PR #12 | Correlación y reglas de negocio pendientes |
+| Consumer configurable | Completado | HRP-30, tests unitarios y configuración por entorno | No persiste ni transforma payloads |
+| Consumo continuo | Completado | HRP-31, integrada mediante PR #14 | Validación de runtime, no prueba E2E |
+| MongoDB local | Disponible | HRP-33 y `infra/compose.dev.yml` | El `ping` no demuestra persistencia raw |
+| Persistencia raw | En curso | HRP-34 | Falta integrar idempotencia y confirmación Kafka |
+| Clasificación ETL | En curso | HRP-43 | Las variantes aún son etiquetas neutrales |
+| Modelo PostgreSQL | En curso | HRP-25 | La clave de persona no está aprobada |
+| Pipeline completo | Pendiente | — | No debe presentarse todavía como funcional |
 
-El estado del proyecto se basa en evidencias revisables, no en supuestos. Las tareas
-de datos no se consideran terminadas hasta observar el broker autorizado y dejar la
-evidencia versionada.
+La suite actual contiene **7 tests**, alcanza **79 % de cobertura de línea** y parte de
+un umbral automático del **75 %**. Este porcentaje es una línea base, no una prueba de
+que el pipeline esté terminado.
 
-## Mapa de entrega
+## Lo que ya puede verse funcionando
+
+Hoy se puede demostrar, de manera honesta y reproducible:
+
+- carga de configuración Kafka desde variables de entorno;
+- suscripción a una lista autorizada de topics;
+- polling continuo, manejo de errores y cierre limpio;
+- logs técnicos sin payloads ni datos personales;
+- MongoDB local aislado y saludable mediante Docker Compose;
+- lint, formato, tipos, tests, cobertura, validación de specs y de Compose en CI;
+- trazabilidad `Jira -> spec -> código/documento -> PR -> revisión -> evidencia`.
+
+Todavía no se puede demostrar un perfil completo en PostgreSQL ni una consulta desde
+API o Streamlit. Esas capacidades pertenecen a los siguientes cortes del briefing.
+
+## Arquitectura
 
 ```mermaid
 flowchart LR
-    A[Git, Jira y calidad\nEn funcionamiento] --> B[Kafka observado\nEn revisión]
-    B --> C[MongoDB raw\nPlanificado]
-    C --> D[ETL + Redis\nPlanificado]
-    D --> E[PostgreSQL curado\nPlanificado]
-    E --> F[API + Streamlit\nPlanificado]
+    K[Kafka educativo externo] -->|topic, partition, offset, payload| I[Ingest worker]
+    I -->|raw inmutable| M[(MongoDB)]
+    M -->|evento pendiente| T[Process worker / ETL]
+    T <-->|estado parcial con TTL| R[(Redis)]
+    T -->|upsert curado| P[(PostgreSQL)]
+    P --> A[API]
+    A --> U[Streamlit]
+    I -. logs y métricas .-> O[Prometheus / dashboard]
+    T -. logs y métricas .-> O
+    A -. logs y métricas .-> O
 
-    classDef done fill:#DCFCE7,stroke:#16A34A,color:#14532D;
+    classDef current fill:#DCFCE7,stroke:#15803D,color:#14532D;
     classDef active fill:#FEF3C7,stroke:#D97706,color:#78350F;
     classDef planned fill:#DBEAFE,stroke:#2563EB,color:#1E3A8A;
-    class A done;
-    class B active;
-    class C,D,E,F planned;
+    class K,I current;
+    class M,T active;
+    class R,P,A,U,O planned;
 ```
 
-> Estado: Sprint 1 — descubrimiento, diseño y contrato de datos. HRP-29 ya ha
-> registrado una observación estructural segura; las reglas de negocio y de
-> correlación siguen pendientes de validación en HRP-24.
+### Invariante de seguridad del dato
 
-## Regla no negociable
+El consumer no debe confirmar un offset solo por haber recibido el mensaje. Kafka se
+confirma después de que MongoDB:
 
-El generador de datos educativo es una caja negra: **su código no se abre, lee,
-inspecciona, busca, analiza ni se usa como fuente de contrato**. El repositorio
-educativo solo puede obtenerse de forma operativa para ejecutar el entorno Docker
-documentado; no se navegan sus archivos. Solo se usan el README público, las
-instrucciones de ejecución permitidas y los mensajes realmente recibidos del broker.
+- inserte el documento raw, o
+- demuestre que ese mismo `topic + partition + offset` ya estaba persistido.
 
-## Arquitectura objetivo
+Si MongoDB falla, el offset queda sin confirmar y Kafka puede volver a entregar el
+evento. Esta decisión evita pérdida silenciosa y está formalizada en
+[ADR-0005](docs/adr/0005-kafka-acknowledgement-after-raw-persistence.md).
 
-```text
-Kafka externo -> ingest-worker -> MongoDB (raw_events)
-                                  |
-                                  v
-                         process-worker <-> Redis (estado temporal)
-                                  |
-                                  v
-                           PostgreSQL (datos curados) -> API -> Streamlit
+### Sobre raw mínimo
 
-                    logs estructurados + métricas Prometheus en todos los servicios
+```json
+{
+  "payload": "<objeto original sin normalizar>",
+  "topic": "<metadato Kafka>",
+  "partition": 0,
+  "offset": 0,
+  "received_at": "<UTC>",
+  "processing_status": "pending"
+}
 ```
 
-La descripción completa, los límites y las decisiones viven en
-[docs/01-architecture.md](docs/01-architecture.md).
+El ejemplo expresa estructura, no datos reales. La combinación
+`topic + partition + offset` tendrá un índice único para garantizar idempotencia.
 
-## Responsabilidades del equipo
+## Evidencia Kafka disponible
 
-| Persona | Área principal | Entregables bajo su responsabilidad |
+La observación autorizada de HRP-29 registró únicamente estructura agregada:
+
+| Dimensión | Resultado observado |
+|---|---|
+| Topic de la muestra | `probando` |
+| Particiones | 1 |
+| Mensajes analizados en memoria | 20 |
+| Objetos JSON válidos | 20 |
+| Variantes estructurales | 5 |
+| Errores técnicos | 0 |
+
+Se observaron diferencias relevantes respecto a nombres provisionales, entre ellas
+`last_name`, `company address`, `company_email` e `IPv4`. `sex` apareció como array y
+`salary` como string. Esto describe forma aparente, no formato de negocio ni reglas de
+normalización. Las cinco variantes A–E siguen siendo etiquetas técnicas neutrales.
+
+La evidencia completa, sin valores de payload, está en
+[docs/observations/2026-08-27-HRP-29-kafka.md](docs/observations/2026-08-27-HRP-29-kafka.md).
+
+## Estado frente al briefing
+
+El desarrollo sigue los niveles en orden. Cada nivel debe aportar un incremento
+demostrable y no solo servicios añadidos al Compose.
+
+| Nivel | Comprobaciones exigidas | Estado |
 |---|---|---|
-| Miguel | Plataforma y calidad | Arquitectura, Docker, gobernanza Git, documentación, CI y demo |
-| Anahí | Ingesta | Conexión Kafka, consumer y persistencia raw en MongoDB |
-| Gaby | Transformación | Contrato observado, agrupación ETL, Redis y métricas |
-| Johans | Serving layer | Modelo PostgreSQL, API y experiencia de consulta |
+| Esencial | Kafka en tiempo real, MongoDB raw, cinco fragmentos agrupados y PostgreSQL | En curso |
+| Medio | Logs, tests y aplicación Dockerizada | Base disponible; integración pendiente |
+| Avanzado | Redis, métricas, Prometheus y API | Planificado tras el esencial |
+| Experto | Actualización continua y frontend de consulta | Planificado tras observabilidad |
 
-La responsabilidad indica quién lidera una tarea; toda PR requiere revisión de otra
-persona según [CONTRIBUTING.md](CONTRIBUTING.md).
+```mermaid
+flowchart LR
+    E1[Kafka configurable<br/>Completado] --> E2[MongoDB raw<br/>En curso]
+    E2 --> E3[ETL y agrupación<br/>En curso]
+    E3 --> E4[PostgreSQL curado<br/>En curso]
+    E4 --> M[Docker + logs + tests]
+    M --> A[Redis + métricas + API]
+    A --> X[Continuidad + Streamlit]
 
-## Forma de trabajo
+    classDef done fill:#DCFCE7,stroke:#15803D,color:#14532D;
+    classDef active fill:#FEF3C7,stroke:#D97706,color:#78350F;
+    classDef planned fill:#E5E7EB,stroke:#64748B,color:#334155;
+    class E1 done;
+    class E2,E3,E4 active;
+    class M,A,X planned;
+```
 
-Cada cambio recorre el mismo camino:
+## Cómo trabajamos: SDD y arnés de ingeniería
 
-`Jira → spec → rama → pruebas → PR → revisión → evidencia de cierre → Jira`
-
-- Rama de integración actual: `develop`. No se trabaja directamente sobre una
-  rama de entrega.
-- Una funcionalidad no empieza sin criterios de aceptación y casos de prueba.
-- Un cierre de Jira debe enlazar evidencia verificable: PR, commit, prueba o
-  documento.
-- Las decisiones duraderas se registran como ADR; los acuerdos diarios, en
-  `docs/dailies/`.
-
-Consulta [CONTRIBUTING.md](CONTRIBUTING.md) antes de abrir una rama o una PR.
-
-## Calidad como condición de entrega
-
-Cada PR pasa por el arnés de calidad del repositorio. No sustituye la revisión humana:
-evita errores mecánicos y deja evidencia repetible de que el cambio se ha comprobado.
+El repositorio aplica **Specification-Driven Development**: la tarea no empieza por
+generar código, sino por concretar qué problema resuelve, qué queda fuera, cómo se
+demuestra y qué decisiones siguen pendientes.
 
 ```text
-Formato y reglas del repositorio  →  análisis estático  →  tests  →  PR con checks
-                                                        →  revisión humana  →  merge
+Jira
+  -> paquete de tarea y contexto autorizado
+  -> spec con criterios de aceptación
+  -> rama aislada
+  -> cambio mínimo y tests
+  -> arnés automático
+  -> pull request
+  -> revisión humana
+  -> merge y evidencia de cierre
+  -> Jira
 ```
 
-Antes de abrir una PR, ejecuta:
+El **arnés** es el conjunto de controles que hace repetible esa forma de trabajar:
 
-```powershell
-pre-commit run --all-files
-ruff check .
-ruff format --check .
-mypy src
-pytest
-```
+| Capa | Artefactos | Función |
+|---|---|---|
+| Guía | `AGENTS.md`, arquitectura, contrato, ADRs | Impide que una IA o persona invente contexto |
+| Especificación | `docs/specs/HRP-*.md` | Convierte Jira en alcance y aceptación comprobables |
+| Aislamiento | Rama por tarea y Compose local | Limita el impacto del cambio |
+| Sensores | pre-commit, Ruff, mypy, pytest, cobertura, CI | Detecta fallos antes del merge |
+| Evidencia | PR, revisión, daily y comentario Jira | Permite auditar por qué se cerró una tarea |
 
-Si un control no aplica, se explica en la PR; no se oculta ni se elimina.
+La IA propone y acelera; una persona aprueba contrato, arquitectura, PR y cierre. La
+guía práctica y los prompts reutilizables están en
+[docs/onboarding/ai-assisted-workflow.md](docs/onboarding/ai-assisted-workflow.md).
 
-## Inicio rápido para el equipo
+## Inicio rápido
 
-Tras clonar el repositorio, cada integrante debe preparar el entorno y seguir el
-flujo guiado. No hace falta conocer SDD de antemano: la guía explica el orden y
-proporciona prompts reutilizables.
+### 1. Clonar y preparar Python
 
 ```powershell
 git clone https://github.com/Bootcamp-IA-MAD-P7/Proyecto-DataEngineer-Grupo1.git
@@ -158,21 +210,60 @@ git switch develop
 git pull --ff-only
 python -m venv .venv
 .\.venv\Scripts\Activate.ps1
+python -m pip install --upgrade pip
 python -m pip install -e ".[dev]"
 pre-commit install
-pre-commit run --all-files
-pytest
 ```
 
-Lee la [guía de trabajo asistido por IA](docs/onboarding/ai-assisted-workflow.md)
-antes de iniciar una tarea. Incluye prompts de inicio, implementación, revisión y
-cierre, y la política de no consultar el generador educativo.
+### 2. Validar la base del proyecto
+
+```powershell
+pre-commit run --all-files
+python scripts/validate_specs.py
+ruff check .
+ruff format --check .
+mypy src
+pytest
+docker compose -f infra/compose.dev.yml config --quiet
+```
+
+### 3. Arrancar MongoDB local
+
+```powershell
+docker compose -f infra/compose.dev.yml up -d mongo
+docker compose -f infra/compose.dev.yml ps
+docker compose -f infra/compose.dev.yml exec -T mongo `
+  mongosh --quiet --eval "db.adminCommand('ping').ok"
+```
+
+Para detenerlo sin borrar el volumen:
+
+```powershell
+docker compose -f infra/compose.dev.yml down
+```
+
+### 4. Configurar el consumer
+
+Copia `.env.example` como `.env` y completa únicamente valores autorizados. Las
+variables de proceso tienen prioridad y `.env` nunca se versiona.
+
+```dotenv
+KAFKA_BOOTSTRAP_SERVERS=localhost:29092
+KAFKA_CONSUMER_GROUP=hr-pro-local
+KAFKA_TOPICS=probando
+```
+
+```powershell
+python -m hr_pro_platform.ingestion.main
+```
+
+Detén el consumer con `Ctrl+C`. Sus logs solo deben mostrar topic, partición, offset,
+tamaño y tipo de error; nunca el payload.
 
 ## Entorno Kafka educativo
 
-Kafka se ejecuta fuera de este repositorio, en una carpeta independiente. Una persona
-del equipo puede obtener el repositorio educativo únicamente para arrancar su Compose,
-sin abrir los archivos del generador:
+Kafka vive fuera del repositorio del equipo. El entorno autorizado puede ejecutarse
+en una carpeta independiente siguiendo su documentación pública:
 
 ```powershell
 git clone https://github.com/Factoria-F5-madrid/data-engineering-educational-project.git kafka-educational-runtime
@@ -181,57 +272,125 @@ docker compose up --build -d
 docker compose ps
 ```
 
-El puerto publicado por `docker compose ps` determina el valor local de
-`KAFKA_BOOTSTRAP_SERVERS`. Nunca se versiona `.env`, no se consultan logs con
-payloads y no se copian mensajes fuera de la observación estructural autorizada.
-El procedimiento completo de arranque y parada está en el [runbook](docs/07-runbook.md).
+### Restricción no negociable
 
-## Documentación de referencia
+El código que genera los datos es una caja negra. No se abre, lee, inspecciona,
+busca, analiza ni se usa para inferir el contrato. Las fuentes autorizadas son el
+briefing público y los mensajes recibidos del broker mediante observaciones limitadas
+y seguras. Nunca se incluyen payloads, PII, secretos o contenido de `.env` en Git,
+Jira, PRs, chats o presentaciones.
 
-| Necesidad | Documento |
-|---|---|
-| Alcance y objetivos | [Project charter](docs/00-project-charter.md) |
-| Componentes y flujos | [Arquitectura](docs/01-architecture.md) |
-| Contrato Kafka y reglas de evidencia | [Contrato de datos](docs/02-data-contract.md) |
-| Persistencia raw y curada | [Modelo de datos](docs/03-data-model.md) |
-| Método Specification-Driven Development | [Flujo SDD](docs/04-sdd-workflow.md) |
-| Uso responsable de asistentes IA | [Capa agéntica y SDD](docs/ai/README.md) |
-| Pirámide y matriz de pruebas | [Arnés de pruebas](docs/05-test-harness.md) |
-| Métricas y operación | [Observabilidad](docs/06-observability.md) y [runbook](docs/07-runbook.md) |
-| Ramas, PRs, automatizaciones y tags | [Gobernanza Git](docs/08-git-governance.md) |
-| Fuentes para presentación | [Presentation sources](docs/presentation-sources/README.md) |
-| Especificaciones por tarea | [docs/specs](docs/specs/README.md) |
-| Acuerdos y decisiones | [ADRs](docs/adr) y [dailies](docs/dailies/README.md) |
-| Onboarding y prompts del equipo | [Guía IA](docs/onboarding/ai-assisted-workflow.md) y [AGENTS.md](AGENTS.md) |
+## Calidad y automatización
 
-## Estructura
+| Control | Ejecución | Propósito |
+|---|---|---|
+| Spec validator | Cada PR | Comprueba estructura mínima de specs |
+| Ruff lint y format | Local y CI | Mantiene código consistente y sin errores mecánicos |
+| mypy strict | Local y CI | Verifica contratos de tipos en `src` |
+| pytest + coverage | Local y CI | Exige comportamiento probado y suelo del 75 % |
+| Compose config | CI | Detecta configuración Docker inválida |
+| PR governance | Cada PR | Exige clave Jira y título convencional |
+| PR labels | Cada PR | Clasifica automáticamente el área del cambio |
+| CODEOWNERS + aprobación | Antes del merge | Mantiene revisión humana independiente |
+| Release tags | Bajo workflow | Permite entregas reproducibles y auditables |
+
+La matriz completa de pruebas incluye unitarias, contrato, integración, E2E y carga:
+[docs/05-test-harness.md](docs/05-test-harness.md).
+
+## Equipo y propiedad
+
+| Persona | Rol principal | Foco actual |
+|---|---|---|
+| Miguel | Plataforma, arquitectura y calidad | CI, Docker, documentación, observabilidad y demo |
+| Anahí | Ingesta y raw storage | Kafka, consumer e idempotencia MongoDB |
+| Gaby | Contrato y transformación | Clasificación, limpieza, agrupación, Redis y métricas |
+| Johans | Modelo curado y serving | PostgreSQL, consultas, API y Streamlit |
+
+La propiedad no crea silos: toda PR necesita revisión de otra persona y los cambios
+en límites de componentes se revisan con el área afectada.
+
+## Estructura del repositorio
 
 ```text
-docs/       Contratos, specs, ADRs, runbooks y dailies
-src/        Aplicación Python modular
-tests/      Fixtures autorizados y pruebas automatizadas
-infra/      Docker Compose, configuración de servicios y monitorización
-scripts/    Comandos reproducibles de desarrollo y calidad
+.
+├── .github/                  Workflows, plantilla de PR y CODEOWNERS
+├── docs/
+│   ├── adr/                  Decisiones arquitectónicas duraderas
+│   ├── ai/                   Paquetes de tarea y política de asistencia supervisada
+│   ├── dailies/              Evolución diaria, acuerdos y bloqueos
+│   ├── observations/         Evidencia estructural segura
+│   ├── presentation-sources/ Fuentes curadas para NotebookLM
+│   └── specs/                Contrato ejecutable de cada tarea Jira
+├── infra/                    Compose y futura observabilidad
+├── scripts/                  Automatización reproducible
+├── src/hr_pro_platform/      Aplicación Python modular
+├── tests/                    Unitarias, fixtures y futuras integraciones/E2E
+├── AGENTS.md                 Reglas de contexto para asistentes
+├── CONTRIBUTING.md           Flujo Git y Definition of Done
+└── pyproject.toml            Dependencias y configuración Python canónica
 ```
 
-## Inicio de una tarea
+## Próximos cortes verticales
 
-1. Comprueba que la tarea Jira cumple el Definition of Ready.
-2. Crea o actualiza `docs/specs/HRP-XX-*.md` a partir de la plantilla.
-3. Crea `feature/HRP-XX-resumen` desde `develop`.
-4. Implementa el cambio y las pruebas descritas por la spec.
-5. Ejecuta el arnés, abre PR contra `develop` y aporta la evidencia de cierre.
+1. **Kafka -> MongoDB raw.** Implementar HRP-34/35/36/37 con índice único, manejo de
+   fallos y confirmación posterior a persistencia.
+2. **Raw -> fragmentos clasificados.** Resolver HRP-43 y validaciones con reglas
+   exactas respaldadas por contrato y fixtures sanitizados.
+3. **Fragmentos -> persona curada.** Aprobar correlación, gestionar orden e
+   incompletitud y publicar mediante upsert en PostgreSQL.
+4. **Operación reproducible.** Completar Compose de aplicación, logs estructurados,
+   integración y E2E.
+5. **Observabilidad y producto.** Añadir Redis, Prometheus, API y Streamlit cuando el
+   flujo esencial ya tenga una referencia estable.
 
-## Guion de demostración
+## Diferenciales del proyecto
 
-La demo final seguirá el recorrido de un dato, no una lista de tecnologías:
+- **Evidence-first:** el contrato nace del broker observado, no de conocer el
+  generador ni de adivinar nombres.
+- **Pérdida de datos tratada como decisión arquitectónica:** el límite de confirmación
+  Kafka queda diseñado antes de implementar MongoDB.
+- **Documentación ejecutable:** specs, tests y CI reducen la distancia entre lo escrito
+  y lo que realmente puede demostrarse.
+- **Asistencia IA supervisada:** todos usan el mismo contexto, restricciones y criterios,
+  pero ninguna IA aprueba su propio trabajo ni cierra Jira.
+- **Presentación construida durante el proyecto:** las fuentes de NotebookLM contienen
+  evidencia y evolución, no una reconstrucción apresurada al final.
 
-1. Mostrar el broker educativo funcionando, sin abrir el generador.
-2. Mostrar el consumer y sus logs exclusivamente técnicos.
-3. Mostrar el evento raw en MongoDB y la evidencia de trazabilidad.
-4. Mostrar el perfil integrado en PostgreSQL.
-5. Consultarlo mediante API y Streamlit.
-6. Mostrar métricas, checks de CI, PR revisadas y trazabilidad en Jira.
+También mantenemos un [DAFO evolutivo](docs/09-evolving-swot.md) y un
+[benchmark documentado](docs/10-reference-benchmark.md). La referencia externa se
+usa solo para aprender patrones; no es dependencia ni fuente de contrato y no se copia
+su código.
 
-Las fuentes y evidencias reutilizables para la presentación se mantienen en
-[docs/presentation-sources](docs/presentation-sources/README.md).
+## Índice documental
+
+| Necesidad | Fuente canónica |
+|---|---|
+| Objetivo, alcance y niveles | [Project charter](docs/00-project-charter.md) |
+| Componentes, límites y flujo | [Arquitectura](docs/01-architecture.md) |
+| Hechos observados e incógnitas | [Contrato de datos](docs/02-data-contract.md) |
+| Raw y modelo curado | [Modelo de datos](docs/03-data-model.md) |
+| Flujo Specification-Driven | [SDD](docs/04-sdd-workflow.md) |
+| Pruebas y quality gates | [Test harness](docs/05-test-harness.md) |
+| Logs, métricas y privacidad | [Observabilidad](docs/06-observability.md) |
+| Arranque y diagnóstico | [Runbook](docs/07-runbook.md) |
+| Ramas, PRs y releases | [Gobernanza Git](docs/08-git-governance.md) |
+| Fortalezas y riesgos vivos | [DAFO evolutivo](docs/09-evolving-swot.md) |
+| Aprendizaje de referencia | [Benchmark](docs/10-reference-benchmark.md) |
+| Trabajo diario | [Dailies](docs/dailies/README.md) |
+| Presentación técnica | [Fuentes NotebookLM](docs/presentation-sources/README.md) |
+| Onboarding y prompts | [Trabajo asistido por IA](docs/onboarding/ai-assisted-workflow.md) |
+
+## Guion de demo final
+
+La demo contará el viaje de un dato, no una lista de herramientas:
+
+1. Mostrar servicios saludables sin abrir el generador educativo.
+2. Recibir eventos en Kafka con logs exclusivamente técnicos.
+3. Comprobar raw e idempotencia en MongoDB.
+4. Mostrar clasificación, agrupación y auditoría del ETL.
+5. Consultar la persona curada en PostgreSQL, API y Streamlit.
+6. Mostrar métricas de consumo, latencia, persistencia y errores.
+7. Cerrar con CI, PR revisadas, Jira y evolución del DAFO como evidencia del proceso.
+
+Hasta que todos esos pasos existan, el README distingue claramente entre lo
+**completado**, lo **en curso** y lo **planificado**.

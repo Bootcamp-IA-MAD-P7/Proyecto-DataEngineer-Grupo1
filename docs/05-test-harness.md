@@ -51,6 +51,7 @@ de guardrails mientras las guías y sensores actuales sean suficientes.
 | H-08 | Reinicio del worker | E2E | Sin duplicados ni pérdida observable |
 | H-09 | Falla MongoDB/PostgreSQL transitoria | Integración | Reintento/registro y métrica |
 | H-10 | Carga sostenida de fixtures | Carga | Métricas de consumo y latencia |
+| H-11 | MongoDB falla antes de persistir | Integración | El offset Kafka no se confirma |
 
 ## Convención de nombres
 
@@ -80,6 +81,17 @@ ruff check .
 ruff format --check .
 mypy src
 pytest
+```
+
+La cobertura de línea parte de un umbral exigible del 75 %. Es un suelo inicial: no
+se reduce para hacer pasar una PR y debe elevarse gradualmente cuando crezca el código.
+La cobertura no sustituye las pruebas de comportamiento ni demuestra por sí sola que
+el pipeline sea correcto.
+
+La configuración de Compose de desarrollo también se valida sin arrancar servicios:
+
+```powershell
+docker compose -f infra/compose.dev.yml config --quiet
 ```
 
 Los comandos de integración, E2E y carga se documentarán en `docs/07-runbook.md`

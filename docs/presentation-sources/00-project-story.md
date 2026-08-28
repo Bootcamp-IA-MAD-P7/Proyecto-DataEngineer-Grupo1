@@ -1,5 +1,10 @@
 # HR Pro Data Platform — fuente ejecutiva
 
+**Actualización:** 2026-08-28
+
+**Estado:** nivel esencial en curso; contrato y consumo Kafka validados, persistencia
+raw, ETL y PostgreSQL pendientes.
+
 ## Problema
 
 HR Pro necesita recibir y organizar información de recursos humanos que llega de forma
@@ -38,3 +43,9 @@ caso real de integración con un sistema externo.
 La demo final debe evidenciar un flujo continuo y trazable desde Kafka hasta las
 consultas finales, pasando por MongoDB y PostgreSQL, con observabilidad y una interfaz
 sencilla de consulta.
+
+## Hito actual
+
+La plataforma ya puede conectarse y consumir de forma continua sin exponer payloads.
+El siguiente corte vertical es demostrar `Kafka -> MongoDB raw` con idempotencia y
+confirmación del offset solo después de persistir.

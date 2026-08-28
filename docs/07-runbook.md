@@ -49,3 +49,24 @@ se registra en `docs/observations/` mediante una tarea HRP-29 revisable.
 1. Consultar logs del servicio.
 2. Comprobar conectividad a Kafka y estado de contenedores.
 3. No eliminar volúmenes ni datos sin acuerdo explícito del equipo.
+
+## Validación de la base local
+
+Desde la raíz del repositorio del equipo:
+
+```powershell
+pre-commit run --all-files
+ruff check .
+ruff format --check .
+mypy src
+pytest
+docker compose -f infra/compose.dev.yml config --quiet
+docker compose -f infra/compose.dev.yml up -d mongo
+docker compose -f infra/compose.dev.yml ps
+docker compose -f infra/compose.dev.yml exec -T mongo `
+  mongosh --quiet --eval "db.adminCommand('ping').ok"
+```
+
+El umbral inicial de cobertura es 75 %. Un contenedor saludable y un `ping` correcto
+solo demuestran disponibilidad de MongoDB; todavía no prueban la persistencia raw ni
+la política de confirmación de offsets.

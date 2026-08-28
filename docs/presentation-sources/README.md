@@ -8,9 +8,10 @@ la documentación de ingeniería: selecciona y resume lo que la presentación ne
 
 1. `00-project-story.md`: problema, alcance, equipo y niveles del briefing.
 2. `01-architecture-story.md`: recorrido del dato y decisiones técnicas.
-3. `evidence/`: capturas, enlaces de PR, resultados de pruebas y demos validadas.
-4. `daily/`: evolución cronológica, decisiones, bloqueos y logros.
-5. `manifest.md`: lista curada de fuentes y estado de actualización.
+3. `02-evolving-swot.md`: fortalezas, riesgos y evolución medible del proyecto.
+4. `evidence/`: capturas, enlaces de PR, resultados de pruebas y demos validadas.
+5. `daily/`: evolución cronológica, decisiones, bloqueos y logros.
+6. `manifest.md`: lista curada de fuentes y estado de actualización.
 
 ## Regla de calidad
 
