@@ -1,4 +1,4 @@
-def detect_topic(data: dict) -> str | None:
+def detect_topic(data: dict[str, object]) -> str | None:
     keys = set(data.keys())
 
     if "IBAN" in keys or "salary" in keys:

@@ -1,73 +1,115 @@
-import json
+"""Kafka consumption with technical-only logging.
+
+Payload interpretation and persistence belong to later tasks. This module records
+only transport metadata and never logs a message body.
+"""
+
+from __future__ import annotations
+
 import signal
+from collections.abc import Callable
+from typing import Any
 
-from config import KAFKA_CONFIG, KAFKA_TOPICS
 from confluent_kafka import Consumer, KafkaError
-from error_handler import get_logger
 
-logger = get_logger("consumer")
+from .config import KafkaConsumerSettings, load_kafka_settings
+from .error_handler import get_logger
 
-running = True
-
-
-def _shutdown(sig, frame):
-    global running
-    logger.info("Shutdown signal received — stopping after current message")
-    running = False
+logger = get_logger(__name__)
 
 
-signal.signal(signal.SIGTERM, _shutdown)
-signal.signal(signal.SIGINT, _shutdown)
+class ShutdownController:
+    """Keeps the polling loop testable while supporting graceful CLI shutdown."""
+
+    def __init__(self) -> None:
+        self.running = True
+
+    def stop(self, _signal_number: int, _frame: object) -> None:
+        logger.info("Shutdown signal received; stopping after the current poll")
+        self.running = False
+
+    def __call__(self) -> bool:
+        return self.running
 
 
-def _handle_kafka_error(msg):
-    error = msg.error()
+def install_signal_handlers(controller: ShutdownController) -> None:
+    """Install process-level handlers only when the executable starts."""
+
+    signal.signal(signal.SIGTERM, controller.stop)
+    signal.signal(signal.SIGINT, controller.stop)
+
+
+def _log_kafka_error(message: Any) -> None:
+    error = message.error()
     if error.code() == KafkaError._PARTITION_EOF:
-        logger.debug(f"End of partition | {msg.topic()} [{msg.partition()}]")
-    else:
-        logger.error(f"Kafka error: {error}")
+        logger.debug(
+            "End of partition topic=%s partition=%s",
+            message.topic(),
+            message.partition(),
+        )
+        return
+    logger.warning("Kafka error type=%s", type(error).__name__)
 
 
-def run_consumer():
-    consumer = Consumer(KAFKA_CONFIG)
-    consumer.subscribe(KAFKA_TOPICS)
-    logger.info(f"Subscribed to topics: {KAFKA_TOPICS}")
+def _log_message_metadata(message: Any) -> bool:
+    value = message.value()
+    if value is None:
+        logger.warning(
+            "Invalid Kafka message topic=%s partition=%s offset=%s reason=missing_value",
+            message.topic(),
+            message.partition(),
+            message.offset(),
+        )
+        return False
 
-    msg_count = 0
+    logger.info(
+        "Kafka message received topic=%s partition=%s offset=%s bytes=%s",
+        message.topic(),
+        message.partition(),
+        message.offset(),
+        len(value),
+    )
+    return True
+
+
+def run_consumer(
+    settings: KafkaConsumerSettings | None = None,
+    consumer_factory: Callable[[dict[str, object]], Any] = Consumer,
+    should_continue: Callable[[], bool] | None = None,
+    poll_timeout_seconds: float = 1.0,
+    max_messages: int | None = None,
+) -> int:
+    """Consume authorised topics and return the number of valid transport events."""
+
+    active_settings = settings or load_kafka_settings()
+    consumer = consumer_factory(active_settings.client_config)
+    keep_running = should_continue or (lambda: True)
+    processed_messages = 0
+
+    consumer.subscribe(list(active_settings.topics))
+    logger.info("Kafka consumer subscribed topic_count=%s", len(active_settings.topics))
 
     try:
-        while running:
+        while keep_running():
             try:
-                msg = consumer.poll(timeout=1.0)
-
-                if msg is None:
-                    continue
-
-                if msg.error():
-                    _handle_kafka_error(msg)
-                    continue
-
-                topic = msg.topic()
-
-                try:
-                    data = json.loads(msg.value().decode("utf-8"))
-                except (json.JSONDecodeError, UnicodeDecodeError) as e:
-                    logger.warning(
-                        f"Could not deserialise | topic={topic} offset={msg.offset()} | {e}"
-                    )
-                    consumer.commit(message=msg)
-                    continue
-
-                logger.info(f"Received | topic={topic} | offset={msg.offset()}")
-
-                msg_count += 1
-                if msg_count % 1000 == 0:
-                    logger.info(f"Heartbeat | {msg_count} messages processed")
-
-            except Exception as e:
-                logger.error(f"Unexpected error: {e}")
+                message = consumer.poll(timeout=poll_timeout_seconds)
+            except Exception as error:
+                logger.error("Kafka poll failed error_type=%s", type(error).__name__)
                 continue
 
+            if message is None:
+                continue
+            if message.error():
+                _log_kafka_error(message)
+                continue
+            if not _log_message_metadata(message):
+                continue
+
+            processed_messages += 1
+            if max_messages is not None and processed_messages >= max_messages:
+                break
     finally:
         consumer.close()
-        logger.info("Consumer closed cleanly")
+        logger.info("Kafka consumer closed processed_messages=%s", processed_messages)
+
+    return processed_messages
