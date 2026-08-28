@@ -145,32 +145,103 @@ La evidencia completa, sin valores de payload, está en
 
 ## Estado frente al briefing
 
-El desarrollo sigue los niveles en orden. Cada nivel debe aportar un incremento
-demostrable y no solo servicios añadidos al Compose.
+**Última revisión:** 2026-08-28
 
-| Nivel | Comprobaciones exigidas | Estado |
+Esta matriz reproduce todos los requisitos de entrega. Un requisito solo figura como
+completado cuando existe evidencia versionada o una demostración reproducible. Un
+servicio arrancado, una spec o un diseño por sí solos cuentan como trabajo en curso.
+
+### Resumen visual
+
+| Bloque evaluado | Progreso | Cumplidos | Situación |
+|---|---:|---:|---|
+| Condiciones de entrega | `████░░░░░░` | 2/5 | [![En curso][status-active]][status-active-link] |
+| Nivel esencial | `███░░░░░░░` | 2/6 | [![En curso][status-active]][status-active-link] |
+| Nivel medio | `███░░░░░░░` | 1/3 | [![En curso][status-active]][status-active-link] |
+| Nivel avanzado | `░░░░░░░░░░` | 0/3 | [![Pendiente][status-pending]][status-pending-link] |
+| Nivel experto | `░░░░░░░░░░` | 0/2 | [![Pendiente][status-pending]][status-pending-link] |
+
+> Los contadores solo incluyen requisitos completamente demostrados. Los requisitos
+> en curso aparecen detallados abajo y no se redondean como terminados.
+
+### Condiciones de entrega
+
+| Check literal | Estado | Evidencia disponible | Qué falta |
+|---|---|---|---|
+| Repositorio en GitHub con código fuente documentado | [![Completado][status-done]][status-done-link] | Repositorio, README, specs, ADRs, CI y gobernanza | Mantenerlo actualizado hasta la entrega |
+| Programa Dockerizado conectado a Kafka, con procesamiento, MongoDB y SQL | [![En curso][status-active]][status-active-link] | Consumer Kafka y MongoDB local | Integrar persistencia raw, ETL, PostgreSQL y Compose completo |
+| Demo en vivo de la aplicación | [![En curso][status-active]][status-active-link] | Demo parcial de Kafka, consumer y MongoDB local | Demostrar el recorrido completo hasta consulta final |
+| Presentación técnica de objetivos, desarrollo y tecnologías | [![En curso][status-active]][status-active-link] | [`docs/presentation-sources/`](docs/presentation-sources/README.md) y DAFO evolutivo | Preparar deck final y ensayar la exposición |
+| Tablero Kanban para gestionar el proyecto | [![Completado][status-done]][status-done-link] | [Proyecto HRP en Jira](https://redondonunezmiguel.atlassian.net/jira/software/projects/HRP/boards/1) | Mantener estados, dependencias y cierres al día |
+
+### Nivel esencial
+
+| Check literal | Estado | Evidencia actual | Próxima prueba de cierre |
+|---|---|---|---|
+| Consumer Kafka en tiempo real y miles de mensajes por segundo | [![En curso][status-active]][status-active-link] | HRP-30 y HRP-31: consumer configurable y continuo validado | Medición de carga sostenida y tasa de mensajes |
+| Persistir los mensajes Kafka en MongoDB | [![En curso][status-active]][status-active-link] | MongoDB local reproducible; HRP-34 activa | Evento raw con metadatos e idempotencia demostrada |
+| Agrupar Personal, Location, Professional, Bank y Net Data por persona | [![En curso][status-active]][status-active-link] | Contrato HRP-24; correlación HRP-43 activa | HRP-43 correlación, HRP-44 clasificación, HRP-45 validación y agrupación completa |
+| Persistir los datos agrupados en una base SQL | [![En curso][status-active]][status-active-link] | Diseño PostgreSQL HRP-25 activo | Esquema, migración, upsert y consulta de validación |
+| Ramas organizadas y commits limpios | [![Completado][status-done]][status-done-link] | `develop`, PRs, CODEOWNERS, ruleset y títulos con Jira | Mantener la política en todas las contribuciones |
+| Código documentado y README en GitHub | [![Completado][status-done]][status-done-link] | README, arquitectura, runbook, specs, dailies y fuentes de presentación | Actualización continua con cada hito funcional |
+
+### Nivel medio
+
+| Check literal | Estado | Evidencia actual | Próxima prueba de cierre |
+|---|---|---|---|
+| Sistema de logs | [![En curso][status-active]][status-active-link] | Logs técnicos seguros del consumer y política de observabilidad | Logs estructurados del pipeline completo y errores de persistencia |
+| Tests unitarios | [![Completado][status-done]][status-done-link] | 7 tests, cobertura medida del 79 % y umbral CI del 75 % | Ampliar pruebas con cada comportamiento nuevo |
+| Aplicación Dockerizada con Docker Compose | [![En curso][status-active]][status-active-link] | Compose de MongoDB validado en CI | Añadir aplicación, PostgreSQL y configuración integral |
+
+### Nivel avanzado
+
+| Check literal | Estado | Evidencia actual | Próxima prueba de cierre |
+|---|---|---|---|
+| Redis como almacenamiento intermedio en caché | [![Pendiente][status-pending]][status-pending-link] | Arquitectura objetivo y responsabilidades definidas | Estado parcial con TTL y prueba de recuperación |
+| Monitorización de consumo, velocidad, procesamiento y persistencia | [![Pendiente][status-pending]][status-pending-link] | Catálogo inicial de métricas | Prometheus, métricas reales y dashboard reproducible |
+| API de consulta sobre la base SQL | [![Pendiente][status-pending]][status-pending-link] | Límite de API definido en arquitectura | Endpoints, validación, tests y consultas PostgreSQL |
+
+### Nivel experto
+
+| Check literal | Estado | Evidencia actual | Próxima prueba de cierre |
+|---|---|---|---|
+| Actualización continua de las bases mientras Kafka publica | [![Pendiente][status-pending]][status-pending-link] | Consumer continuo validado, sin persistencia conectada | Demo prolongada Kafka -> MongoDB -> PostgreSQL sin intervención |
+| Frontend sencillo para consultar clientes | [![Pendiente][status-pending]][status-pending-link] | Streamlit seleccionado para la arquitectura objetivo | Buscador, resultados, métricas y conexión exclusiva mediante API |
+
+### Tecnologías del briefing
+
+| Tecnología recomendada | Adopción | Uso actual |
 |---|---|---|
-| Esencial | Kafka en tiempo real, MongoDB raw, cinco fragmentos agrupados y PostgreSQL | En curso |
-| Medio | Logs, tests y aplicación Dockerizada | Base disponible; integración pendiente |
-| Avanzado | Redis, métricas, Prometheus y API | Planificado tras el esencial |
-| Experto | Actualización continua y frontend de consulta | Planificado tras observabilidad |
+| Git / GitHub | [![Completado][status-done]][status-done-link] | Repositorio, PRs, revisión, CI, tags y gobernanza |
+| Docker / Docker Compose | [![En curso][status-active]][status-active-link] | MongoDB local; stack de aplicación pendiente |
+| Python | [![Completado][status-done]][status-done-link] | Consumer y arnés en Python 3.11 |
+| Kafka | [![En curso][status-active]][status-active-link] | Conexión y consumo continuo; rendimiento y persistencia pendientes |
+| Pandas | [![Opcional][status-optional]][status-optional-link] | No se añade hasta que una necesidad ETL justifique la dependencia |
+| MongoDB | [![En curso][status-active]][status-active-link] | Servicio local disponible; repositorio raw pendiente |
+| PostgreSQL | [![En curso][status-active]][status-active-link] | Modelo HRP-25 en desarrollo; servicio y persistencia pendientes |
+| Jira | [![Completado][status-done]][status-done-link] | Backlog, responsables, estados y dependencias del proyecto |
 
 ```mermaid
 flowchart LR
-    E1[Kafka configurable<br/>Completado] --> E2[MongoDB raw<br/>En curso]
-    E2 --> E3[ETL y agrupación<br/>En curso]
-    E3 --> E4[PostgreSQL curado<br/>En curso]
-    E4 --> M[Docker + logs + tests]
-    M --> A[Redis + métricas + API]
-    A --> X[Continuidad + Streamlit]
+    E[Esencial<br/>2 de 6] --> M[Medio<br/>1 de 3]
+    M --> A[Avanzado<br/>0 de 3]
+    A --> X[Experto<br/>0 de 2]
 
     classDef done fill:#DCFCE7,stroke:#15803D,color:#14532D;
     classDef active fill:#FEF3C7,stroke:#D97706,color:#78350F;
     classDef planned fill:#E5E7EB,stroke:#64748B,color:#334155;
-    class E1 done;
-    class E2,E3,E4 active;
-    class M,A,X planned;
+    class E,M active;
+    class A,X planned;
 ```
+
+[status-done]: https://img.shields.io/badge/COMPLETADO-2E7D32?style=flat-square
+[status-active]: https://img.shields.io/badge/EN%20CURSO-D97706?style=flat-square
+[status-pending]: https://img.shields.io/badge/PENDIENTE-64748B?style=flat-square
+[status-optional]: https://img.shields.io/badge/OPCIONAL-2563EB?style=flat-square
+[status-done-link]: #estado-frente-al-briefing
+[status-active-link]: #estado-frente-al-briefing
+[status-pending-link]: #estado-frente-al-briefing
+[status-optional-link]: #tecnologías-del-briefing
 
 ## Cómo trabajamos: SDD y arnés de ingeniería
 
