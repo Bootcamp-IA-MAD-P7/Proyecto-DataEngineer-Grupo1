@@ -1,6 +1,6 @@
 # HRP-31 — Configurar el consumer para recibir mensajes continuamente
 
-**Estado:** En curso
+**Estado:** En revisión
 **Responsable:** Anahí
 **Jira:** HRP-31
 **Dependencias:** HRP-28 finalizada; HRP-29 finalizada; consumer configurable integrado por HRP-30.
@@ -45,8 +45,8 @@ cuerpo de ningún mensaje.
 - [x] Una validación manual contra el broker autorizado recibe mensajes desde el
       topic configurado sin mostrar payloads.
 - [x] Las comprobaciones de calidad aplicables pasan en la rama de integración.
-- [x] La evidencia de ejecución se registra en Jira; queda pendiente la revisión
-      humana antes del cierre.
+- [x] La evidencia de ejecución se registra en Jira y la revisión humana de Gaby
+      aprueba el alcance antes del cierre.
 
 ## Estrategia de pruebas
 
@@ -59,11 +59,15 @@ cuerpo de ningún mensaje.
 
 ## Evidencia de cierre
 
-- Rama / PR: `feature/HRP-31-continuous-ingestion` / pendiente.
-- Commit: pendiente.
+- Rama / PR: `feature/HRP-31-continuous-ingestion` /
+  [PR #14](https://github.com/Bootcamp-IA-MAD-P7/Proyecto-DataEngineer-Grupo1/pull/14).
+- Commits de evidencia: `6a68d1a` (especificación) y `9e91b5f` (validación del
+  runtime Kafka).
 - Validación manual (2026-08-28): con el runtime Kafka autorizado disponible en
   `localhost:29092` y `KAFKA_TOPICS=probando` en entorno local no versionado, el
   consumer recibió mensajes durante una ventana acotada, emitió exclusivamente
   metadatos técnicos y se cerró correctamente. No se registraron payloads ni valores
   de mensajes.
-- Pendiente: revisión humana de la PR y cierre formal de Jira.
+- Revisión humana: Gaby aprobó la PR #14 el 2026-08-28 desde el límite de
+  Transformation e integración.
+- Pendiente: merge en `develop`, verificación posterior y cierre formal de Jira.
