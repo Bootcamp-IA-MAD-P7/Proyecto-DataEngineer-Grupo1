@@ -1,6 +1,14 @@
 # Dailies compartidas
 
-Cada daily se registra en un archivo Markdown con el formato `YYYY-MM-DD.md`. Es un resumen breve y compartible; Jira sigue siendo la fuente de estado de las tareas.
+Cada daily se registra en Markdown con el formato `YYYY-MM-DD.md` o
+`YYYY-MM-DD-descripcion.md`. Es un resumen breve y compartible; Jira sigue siendo la
+fuente de estado de las tareas.
+
+## Índice
+
+- `2026-08-27-kickoff.md`: fundación, reparto inicial y gobernanza.
+- `2026-08-28-progress-and-benchmark.md`: contrato Kafka, consumo continuo, benchmark,
+  calidad y siguiente corte raw.
 
 ## Norma
 

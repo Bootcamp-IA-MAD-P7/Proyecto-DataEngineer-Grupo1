@@ -1,5 +1,8 @@
 # Evidencia de presentación — Fundación y MongoDB local
 
+> Evidencia histórica del 27 de agosto. Las PR y tareas citadas evolucionaron después;
+> el estado vigente está en `2026-08-28-kafka-contract-and-quality-baseline.md`.
+
 **Fecha:** 2026-08-27
 **Alcance:** Sprint 1 / habilitador de Sprint 2
 **Estado:** verificación local completada; las PRs indicadas siguen sujetas a revisión humana.

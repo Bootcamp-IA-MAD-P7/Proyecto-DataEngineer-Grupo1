@@ -24,7 +24,14 @@ dev = [
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-addopts = "-ra"
+addopts = "-ra --cov=hr_pro_platform --cov-report=term-missing --cov-report=xml"
+
+[tool.coverage.run]
+source = ["hr_pro_platform"]
+
+[tool.coverage.report]
+fail_under = 75
+show_missing = true
 
 [tool.ruff]
 line-length = 100

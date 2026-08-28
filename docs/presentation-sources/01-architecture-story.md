@@ -1,5 +1,9 @@
 # Arquitectura — fuente narrativa
 
+**Lectura del diagrama:** representa la arquitectura objetivo. A 2026-08-28 están
+validados Kafka y el consumer; MongoDB local existe, pero su persistencia raw aún no
+está integrada con el consumer.
+
 ## Idea principal
 
 La arquitectura separa datos originales, estado temporal y datos listos para consulta.
@@ -28,9 +32,11 @@ Todos los componentes emiten logs y métricas para Prometheus.
 | Prometheus | Observabilidad | Mide volumen, latencia y errores |
 | FastAPI + Streamlit | Consulta y demo | Hace visible el valor final |
 
-## Invariantes que se demuestran
+## Invariantes objetivo y propuestas pendientes
 
 - El evento raw se persiste antes de transformarse.
+- ADR-0005 propone confirmar Kafka después de insertar raw o reconocer un duplicado
+  técnico; HRP-34 debe validarlo antes de considerarlo un invariante demostrado.
 - Reprocesar el mismo evento no duplica información.
 - Un mensaje erróneo no detiene la ingesta.
 - Redis no es fuente de verdad y sus datos expiran.

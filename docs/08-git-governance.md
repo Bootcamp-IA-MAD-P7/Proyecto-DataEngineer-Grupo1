@@ -23,9 +23,8 @@ feature/docs/fix/chore (HRP-XX) -> pull request + CI + revisión -> develop
 - Las PRs se abren contra `develop`; no se fusionan por cuenta propia.
 - El ruleset **Protect develop** exige pull request, una aprobación, revisión de
   `CODEOWNERS`, conversaciones resueltas y bloquea borrados y force-pushes.
-- Pendiente de comprobación manual: configurar `quality`, `PR governance` y
-  `PR labels` como checks obligatorios del ruleset después de que GitHub los haya
-  detectado en al menos una PR.
+- Los checks `quality`, `PR governance` y `PR labels` están detectados y forman parte
+  del control previo al merge.
 
 ## Automatizaciones activas
 
@@ -37,9 +36,9 @@ feature/docs/fix/chore (HRP-XX) -> pull request + CI + revisión -> develop
 | `Generate presentation daily` | Ejecución manual | Genera una daily y abre una PR; nunca hace push directo a `develop` |
 | `Create release tag` | Ejecución manual | Valida y crea un tag anotado inmutable |
 
-Antes de usar `PR labels`, un administrador debe crear una vez estas etiquetas:
-`area:docs`, `area:quality`, `area:ingestion`, `area:storage`, `area:api` y
-`area:infra`. La configuración está en `.github/labeler.yml`.
+Las etiquetas `area:docs`, `area:quality`, `area:ingestion`, `area:storage`,
+`area:api` y `area:infra` están creadas. La asignación vive en
+`.github/labeler.yml`.
 
 ## Política de tags y releases
 
@@ -69,5 +68,5 @@ se sobrescribe el anterior.
 (`@johans-salas`). GitHub solicitará automáticamente revisión según las rutas
 modificadas cuando se abra una PR.
 
-La organización debe activar **Require review from Code Owners** para convertir esa
-solicitud en requisito de merge.
+El ruleset activo convierte la revisión de `CODEOWNERS` en requisito de merge cuando
+la ruta modificada lo requiere.
