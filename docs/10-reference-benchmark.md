@@ -27,7 +27,7 @@
 |---|---|
 | Kafka acknowledgement can advance after a swallowed MongoDB failure | Proposed ADR-0005, pending HRP-34 failure-path integration tests and review |
 | Raw documents lack complete Kafka identity and unique index | Required envelope and compound index |
-| Business classification accepts partial field overlap | HRP-43 handles correlation; neutral variants remain until HRP-44 approves classification semantics |
+| Business classification accepts partial field overlap | HRP-43 first analyses correlation candidates; neutral variants remain until HRP-44 approves classification semantics |
 | Dependencies are duplicated across files | `pyproject.toml` remains the Python dependency source of truth |
 | Tests and lint are not enforced remotely | Required GitHub checks on every PR to `develop` |
 | Documentation and generated reports drift | Specs, evidence dates, PR references and evolving SWOT reviews |

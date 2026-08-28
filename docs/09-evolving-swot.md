@@ -27,7 +27,7 @@ point to merged code, a reviewed document, a test result or a Jira state.
 | Dimension | Score | Evidence | Target for next review |
 |---|---:|---|---|
 | Functional completeness | 2/5 | Kafka validated; raw and curated path incomplete | MongoDB raw persistence proven |
-| Data correctness | 3/5 | Observed contract reviewed; correlation remains unknown | HRP-43 decision with tests |
+| Data correctness | 3/5 | Observed contract reviewed; correlation remains unknown | HRP-43 candidate analysis; strategy and tests only if evidence supports them |
 | Quality automation | 4/5 | CI, Ruff, mypy, pytest, spec validation and reviews | Coverage + Compose checks enforced |
 | Operability | 2/5 | Consumer and Mongo service run locally | Failure/acknowledgement integration test |
 | Documentation and traceability | 4/5 | Specs, ADRs, dailies, PR and Jira evidence | Eliminate stale completion markers |
