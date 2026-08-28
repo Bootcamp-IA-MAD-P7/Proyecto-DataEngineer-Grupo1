@@ -26,9 +26,9 @@ aprobado entre ellos y las variantes estructurales observadas A–E.
 ## Alcance Kafka observado
 
 HRP-29 registró una muestra acotada de 20 objetos JSON del topic `probando` y la
-partición `0`. El nombre del topic y los offsets crecientes pertenecen únicamente al
-alcance de esa muestra: no son configuración universal ni garantía de orden futuro o
-de negocio.
+partición `0`. El nombre del topic pertenece únicamente al alcance de esa muestra y no
+es una configuración universal. HRP-29 no establece garantías de ordering entre
+variantes, entre particiones o de negocio, ni una secuencia de persona completa.
 
 Se observaron cinco conjuntos de campos de nivel superior. A–E son etiquetas técnicas
 neutrales y no categorías de negocio.
