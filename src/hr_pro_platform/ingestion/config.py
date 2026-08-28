@@ -20,11 +20,7 @@ KAFKA_CONFIG = {
 }
 
 KAFKA_TOPICS = [
-    "personal-data",
-    "location",
-    "professional-data",
-    "bank-data",
-    "net-data",
+    "probando",
 ]
 
 MONGO_URI = _require("MONGO_URI")
