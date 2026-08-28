@@ -5,6 +5,7 @@ repos:
       - id: check-yaml
       - id: end-of-file-fixer
       - id: trailing-whitespace
+        args: [--markdown-linebreak-ext=md]
       - id: check-merge-conflict
       - id: detect-private-key
   - repo: https://github.com/astral-sh/ruff-pre-commit
@@ -13,3 +14,11 @@ repos:
       - id: ruff
         args: [--fix]
       - id: ruff-format
+  - repo: local
+    hooks:
+      - id: validate-specs
+        name: validate task specifications
+        entry: python scripts/validate_specs.py
+        language: system
+        pass_filenames: false
+        files: ^docs/specs/HRP-.*\.md$

@@ -1,10 +1,10 @@
 # Paquete de tarea — HRP-25
 
-**Estado:** Borrador  
-**Responsable:** Johans  
-**Revisor humano:** Gaby  
-**Jira:** HRP-25  
-**Spec:** `docs/specs/HRP-25-*.md`  
+**Estado:** Borrador
+**Responsable:** Johans
+**Revisor humano:** Gaby
+**Jira:** HRP-25
+**Spec:** `docs/specs/HRP-25-*.md`
 **Rama prevista:** `feature/HRP-25-modelo-datos`
 
 ## Resultado esperado
@@ -29,9 +29,9 @@ contrato disponible.
 
 ## Petición al asistente
 
-**Rol:** Revisor de arquitectura.  
-**Pregunta concreta:** ¿La propuesta mantiene separación raw/temporal/curada, trazabilidad e idempotencia sin fijar datos no observados?  
-**Formato de salida esperado:** riesgos, decisiones que requieren ADR y pruebas de persistencia.  
+**Rol:** Revisor de arquitectura.
+**Pregunta concreta:** ¿La propuesta mantiene separación raw/temporal/curada, trazabilidad e idempotencia sin fijar datos no observados?
+**Formato de salida esperado:** riesgos, decisiones que requieren ADR y pruebas de persistencia.
 **Criterios con los que se evaluará:** rúbrica de `docs/ai/evaluation-rubric.md` y revisión Gaby.
 
 ## Revisión humana del resultado
@@ -49,4 +49,3 @@ contrato disponible.
 - Salida resumida:
 - Decisión humana:
 - Revisor:
-

@@ -1,10 +1,10 @@
 # Paquete de tarea — HRP-XX
 
-**Estado:** Borrador  
-**Responsable:**  
-**Revisor humano:**  
-**Jira:** HRP-XX  
-**Spec:** `docs/specs/HRP-XX-*.md`  
+**Estado:** Borrador
+**Responsable:**
+**Revisor humano:**
+**Jira:** HRP-XX
+**Spec:** `docs/specs/HRP-XX-*.md`
 **Rama prevista:** `feature/HRP-XX-resumen`
 
 ## Resultado esperado
@@ -27,9 +27,9 @@
 
 ## Petición al asistente
 
-**Rol:**  
-**Pregunta concreta:**  
-**Formato de salida esperado:**  
+**Rol:**
+**Pregunta concreta:**
+**Formato de salida esperado:**
 **Criterios con los que se evaluará:**
 
 ## Revisión humana del resultado
