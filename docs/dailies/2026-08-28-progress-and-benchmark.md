@@ -49,8 +49,10 @@ solo está iniciado.
 - Revisó el límite de HRP-31 para evitar que ingesta invada transformación o ETL.
 - HRP-43 está en curso y corresponde a la correlación de fragmentos de una persona;
   no es la tarea de clasificación.
-- Siguiente paso: proponer y probar una regla de correlación sin mezclar personas. La
-  clasificación corresponde a HRP-44 y la validación/limpieza a HRP-45.
+- Siguiente paso: analizar con evidencia autorizada los candidatos `passport`,
+  `fullname` y `address`, documentando coincidencias, ambigüedades y conflictos. Solo
+  si la evidencia es suficiente se propondrá una estrategia con tests. La clasificación
+  corresponde a HRP-44 y la validación/limpieza a HRP-45.
 
 ### Johans — modelo relacional y capa de consulta
 
@@ -80,7 +82,7 @@ solo está iniciado.
 | Riesgo | Impacto | Responsable | Próxima acción |
 |---|---|---|---|
 | Confirmar Kafka antes de persistir | Pérdida silenciosa de eventos | Miguel + Anahí | Validar ADR-0005 con pruebas en HRP-34 |
-| Correlacionar por coincidencia débil | Mezcla de personas distintas | Gaby | Definir regla y tests en HRP-43 |
+| Correlacionar sin evidencia suficiente | Mezcla de personas distintas | Gaby | Analizar candidatos y conflictos en HRP-43 antes de proponer una regla |
 | Clasificar por coincidencia parcial | Tipo de fragmento incorrecto | Gaby | Definir reglas exactas y tests en HRP-44 |
 | Diseñar SQL con correlación supuesta | Modelo curado difícil de corregir | Johans | Marcar clave final como pendiente en HRP-25 |
 | PRs demasiado amplias | Conflictos y revisiones bloqueantes | Todo el equipo | Una historia y un objetivo principal por PR |
@@ -102,7 +104,8 @@ solo está iniciado.
 ## Próxima sincronización
 
 - Anahí presenta el cambio mínimo de HRP-34 con idempotencia y resultado de persistencia.
-- Gaby presenta la propuesta de correlación de HRP-43 con pruebas de casos ambiguos;
-  HRP-44 abordará clasificación y HRP-45 validación/limpieza.
+- Gaby presenta los resultados del análisis de correlación de HRP-43 y determina si
+  existe evidencia suficiente para proponer una estrategia segura. HRP-44 abordará
+  clasificación y HRP-45 validación/limpieza.
 - Johans presenta el modelo lógico de HRP-25 y sus decisiones pendientes.
 - Miguel revisa que los tres cambios respeten contrato, ADRs, checks y trazabilidad Jira.

@@ -42,7 +42,7 @@ generador y sin versionar datos personales.
 | Consumo continuo | Completado | HRP-31, integrada mediante PR #14 | Validación de runtime, no prueba E2E |
 | MongoDB local | Disponible | HRP-33 y `infra/compose.dev.yml` | El `ping` no demuestra persistencia raw |
 | Persistencia raw | En curso | HRP-34 | Debe validar idempotencia y la propuesta de confirmación Kafka |
-| Correlación de fragmentos | En curso | HRP-43 | La clave de persona aún no está aprobada |
+| Análisis de correlación | En curso | HRP-43 | Debe analizar candidatos y decidir si existe evidencia suficiente |
 | Clasificación de variantes | Planificada | HRP-44 | Las variantes A–E siguen siendo etiquetas neutrales |
 | Validación y limpieza | Planificada | HRP-45 | Reglas de negocio y normalización pendientes |
 | Modelo PostgreSQL | En curso | HRP-25 | La clave de persona no está aprobada |
@@ -180,7 +180,7 @@ servicio arrancado, una spec o un diseño por sí solos cuentan como trabajo en 
 |---|---|---|---|
 | Consumer Kafka en tiempo real y miles de mensajes por segundo | [![En curso][status-active]][status-active-link] | HRP-30 y HRP-31: consumer configurable y continuo validado | Medición de carga sostenida y tasa de mensajes |
 | Persistir los mensajes Kafka en MongoDB | [![En curso][status-active]][status-active-link] | MongoDB local reproducible; HRP-34 activa | Evento raw con metadatos e idempotencia demostrada |
-| Agrupar Personal, Location, Professional, Bank y Net Data por persona | [![En curso][status-active]][status-active-link] | Contrato HRP-24; correlación HRP-43 activa | HRP-43 correlación, HRP-44 clasificación, HRP-45 validación y agrupación completa |
+| Agrupar Personal, Location, Professional, Bank y Net Data por persona | [![En curso][status-active]][status-active-link] | Contrato HRP-24; análisis HRP-43 activo | Analizar candidatos en HRP-43; solo después, y si hay evidencia, definir correlación; HRP-44 clasifica y HRP-45 valida/limpia |
 | Persistir los datos agrupados en una base SQL | [![En curso][status-active]][status-active-link] | Diseño PostgreSQL HRP-25 activo | Esquema, migración, upsert y consulta de validación |
 | Ramas organizadas y commits limpios | [![Completado][status-done]][status-done-link] | `develop`, PRs, CODEOWNERS, ruleset y títulos con Jira | Mantener la política en todas las contribuciones |
 | Código documentado y README en GitHub | [![Completado][status-done]][status-done-link] | README, arquitectura, runbook, specs, dailies y fuentes de presentación | Actualización continua con cada hito funcional |
@@ -411,8 +411,10 @@ en límites de componentes se revisan con el área afectada.
 
 1. **Kafka -> MongoDB raw.** Implementar HRP-34/35/36/37 con índice único, manejo de
    fallos y confirmación posterior a persistencia.
-2. **Correlación de fragmentos.** Resolver HRP-43 con evidencia y casos que impidan
-   mezclar personas distintas.
+2. **Análisis de correlación.** HRP-43 compara con evidencia autorizada los candidatos
+   `passport`, `fullname` y `address`, documenta coincidencias, ambigüedades y
+   conflictos y determina si es seguro proponer una estrategia. Si la evidencia no es
+   suficiente, la correlación permanece explícitamente pendiente.
 3. **Clasificación y calidad.** Resolver HRP-44 para clasificar las variantes y HRP-45
    para validarlas y limpiarlas con reglas exactas y fixtures sanitizados.
 4. **Fragmentos -> persona curada.** Gestionar orden e
