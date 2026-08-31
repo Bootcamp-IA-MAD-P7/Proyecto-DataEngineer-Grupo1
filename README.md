@@ -60,7 +60,7 @@ Hoy se puede demostrar, de manera honesta y reproducible:
 - suscripción a una lista autorizada de topics;
 - polling continuo, manejo de errores y cierre limpio;
 - logs técnicos sin payloads ni datos personales;
-- MongoDB local aislado y saludable mediante Docker Compose;
+- MongoDB y PostgreSQL locales aislados y saludables mediante Docker Compose;
 - lint, formato, tipos, tests, cobertura, validación de specs y de Compose en CI;
 - trazabilidad `Jira -> spec -> código/documento -> PR -> revisión -> evidencia`.
 
@@ -191,7 +191,7 @@ servicio arrancado, una spec o un diseño por sí solos cuentan como trabajo en 
 |---|---|---|---|
 | Sistema de logs | [![En curso][status-active]][status-active-link] | Logs técnicos seguros del consumer y política de observabilidad | Logs estructurados del pipeline completo y errores de persistencia |
 | Tests unitarios | [![Completado][status-done]][status-done-link] | 7 tests, cobertura medida del 79 % y umbral CI del 75 % | Ampliar pruebas con cada comportamiento nuevo |
-| Aplicación Dockerizada con Docker Compose | [![En curso][status-active]][status-active-link] | Compose de MongoDB validado en CI | Añadir aplicación, PostgreSQL y configuración integral |
+| Aplicación Dockerizada con Docker Compose | [![En curso][status-active]][status-active-link] | Compose de MongoDB y PostgreSQL validado en CI | Añadir aplicación y configuración integral |
 
 ### Nivel avanzado
 
@@ -218,7 +218,7 @@ servicio arrancado, una spec o un diseño por sí solos cuentan como trabajo en 
 | Kafka | [![En curso][status-active]][status-active-link] | Conexión y consumo continuo; rendimiento y persistencia pendientes |
 | Pandas | [![Opcional][status-optional]][status-optional-link] | No se añade hasta que una necesidad ETL justifique la dependencia |
 | MongoDB | [![En curso][status-active]][status-active-link] | Servicio local disponible; repositorio raw pendiente |
-| PostgreSQL | [![En curso][status-active]][status-active-link] | Modelo HRP-25 en desarrollo; servicio y persistencia pendientes |
+| PostgreSQL | [![En curso][status-active]][status-active-link] | Diseño HRP-25/HRP-52 y servicio local (HRP-53) disponibles; tablas y persistencia pendientes (HRP-54) |
 | Jira | [![Completado][status-done]][status-done-link] | Backlog, responsables, estados y dependencias del proyecto |
 
 ```mermaid
@@ -304,16 +304,22 @@ pytest
 docker compose -f infra/compose.dev.yml config --quiet
 ```
 
-### 3. Arrancar MongoDB local
+### 3. Arrancar MongoDB y PostgreSQL locales
 
 ```powershell
-docker compose -f infra/compose.dev.yml up -d mongo
+docker compose -f infra/compose.dev.yml up -d mongo postgres
 docker compose -f infra/compose.dev.yml ps
 docker compose -f infra/compose.dev.yml exec -T mongo `
   mongosh --quiet --eval "db.adminCommand('ping').ok"
+docker compose -f infra/compose.dev.yml exec -T postgres `
+  pg_isready -U hr_pro -d hr_pro
 ```
 
-Para detenerlo sin borrar el volumen:
+PostgreSQL queda disponible solo en `localhost:5432`, con las credenciales locales
+definidas en `.env`. El contenedor arranca vacío: crear tablas, claves e índices es
+responsabilidad de HRP-54, no de este paso.
+
+Para detenerlos sin borrar los volúmenes:
 
 ```powershell
 docker compose -f infra/compose.dev.yml down
@@ -356,9 +362,11 @@ proceso.
 | `KAFKA_TOPICS` | Lista separada por comas de topics autorizados | Consumida por el consumer Kafka | No fijar topics en código; no incluir payloads |
 | `KAFKA_CONSUMER_GROUP` | Identificador del grupo Kafka | Consumida por el consumer Kafka | Usar un nombre operativo local o de despliegue |
 | `MONGODB_URI` | Conexión al almacenamiento raw | Reservada para persistencia raw | Puede contener credenciales; nunca versionarla |
-| `POSTGRES_DB` | Nombre de base curada | Reservada para PostgreSQL | Valor local/de despliegue, no una regla de negocio |
-| `POSTGRES_USER` | Usuario de PostgreSQL | Reservada para PostgreSQL | Nunca versionar credenciales reales |
-| `POSTGRES_PASSWORD` | Contraseña de PostgreSQL | Reservada para PostgreSQL | Mantener exclusivamente fuera de Git |
+| `POSTGRES_HOST` | Host de conexión a PostgreSQL | Servicio local disponible (HRP-53); sin consumidor de código todavía | Valor local/de despliegue, no una regla de negocio |
+| `POSTGRES_PORT` | Puerto de conexión a PostgreSQL | Servicio local disponible (HRP-53); sin consumidor de código todavía | Valor local/de despliegue, no una regla de negocio |
+| `POSTGRES_DB` | Nombre de base curada | Servicio local disponible (HRP-53); sin consumidor de código todavía | Valor local/de despliegue, no una regla de negocio |
+| `POSTGRES_USER` | Usuario de PostgreSQL | Servicio local disponible (HRP-53); sin consumidor de código todavía | Nunca versionar credenciales reales |
+| `POSTGRES_PASSWORD` | Contraseña de PostgreSQL | Servicio local disponible (HRP-53); sin consumidor de código todavía | Mantener exclusivamente fuera de Git |
 | `REDIS_URL` | Conexión al estado temporal | Reservada para Redis | Puede contener credenciales; nunca versionarla |
 | `LOG_LEVEL` | Nivel de detalle operativo | Reservada para logging estructurado | Los logs nunca exponen secretos ni payloads |
 

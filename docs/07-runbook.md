@@ -82,15 +82,19 @@ mypy src
 pytest
 docker compose -f infra/compose.dev.yml config --quiet
 docker build --tag hr-pro-platform:local .
-docker compose -f infra/compose.dev.yml up -d mongo
+docker compose -f infra/compose.dev.yml up -d mongo postgres
 docker compose -f infra/compose.dev.yml ps
 docker compose -f infra/compose.dev.yml exec -T mongo `
   mongosh --quiet --eval "db.adminCommand('ping').ok"
+docker compose -f infra/compose.dev.yml exec -T postgres `
+  pg_isready -U hr_pro -d hr_pro
 ```
 
-El umbral inicial de cobertura es 75 %. Un contenedor saludable y un `ping` correcto
-solo demuestran disponibilidad de MongoDB; todavía no prueban la persistencia raw ni
-la política de confirmación de offsets.
+El umbral inicial de cobertura es 75 %. Un contenedor saludable, un `ping` correcto
+de MongoDB y un `pg_isready` correcto de PostgreSQL solo demuestran disponibilidad
+de esos servicios; todavía no prueban la persistencia raw, la política de
+confirmación de offsets ni ninguna tabla, esquema o dato curado en PostgreSQL (eso
+corresponde a HRP-54).
 
 La imagen de aplicación solo demuestra que el consumer puede empaquetarse sin incluir
 el entorno local. No reemplaza el Compose final ni demuestra conectividad a Kafka.
