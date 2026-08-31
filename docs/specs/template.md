@@ -29,6 +29,16 @@ Enlaza una ADR si la decisión altera la arquitectura o es difícil de revertir.
 - [ ] Fallo o caso límite cubierto.
 - [ ] Documentación actualizada.
 
+## Accessibility and sustainability applicability
+
+- Accessibility: applicable / not applicable — explain the implemented user-facing
+  flow, WCAG 2.2 AA criteria and expected evidence, or why it does not apply.
+- Sustainability: applicable / not applicable — explain the relevant efficiency,
+  resource, retention or transfer concern and expected evidence, or why it does not
+  apply.
+- Deferred claims: list any accessibility conformance, carbon, energy or deployment
+  claim that cannot be made yet because evidence does not exist.
+
 ## Estrategia de pruebas
 
 | Nivel | Caso | Evidencia esperada |

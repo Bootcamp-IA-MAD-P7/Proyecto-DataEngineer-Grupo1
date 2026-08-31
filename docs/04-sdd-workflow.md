@@ -47,6 +47,8 @@ Una tarea puede pasar a **En curso** únicamente si:
 - Tiene criterios de aceptación observables.
 - Tiene spec vinculada si afecta código, infraestructura, datos u operación.
 - Indica qué prueba confirma el resultado.
+- Evalúa requisitos de accesibilidad y sostenibilidad o justifica explícitamente por
+  qué no aplican.
 - No requiere consultar el generador educativo.
 
 ## Definition of Done
@@ -59,6 +61,8 @@ Una tarea pasa a **Finalizada** únicamente si:
 - Lint, formato y tipos en verde cuando hay código Python.
 - PR revisada y evidencia enlazada.
 - Documentación, ADR, runbook o fixture actualizados cuando cambie su ámbito.
+- Las tareas aplicables incluyen su evidencia de accesibilidad y sostenibilidad; no
+  quedan fallos críticos de accesibilidad conocidos sin resolver.
 - Jira contiene el comentario de cierre verificable.
 
 ## Tipos de decisión

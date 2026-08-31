@@ -72,6 +72,19 @@ se identifican como `AC-01`, `AC-02`, etc. El nombre o docstring de la prueba de
 referenciar ese identificador. No se exige esta convención a las specs de diseño ya
 existentes ni se inventan pruebas antes de que exista implementación.
 
+## Accessibility and sustainable-delivery evidence
+
+When a task introduces a user-facing flow, the harness includes an automated
+accessibility check against the rendered interface and a documented keyboard-only
+manual check. Advanced widgets, dynamic updates, dialogs and charts also require
+screen-reader validation when applicable. Charts and status indicators need an
+equivalent textual or tabular alternative.
+
+Tasks affecting APIs, frontend delivery, Docker or AWS document the applicable
+efficiency evidence: for example bounded API responses, request count, transfer size,
+query cost, container resources or retained data. No carbon score, energy saving or
+deployment claim is accepted without measured evidence and its boundary.
+
 ## Comandos de calidad
 
 ```powershell
