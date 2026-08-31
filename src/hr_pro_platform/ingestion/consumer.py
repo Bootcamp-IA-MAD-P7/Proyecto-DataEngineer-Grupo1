@@ -1,111 +1,86 @@
-"""Kafka consumption with technical-only logging.
-
-Payload interpretation and persistence belong to later tasks. This module records
-only transport metadata and never logs a message body.
-"""
-
-from __future__ import annotations
-
+import json
 import signal
-from collections.abc import Callable
-from typing import Any
-
 from confluent_kafka import Consumer, KafkaError
-
-from .config import KafkaConsumerSettings, load_kafka_settings
+from .config import KAFKA_CONFIG, KAFKA_TOPICS
+from .mongo import MongoIngestionClient
 from .error_handler import get_logger
 
-logger = get_logger(__name__)
+logger = get_logger("consumer")
+
+running = True
 
 
-class ShutdownController:
-    """Keeps the polling loop testable while supporting graceful CLI shutdown."""
-
-    def __init__(self) -> None:
-        self.running = True
-
-    def stop(self, _signal_number: int, _frame: object) -> None:
-        logger.info("Shutdown signal received; stopping after the current poll")
-        self.running = False
-
-    def __call__(self) -> bool:
-        return self.running
+def _shutdown(sig, frame):
+    global running
+    logger.info("Shutdown signal received — stopping after current message")
+    running = False
 
 
-def install_signal_handlers(controller: ShutdownController) -> None:
-    """Install process-level handlers only when the executable starts."""
-
-    signal.signal(signal.SIGTERM, controller.stop)
-    signal.signal(signal.SIGINT, controller.stop)
+signal.signal(signal.SIGTERM, _shutdown)
+signal.signal(signal.SIGINT, _shutdown)
 
 
-def _log_kafka_error(message: Any) -> None:
-    error = message.error()
+def _handle_kafka_error(msg):
+    error = msg.error()
     if error.code() == KafkaError._PARTITION_EOF:
-        logger.debug("End of partition topic=%s partition=%s", message.topic(), message.partition())
-        return
-    logger.warning("Kafka error type=%s", type(error).__name__)
+        logger.debug(f"End of partition | {msg.topic()} [{msg.partition()}]")
+    else:
+        logger.error(f"Kafka error: {error}")
 
 
-def _log_message_metadata(message: Any) -> bool:
-    value = message.value()
-    if value is None:
-        logger.warning(
-            "Invalid Kafka message topic=%s partition=%s offset=%s reason=missing_value",
-            message.topic(),
-            message.partition(),
-            message.offset(),
-        )
-        return False
+def run_consumer():
+    mongo_client = MongoIngestionClient()
+    mongo_client.connect()
 
-    logger.info(
-        "Kafka message received topic=%s partition=%s offset=%s bytes=%s",
-        message.topic(),
-        message.partition(),
-        message.offset(),
-        len(value),
-    )
-    return True
+    consumer = Consumer(KAFKA_CONFIG)
+    consumer.subscribe(KAFKA_TOPICS)
+    logger.info(f"Subscribed to topics: {KAFKA_TOPICS}")
 
-
-def run_consumer(
-    settings: KafkaConsumerSettings | None = None,
-    consumer_factory: Callable[[dict[str, object]], Any] = Consumer,
-    should_continue: Callable[[], bool] | None = None,
-    poll_timeout_seconds: float = 1.0,
-    max_messages: int | None = None,
-) -> int:
-    """Consume authorised topics and return the number of valid transport events."""
-
-    active_settings = settings or load_kafka_settings()
-    consumer = consumer_factory(active_settings.client_config)
-    keep_running = should_continue or (lambda: True)
-    processed_messages = 0
-
-    consumer.subscribe(list(active_settings.topics))
-    logger.info("Kafka consumer subscribed topic_count=%s", len(active_settings.topics))
+    msg_count = 0
 
     try:
-        while keep_running():
+        while running:
             try:
-                message = consumer.poll(timeout=poll_timeout_seconds)
-            except Exception as error:
-                logger.error("Kafka poll failed error_type=%s", type(error).__name__)
+                messages = consumer.consume(num_messages=500, timeout=1.0)
+                if not messages:
+                    continue
+
+                valid = []
+                for msg in messages:
+                    if msg.error():
+                        _handle_kafka_error(msg)
+                        continue
+
+                    topic = msg.topic()
+
+                    try:
+                        data = json.loads(msg.value().decode("utf-8"))
+                    except (json.JSONDecodeError, UnicodeDecodeError) as e:
+                        logger.warning(
+                            f"Could not deserialise | topic={topic} offset={msg.offset()} | {e}"
+                        )
+                        consumer.commit(message=msg)
+                        continue
+
+                    valid.append((topic, data, msg))
+
+                if valid:
+                    saved = mongo_client.insert_many_fragments(valid)
+                    if saved:
+                        consumer.commit(message=valid[-1][2])
+                        logger.info(f"Batch saved | {len(valid)} messages")
+                        msg_count += len(valid)
+                        if msg_count >= 1000:
+                            logger.info(f"Heartbeat | {msg_count} messages processed")
+                            msg_count = 0
+                    else:
+                        logger.error("Batch insert failed — skipping commit, Kafka will redeliver")
+
+            except Exception as e:
+                logger.error(f"Unexpected error: {e}")
                 continue
 
-            if message is None:
-                continue
-            if message.error():
-                _log_kafka_error(message)
-                continue
-            if not _log_message_metadata(message):
-                continue
-
-            processed_messages += 1
-            if max_messages is not None and processed_messages >= max_messages:
-                break
     finally:
+        mongo_client.close()
         consumer.close()
-        logger.info("Kafka consumer closed processed_messages=%s", processed_messages)
-
-    return processed_messages
+        logger.info("Consumer closed cleanly")
