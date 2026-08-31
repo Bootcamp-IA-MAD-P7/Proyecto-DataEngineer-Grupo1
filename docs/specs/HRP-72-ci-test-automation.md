@@ -63,7 +63,10 @@ an isolated configuration check and is not presented as a running integration te
 
 ## Completion evidence
 
-- Branch / PR: `feature/HRP-72-ci-test-automation` / pending human review
-- Commit: pending
-- Commands and result: pending local and GitHub Actions execution
+- Branch / PR: `feature/HRP-72-ci-test-automation` / [PR #22](https://github.com/Bootcamp-IA-MAD-P7/Proyecto-DataEngineer-Grupo1/pull/22), pending human review
+- Commit: `5ffaa3d` (`HRP-72 ci: automate test execution`)
+- Commands and result: `git diff --check`, specification validation, `ruff check .`
+  and `ruff format --check .` passed locally. Windows Application Control blocked
+  `pre-commit.exe`, `mypy.exe` and `pytest.exe`; no bypass was used. GitHub Actions
+  `quality / checks` passed on Ubuntu, together with `PR governance` and `PR labels`.
 - Jira closing comment: pending merge and human verification
