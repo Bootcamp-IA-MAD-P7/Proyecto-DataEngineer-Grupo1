@@ -1,5 +1,6 @@
 import json
 import signal
+from typing import Any
 
 from confluent_kafka import Consumer, KafkaError
 
@@ -12,7 +13,7 @@ logger = get_logger("consumer")
 running = True
 
 
-def _shutdown(sig, frame):
+def _shutdown(sig: int, frame: object) -> None:
     global running
     logger.info("Shutdown signal received — stopping after current message")
     running = False
@@ -22,7 +23,7 @@ signal.signal(signal.SIGTERM, _shutdown)
 signal.signal(signal.SIGINT, _shutdown)
 
 
-def _handle_kafka_error(msg):
+def _handle_kafka_error(msg: Any) -> None:
     error = msg.error()
     if error.code() == KafkaError._PARTITION_EOF:
         logger.debug(f"End of partition | {msg.topic()} [{msg.partition()}]")
@@ -30,7 +31,7 @@ def _handle_kafka_error(msg):
         logger.error(f"Kafka error: {error}")
 
 
-def run_consumer():
+def run_consumer() -> None:
     mongo_client = MongoIngestionClient()
     mongo_client.connect()
 
@@ -47,7 +48,7 @@ def run_consumer():
                 if not messages:
                     continue
 
-                valid = []
+                valid: list[tuple[str, dict[str, Any], Any]] = []
                 for msg in messages:
                     if msg.error():
                         _handle_kafka_error(msg)
@@ -55,8 +56,14 @@ def run_consumer():
 
                     topic = msg.topic()
 
+                    value = msg.value()
+                    if topic is None or value is None:
+                        logger.warning(f"Empty message value | offset={msg.offset()}")
+                        consumer.commit(message=msg)
+                        continue
+
                     try:
-                        data = json.loads(msg.value().decode("utf-8"))
+                        data = json.loads(value.decode("utf-8"))
                     except (json.JSONDecodeError, UnicodeDecodeError) as e:
                         logger.warning(
                             f"Could not deserialise | topic={topic} offset={msg.offset()} | {e}"
