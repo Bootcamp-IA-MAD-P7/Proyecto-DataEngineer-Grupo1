@@ -1,9 +1,11 @@
 import json
 import signal
+
 from confluent_kafka import Consumer, KafkaError
+
 from .config import KAFKA_CONFIG, KAFKA_TOPICS
-from .mongo import MongoIngestionClient
 from .error_handler import get_logger
+from .mongo import MongoIngestionClient
 
 logger = get_logger("consumer")
 
