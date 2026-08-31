@@ -1,6 +1,6 @@
 # HRP-34 — Align Kafka-to-MongoDB raw persistence boundary
 
-**Status:** Ready for implementation
+**Status:** Ready for review
 **Owner:** Gabriela
 **Owner approval:** Gabriela, 2026-08-31
 **Human PR reviewer:** Miguel — pending
