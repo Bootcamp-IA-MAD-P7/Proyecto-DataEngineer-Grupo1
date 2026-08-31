@@ -65,7 +65,7 @@ Hoy se puede demostrar, de manera honesta y reproducible:
 - trazabilidad `Jira -> spec -> código/documento -> PR -> revisión -> evidencia`.
 
 Todavía no se puede demostrar un perfil completo en PostgreSQL ni una consulta desde
-API o Streamlit. Esas capacidades pertenecen a los siguientes cortes del briefing.
+API o frontend. Esas capacidades pertenecen a los siguientes cortes del briefing.
 
 ## Arquitectura
 
@@ -77,7 +77,7 @@ flowchart LR
     T <-->|estado parcial con TTL| R[(Redis)]
     T -->|upsert curado| P[(PostgreSQL)]
     P --> A[API]
-    A --> U[Streamlit]
+    A --> U[Frontend SPA]
     I -. logs y métricas .-> O[Prometheus / dashboard]
     T -. logs y métricas .-> O
     A -. logs y métricas .-> O
@@ -206,7 +206,7 @@ servicio arrancado, una spec o un diseño por sí solos cuentan como trabajo en 
 | Check literal | Estado | Evidencia actual | Próxima prueba de cierre |
 |---|---|---|---|
 | Actualización continua de las bases mientras Kafka publica | [![Pendiente][status-pending]][status-pending-link] | Consumer continuo validado, sin persistencia conectada | Demo prolongada Kafka -> MongoDB -> PostgreSQL sin intervención |
-| Frontend sencillo para consultar clientes | [![Pendiente][status-pending]][status-pending-link] | Streamlit seleccionado para la arquitectura objetivo | Buscador, resultados, métricas y conexión exclusiva mediante API |
+| Frontend sencillo para consultar clientes | [![Pendiente][status-pending]][status-pending-link] | React + TypeScript + Vite es la dirección preferida; Streamlit solo fallback de demo | Buscador, resultados, métricas accesibles y conexión exclusiva mediante API |
 
 ### Tecnologías del briefing
 
@@ -381,7 +381,7 @@ La matriz completa de pruebas incluye unitarias, contrato, integración, E2E y c
 | Miguel | Plataforma, arquitectura y calidad | CI, Docker, documentación, observabilidad y demo |
 | Anahí | Ingesta y raw storage | Kafka, consumer e idempotencia MongoDB |
 | Gaby | Contrato y transformación | Clasificación, limpieza, agrupación, Redis y métricas |
-| Johans | Modelo curado y serving | PostgreSQL, consultas, API y Streamlit |
+| Johans | Modelo curado y serving | PostgreSQL, consultas, API y frontend |
 
 La propiedad no crea silos: toda PR necesita revisión de otra persona y los cambios
 en límites de componentes se revisan con el área afectada.
@@ -421,8 +421,8 @@ en límites de componentes se revisan con el área afectada.
    incompletitud y publicar mediante upsert en PostgreSQL.
 5. **Operación reproducible.** Completar Compose de aplicación, logs estructurados,
    integración y E2E.
-6. **Observabilidad y producto.** Añadir Redis, Prometheus, API y Streamlit cuando el
-   flujo esencial ya tenga una referencia estable.
+6. **Observabilidad y producto.** Añadir Redis, Prometheus, API y frontend accesible
+   cuando el flujo esencial ya tenga una referencia estable.
 
 ## Diferenciales del proyecto
 
@@ -453,6 +453,7 @@ su código.
 | Flujo Specification-Driven | [SDD](docs/04-sdd-workflow.md) |
 | Pruebas y quality gates | [Test harness](docs/05-test-harness.md) |
 | Logs, métricas y privacidad | [Observabilidad](docs/06-observability.md) |
+| Accesibilidad y sostenibilidad | [ADR-0007](docs/adr/0007-accessibility-and-sustainable-delivery.md) |
 | Arranque y diagnóstico | [Runbook](docs/07-runbook.md) |
 | Ramas, PRs y releases | [Gobernanza Git](docs/08-git-governance.md) |
 | Fortalezas y riesgos vivos | [DAFO evolutivo](docs/09-evolving-swot.md) |
@@ -469,7 +470,7 @@ La demo contará el viaje de un dato, no una lista de herramientas:
 2. Recibir eventos en Kafka con logs exclusivamente técnicos.
 3. Comprobar raw e idempotencia en MongoDB.
 4. Mostrar clasificación, agrupación y auditoría del ETL.
-5. Consultar la persona curada en PostgreSQL, API y Streamlit.
+5. Consultar la persona curada en PostgreSQL, API y frontend accesible.
 6. Mostrar métricas de consumo, latencia, persistencia y errores.
 7. Cerrar con CI, PR revisadas, Jira y evolución del DAFO como evidencia del proceso.
 
