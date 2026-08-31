@@ -330,6 +330,28 @@ KAFKA_CONSUMER_GROUP=hr-pro-local
 KAFKA_TOPICS=probando
 ```
 
+#### Catálogo de configuración
+
+`.env.example` es la plantilla versionada; `.env` es local y puede contener secretos.
+No copies su contenido a Git, logs, Jira, PRs, chats ni material de presentación. El
+consumer actual carga el archivo local sin sobrescribir valores ya definidos por el
+proceso.
+
+| Variable | Uso | Estado actual | Regla de seguridad |
+|---|---|---|---|
+| `KAFKA_BOOTSTRAP_SERVERS` | Dirección del broker autorizado | Consumida por el consumer Kafka | Configurar solo de forma local o por entorno de ejecución |
+| `KAFKA_TOPICS` | Lista separada por comas de topics autorizados | Consumida por el consumer Kafka | No fijar topics en código; no incluir payloads |
+| `KAFKA_CONSUMER_GROUP` | Identificador del grupo Kafka | Consumida por el consumer Kafka | Usar un nombre operativo local o de despliegue |
+| `MONGODB_URI` | Conexión al almacenamiento raw | Reservada para persistencia raw | Puede contener credenciales; nunca versionarla |
+| `POSTGRES_DB` | Nombre de base curada | Reservada para PostgreSQL | Valor local/de despliegue, no una regla de negocio |
+| `POSTGRES_USER` | Usuario de PostgreSQL | Reservada para PostgreSQL | Nunca versionar credenciales reales |
+| `POSTGRES_PASSWORD` | Contraseña de PostgreSQL | Reservada para PostgreSQL | Mantener exclusivamente fuera de Git |
+| `REDIS_URL` | Conexión al estado temporal | Reservada para Redis | Puede contener credenciales; nunca versionarla |
+| `LOG_LEVEL` | Nivel de detalle operativo | Reservada para logging estructurado | Los logs nunca exponen secretos ni payloads |
+
+Las variables reservadas describen el contrato operativo objetivo; no significan que
+los servicios o sus consumidores de configuración estén implementados todavía.
+
 ```powershell
 python -m hr_pro_platform.ingestion.main
 ```

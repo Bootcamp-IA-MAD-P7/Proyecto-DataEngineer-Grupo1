@@ -7,6 +7,26 @@
 3. Crear rama asociada.
 4. Ejecutar las comprobaciones locales antes de abrir PR.
 
+## Configuración local segura
+
+1. Crear el archivo local a partir de la plantilla:
+
+   ```powershell
+   Copy-Item .env.example .env
+   ```
+
+2. Completar únicamente los valores autorizados para el entorno actual. Nunca
+   registrar el contenido de `.env` en Git, logs, chats, Jira, pull requests o
+   fuentes de presentación.
+3. Para el consumer actual, configurar `KAFKA_BOOTSTRAP_SERVERS`,
+   `KAFKA_CONSUMER_GROUP` y `KAFKA_TOPICS`. Las variables definidas por el proceso
+   tienen prioridad sobre las de `.env`.
+4. `MONGODB_URI`, las variables `POSTGRES_*`, `REDIS_URL` y `LOG_LEVEL` están
+   documentadas en `.env.example` para los componentes futuros. No implican que esos
+   consumidores de configuración estén implementados todavía.
+5. Consultar el catálogo y las reglas de cada variable en la sección
+   [Configurar el consumer](../README.md#4-configurar-el-consumer) del README.
+
 ## Entorno Kafka educativo autorizado
 
 Este entorno es externo al repositorio del equipo. Se obtiene únicamente para ejecutar
