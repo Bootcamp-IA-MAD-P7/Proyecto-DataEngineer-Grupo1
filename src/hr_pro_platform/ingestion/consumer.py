@@ -75,9 +75,7 @@ def run_consumer() -> None:
 
                     detected_topic = detect_topic(data)
                     if detected_topic is None:
-                        logger.warning(
-                            "Could not detect fragment type | offset=%s", msg.offset()
-                        )
+                        logger.warning("Could not detect fragment type | offset=%s", msg.offset())
                         consumer.commit(message=msg)
                         continue
 

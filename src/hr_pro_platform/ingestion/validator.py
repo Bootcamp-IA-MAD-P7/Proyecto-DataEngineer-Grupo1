@@ -3,11 +3,11 @@ from .error_handler import get_logger
 logger = get_logger("validator")
 
 REQUIRED_FIELDS: dict[str, list[str]] = {
-    "net-data":          ["IPv4"],
-    "bank-data":         ["IBAN", "salary"],
+    "net-data": ["IPv4"],
+    "bank-data": ["IBAN", "salary"],
     "professional-data": ["company", "job"],
-    "location":          ["fullname", "city"],
-    "personal-data":     ["name", "last_name", "passport", "email"],
+    "location": ["fullname", "city"],
+    "personal-data": ["name", "last_name", "passport", "email"],
 }
 
 
