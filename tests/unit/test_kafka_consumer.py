@@ -1,12 +1,10 @@
 from __future__ import annotations
 
-from collections.abc import Iterator
-from dataclasses import dataclass
+from dataclasses import dataclass, field
+from typing import Any
+from unittest.mock import MagicMock, patch
 
 import pytest
-
-from hr_pro_platform.ingestion.config import KafkaConsumerSettings, load_kafka_settings
-from hr_pro_platform.ingestion.consumer import run_consumer
 
 
 @dataclass
@@ -17,99 +15,133 @@ class FakeKafkaError:
         return self.value
 
 
+PERSONAL_DATA_PAYLOAD = (
+    b'{"name": "Ana", "last_name": "Garcia", "passport": "X123", '
+    b'"email": "ana@test.com", "telfnumber": "600000000", "sex": ["F"]}'
+)
+
+BANK_DATA_PAYLOAD = b'{"passport": "X123", "IBAN": "ES12345678901234567890", "salary": "50000"}'
+
+
 @dataclass
 class FakeMessage:
-    payload: bytes | None = b"safe-test-message"
+    payload: bytes | None = PERSONAL_DATA_PAYLOAD
     kafka_error: FakeKafkaError | None = None
+    _topic: str = "authorised-topic"
+    _partition: int = 0
+    _offset: int = 7
 
     def error(self) -> FakeKafkaError | None:
         return self.kafka_error
 
     def topic(self) -> str:
-        return "authorised-topic"
+        return self._topic
 
     def partition(self) -> int:
-        return 0
+        return self._partition
 
     def offset(self) -> int:
-        return 7
+        return self._offset
 
     def value(self) -> bytes | None:
         return self.payload
 
 
+@dataclass
 class FakeConsumer:
-    def __init__(self, messages: list[FakeMessage | None]) -> None:
-        self.messages: Iterator[FakeMessage | None] = iter(messages)
-        self.closed = False
-        self.subscriptions: list[list[str]] = []
+    messages: list[FakeMessage | None] = field(default_factory=list)
+    _closed: bool = False
+    _subscriptions: list[list[str]] = field(default_factory=list)
+    _commits: list[Any] = field(default_factory=list)
+    _index: int = 0
 
     def subscribe(self, topics: list[str]) -> None:
-        self.subscriptions.append(topics)
+        self._subscriptions.append(topics)
 
-    def poll(self, timeout: float) -> FakeMessage | None:
-        del timeout
-        return next(self.messages)
+    def consume(self, num_messages: int = 1, timeout: float = 1.0) -> list[FakeMessage | None]:
+        remaining = self.messages[self._index : self._index + num_messages]
+        self._index += num_messages
+        return remaining
+
+    def commit(self, message: Any = None, asynchronous: bool = False) -> None:
+        self._commits.append(message)
 
     def close(self) -> None:
-        self.closed = True
+        self._closed = True
 
 
-def _settings() -> KafkaConsumerSettings:
-    return KafkaConsumerSettings(
-        bootstrap_servers="broker.example:9092",
-        consumer_group="hrp-30-test",
-        topics=("authorised-topic",),
-    )
+def test_config_loads_mongodb_vars(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("KAFKA_BOOTSTRAP_SERVERS", "broker:9092")
+    monkeypatch.setenv("MONGODB_URI", "mongodb://localhost:27017")
+    monkeypatch.setenv("MONGODB_DB", "test_db")
+    monkeypatch.setenv("MONGODB_COLLECTION", "test_col")
+
+    from importlib import reload
+
+    from hr_pro_platform.ingestion import config
+
+    reload(config)
+
+    assert config.MONGODB_URI == "mongodb://localhost:27017"
+    assert config.MONGODB_DB == "test_db"
+    assert config.MONGODB_COLLECTION == "test_col"
 
 
-def test_load_settings_uses_authorised_environment_topics(monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setenv("KAFKA_BOOTSTRAP_SERVERS", "broker.example:9092")
-    monkeypatch.setenv("KAFKA_CONSUMER_GROUP", "hrp-30-test")
-    monkeypatch.setenv("KAFKA_TOPICS", "authorised-topic, another-topic")
+@patch("hr_pro_platform.ingestion.consumer.MongoIngestionClient")
+@patch("hr_pro_platform.ingestion.consumer.Consumer")
+def test_consumer_processes_valid_messages(
+    mock_kafka_cls: MagicMock, mock_mongo_cls: MagicMock
+) -> None:
+    fake_consumer = FakeConsumer(messages=[FakeMessage()])
 
-    settings = load_kafka_settings()
+    import hr_pro_platform.ingestion.consumer as consumer_mod
 
-    assert settings.topics == ("authorised-topic", "another-topic")
+    original_consume = fake_consumer.consume
+    call_count = 0
 
+    def consume_once(*args: Any, **kwargs: Any) -> list[FakeMessage | None]:
+        nonlocal call_count
+        call_count += 1
+        result = original_consume(*args, **kwargs)
+        consumer_mod.running = False
+        return result
 
-def test_load_settings_rejects_missing_topics(monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setenv("KAFKA_BOOTSTRAP_SERVERS", "broker.example:9092")
-    monkeypatch.setenv("KAFKA_CONSUMER_GROUP", "hrp-30-test")
-    monkeypatch.setenv("KAFKA_TOPICS", "")
+    fake_consumer.consume = consume_once  # type: ignore[assignment]
+    mock_kafka_cls.return_value = fake_consumer
 
-    with pytest.raises(ValueError, match="KAFKA_TOPICS"):
-        load_kafka_settings()
+    consumer_mod.running = True
+    consumer_mod.run_consumer()
 
-
-def test_consumer_counts_metadata_without_logging_payload() -> None:
-    fake_consumer = FakeConsumer([FakeMessage()])
-
-    processed = run_consumer(
-        settings=_settings(),
-        consumer_factory=lambda _config: fake_consumer,
-        max_messages=1,
-    )
-
-    assert processed == 1
-    assert fake_consumer.subscriptions == [["authorised-topic"]]
-    assert fake_consumer.closed is True
+    assert fake_consumer._closed is True
+    mock_mongo_cls.return_value.insert_many_fragments.assert_called_once()
 
 
-def test_consumer_skips_errors_and_invalid_messages() -> None:
+@patch("hr_pro_platform.ingestion.consumer.MongoIngestionClient")
+@patch("hr_pro_platform.ingestion.consumer.Consumer")
+def test_consumer_skips_kafka_errors(mock_kafka_cls: MagicMock, mock_mongo_cls: MagicMock) -> None:
     fake_consumer = FakeConsumer(
-        [
+        messages=[
             FakeMessage(kafka_error=FakeKafkaError()),
-            FakeMessage(payload=None),
             FakeMessage(),
         ]
     )
 
-    processed = run_consumer(
-        settings=_settings(),
-        consumer_factory=lambda _config: fake_consumer,
-        max_messages=1,
-    )
+    import hr_pro_platform.ingestion.consumer as consumer_mod
 
-    assert processed == 1
-    assert fake_consumer.closed is True
+    original_consume = fake_consumer.consume
+    call_count = 0
+
+    def consume_once(*args: Any, **kwargs: Any) -> list[FakeMessage | None]:
+        nonlocal call_count
+        call_count += 1
+        result = original_consume(*args, **kwargs)
+        consumer_mod.running = False
+        return result
+
+    fake_consumer.consume = consume_once  # type: ignore[assignment]
+    mock_kafka_cls.return_value = fake_consumer
+
+    consumer_mod.running = True
+    consumer_mod.run_consumer()
+
+    assert fake_consumer._closed is True
