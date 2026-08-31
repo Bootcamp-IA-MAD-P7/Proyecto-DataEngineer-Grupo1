@@ -1,9 +1,10 @@
 # HR Pro Data Platform — fuente ejecutiva
 
-**Actualización:** 2026-08-28
+**Actualización:** 2026-08-31
 
-**Estado:** nivel esencial en curso; contrato y consumo Kafka validados, persistencia
-raw, ETL y PostgreSQL pendientes.
+**Estado:** nivel esencial en curso; contrato, consumo Kafka, MongoDB inicial,
+deduplicación técnica y manejo de errores ya integrados. ETL de persona completa y
+PostgreSQL ejecutable siguen pendientes.
 
 ## Problema
 
@@ -20,7 +21,7 @@ Construir un pipeline Dockerizado que:
 2. Conserve cada evento original y sus metadatos en MongoDB.
 3. Valide, clasifique y agrupe los fragmentos de una persona.
 4. Publique datos curados e idempotentes en PostgreSQL.
-5. Evolucione con logs, pruebas, Redis, métricas, API y un frontend Streamlit.
+5. Evolucione con logs, pruebas, Redis, métricas, API y un frontend accesible.
 
 ## Equipo
 
@@ -46,6 +47,6 @@ sencilla de consulta.
 
 ## Hito actual
 
-La plataforma ya puede conectarse y consumir de forma continua sin exponer payloads.
-El siguiente corte vertical es demostrar `Kafka -> MongoDB raw` con idempotencia y
-confirmación del offset solo después de persistir.
+La plataforma ya puede conectarse, consumir de forma continua y persistir fragmentos
+iniciales en MongoDB sin exponer payloads en logs. El siguiente corte vertical es
+alinear el sobre raw definitivo y usarlo como base segura para ETL y PostgreSQL.
