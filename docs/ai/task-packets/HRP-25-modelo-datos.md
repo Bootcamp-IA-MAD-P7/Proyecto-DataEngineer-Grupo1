@@ -1,56 +1,59 @@
-# Paquete de tarea — HRP-25
+# Task packet — HRP-25
 
-**Estado:** Borrador
-**Responsable:** Johans
-**Revisor humano:** Gaby
+**Status:** Draft
+**Owner:** Johans
+**Human reviewer:** Gaby
 **Jira:** HRP-25
-**Spec:** `docs/specs/HRP-25-*.md`
-**Rama prevista:** `feature/HRP-25-modelo-datos`
+**Specification:** `docs/specs/HRP-25-*.md`
+**Planned branch:** `feature/HRP-25-modelo-datos`
 
-## Resultado esperado
+## Expected outcome
 
-Definir una propuesta de modelo MongoDB/PostgreSQL que mantenga eventos raw,
-estado temporal y registros curados trazables e idempotentes, validada contra el
-contrato disponible.
+Define a MongoDB/PostgreSQL model proposal that preserves raw events, temporary
+state, and traceable, idempotent curated records, validated against the available
+contract.
 
-## Contexto autorizado
+## Authorised context
 
-- Briefing / documento: requisitos de MongoDB, SQL y agrupación por persona.
-- Documentación local relevante: `docs/01-architecture.md`, `docs/02-data-contract.md`, `docs/03-data-model.md`.
-- Evidencia Kafka observada (si aplica): pendiente de HRP-29 y consolidación HRP-24.
-- Decisiones o ADRs relacionadas: ADR-0001, ADR-0002 y ADR-0003.
+- Briefing / assignment: MongoDB, SQL, and person-level aggregation requirements.
+- Relevant local documentation: `docs/01-architecture.md`,
+  `docs/02-data-contract.md`, and `docs/03-data-model.md`.
+- Observed Kafka evidence, where applicable: HRP-29 evidence and HRP-24
+  consolidation.
+- Related decisions or ADRs: ADR-0001, ADR-0002, and ADR-0003.
 
-## Dependencias y límites
+## Dependencies and boundaries
 
-- Depende de: HRP-23 y HRP-24; HRP-24 depende de HRP-29.
-- No incluye: crear tablas finales ni codificar la persistencia.
-- Riesgo o incógnita: identidad canónica, cardinalidades y tipos definitivos.
-- Restricción: no leer, clonar ni analizar el generador educativo.
+- Depends on HRP-23 and HRP-24; HRP-24 depends on HRP-29.
+- Does not include final table creation or persistence implementation.
+- Risks / unknowns: canonical identity, cardinalities, and final data types.
+- Restriction: do not read, clone, or analyse the educational generator.
 
-## Petición al asistente
+## Request to the assistant
 
-**Rol:** Revisor de arquitectura.
-**Pregunta concreta:** ¿La propuesta mantiene separación raw/temporal/curada, trazabilidad e idempotencia sin fijar datos no observados?
-**Formato de salida esperado:** riesgos, decisiones que requieren ADR y pruebas de persistencia.
-**Criterios con los que se evaluará:** rúbrica de `docs/ai/evaluation-rubric.md` y revisión Gaby.
+**Role:** Data-architecture reviewer.
+**Question:** Does the proposal preserve raw/temporary/curated separation,
+traceability, and idempotency without fixing unobserved data as fact?
+**Expected output:** Risks, decisions that require an ADR, and persistence tests.
+**Evaluation criteria:** `docs/ai/evaluation-rubric.md` and Gaby's review.
 
-## Revisión humana del resultado
+## Human review of the outcome
 
-- [ ] Hechos y supuestos están separados.
-- [ ] Las rutas y referencias citadas existen.
-- [ ] No se inventan campos, topics o comportamientos de Kafka.
-- [ ] La propuesta respeta alcance y seguridad.
-- [ ] Se ha aplicado o descartado el resultado, indicando motivo.
+- [ ] Facts and assumptions are separated.
+- [ ] Referenced paths and documents exist.
+- [ ] No Kafka fields, topics, or behaviours are invented.
+- [ ] The proposal respects scope and security.
+- [ ] The outcome is accepted or rejected with a reason.
 
-## Registro del uso de IA
+## AI-use record
 
-- Herramienta / rol: Claude Code, rol de revisor/diseñador de arquitectura de datos
+- Tool / role: Claude Code, data-architecture reviewer/designer
   (serving-engineer).
-- Fecha: 2026-08-29.
-- Salida resumida: propuesta documental de colecciones MongoDB y tablas PostgreSQL
-  en `docs/specs/HRP-25-modelo-datos.md`, actualización de `docs/03-data-model.md`
-  y una ADR `Proposed` (`docs/adr/0006-person-correlation-key.md`) para la clave de
-  correlación de persona, sin fijar campos, tipos ni reglas no evidenciados por
-  HRP-24/HRP-29.
-- Decisión humana: pendiente.
-- Revisor: Gaby (pendiente de revisión).
+- Date: 2026-08-29.
+- Summarised output: documentary proposal for MongoDB collections and PostgreSQL
+  tables in `docs/specs/HRP-25-modelo-datos.md`; update to
+  `docs/03-data-model.md`; and a `Proposed` ADR
+  (`docs/adr/0006-person-correlation-key.md`) for the person correlation key,
+  without fixing fields, types, or rules that are not evidenced by HRP-24/HRP-29.
+- Human decision: pending.
+- Reviewer: Gaby (review pending).
