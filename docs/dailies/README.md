@@ -9,6 +9,8 @@ fuente de estado de las tareas.
 - `2026-08-27-kickoff.md`: fundación, reparto inicial y gobernanza.
 - `2026-08-28-progress-and-benchmark.md`: contrato Kafka, consumo continuo, benchmark,
   calidad y siguiente corte raw.
+- `2026-08-31-global-closeout.md`: estado global tras integrar ingesta, MongoDB,
+  modelo SQL, CI, accesibilidad y fuentes de presentación.
 
 ## Norma
 
