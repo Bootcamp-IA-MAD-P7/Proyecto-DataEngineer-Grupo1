@@ -44,8 +44,13 @@ contrato disponible.
 
 ## Registro del uso de IA
 
-- Herramienta / rol:
-- Fecha:
-- Salida resumida:
-- Decisión humana:
-- Revisor:
+- Herramienta / rol: Claude Code, rol de revisor/diseñador de arquitectura de datos
+  (serving-engineer).
+- Fecha: 2026-08-29.
+- Salida resumida: propuesta documental de colecciones MongoDB y tablas PostgreSQL
+  en `docs/specs/HRP-25-modelo-datos.md`, actualización de `docs/03-data-model.md`
+  y una ADR `Proposed` (`docs/adr/0006-person-correlation-key.md`) para la clave de
+  correlación de persona, sin fijar campos, tipos ni reglas no evidenciados por
+  HRP-24/HRP-29.
+- Decisión humana: pendiente.
+- Revisor: Gaby (pendiente de revisión).
