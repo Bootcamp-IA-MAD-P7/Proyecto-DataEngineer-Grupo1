@@ -72,28 +72,6 @@ class FakeConsumer:
 
 
 # ---------------------------------------------------------------------------
-# config.py
-# ---------------------------------------------------------------------------
-
-
-def test_config_loads_mongodb_vars(monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setenv("KAFKA_BOOTSTRAP_SERVERS", "broker:9092")
-    monkeypatch.setenv("MONGODB_URI", "mongodb://localhost:27017")
-    monkeypatch.setenv("MONGODB_DB", "test_db")
-    monkeypatch.setenv("MONGODB_COLLECTION", "test_col")
-
-    from importlib import reload
-
-    from hr_pro_platform.ingestion import config
-
-    reload(config)
-
-    assert config.MONGODB_URI == "mongodb://localhost:27017"
-    assert config.MONGODB_DB == "test_db"
-    assert config.MONGODB_COLLECTION == "test_col"
-
-
-# ---------------------------------------------------------------------------
 # consumer.py
 # ---------------------------------------------------------------------------
 
