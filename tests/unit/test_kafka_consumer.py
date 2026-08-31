@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 from collections.abc import Iterator
 from dataclasses import dataclass
 
@@ -94,6 +95,45 @@ def test_consumer_counts_metadata_without_logging_payload() -> None:
     assert processed == 1
     assert fake_consumer.subscriptions == [["authorised-topic"]]
     assert fake_consumer.closed is True
+
+
+def test_consumer_logs_technical_metadata_without_payload(caplog: pytest.LogCaptureFixture) -> None:
+    payload_sentinel = b"must-not-appear-in-logs"
+    fake_consumer = FakeConsumer([FakeMessage(payload=payload_sentinel)])
+
+    with caplog.at_level(logging.INFO, logger="hr_pro_platform.ingestion.consumer"):
+        processed = run_consumer(
+            settings=_settings(),
+            consumer_factory=lambda _config: fake_consumer,
+            max_messages=1,
+        )
+
+    logged_output = caplog.text
+
+    assert processed == 1
+    assert "Kafka consumer subscribed topic_count=1" in logged_output
+    assert (
+        "Kafka message received topic=authorised-topic partition=0 offset=7 bytes=23"
+        in logged_output
+    )
+    assert "Kafka consumer closed processed_messages=1" in logged_output
+    assert payload_sentinel.decode() not in logged_output
+
+
+def test_invalid_message_log_does_not_include_payload(caplog: pytest.LogCaptureFixture) -> None:
+    payload_sentinel = b"must-not-appear-in-logs"
+    fake_consumer = FakeConsumer([FakeMessage(payload=None), FakeMessage(payload=payload_sentinel)])
+
+    with caplog.at_level(logging.WARNING, logger="hr_pro_platform.ingestion.consumer"):
+        processed = run_consumer(
+            settings=_settings(),
+            consumer_factory=lambda _config: fake_consumer,
+            max_messages=1,
+        )
+
+    assert processed == 1
+    assert "reason=missing_value" in caplog.text
+    assert payload_sentinel.decode() not in caplog.text
 
 
 def test_consumer_skips_errors_and_invalid_messages() -> None:
