@@ -5,6 +5,7 @@ from typing import Any
 from unittest.mock import MagicMock, patch
 
 import pytest
+from pymongo.errors import BulkWriteError
 
 
 @dataclass
@@ -70,6 +71,11 @@ class FakeConsumer:
         self._closed = True
 
 
+# ---------------------------------------------------------------------------
+# config.py
+# ---------------------------------------------------------------------------
+
+
 def test_config_loads_mongodb_vars(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("KAFKA_BOOTSTRAP_SERVERS", "broker:9092")
     monkeypatch.setenv("MONGODB_URI", "mongodb://localhost:27017")
@@ -87,6 +93,11 @@ def test_config_loads_mongodb_vars(monkeypatch: pytest.MonkeyPatch) -> None:
     assert config.MONGODB_COLLECTION == "test_col"
 
 
+# ---------------------------------------------------------------------------
+# consumer.py
+# ---------------------------------------------------------------------------
+
+
 @patch("hr_pro_platform.ingestion.consumer.MongoIngestionClient")
 @patch("hr_pro_platform.ingestion.consumer.Consumer")
 def test_consumer_processes_valid_messages(
@@ -97,11 +108,8 @@ def test_consumer_processes_valid_messages(
     import hr_pro_platform.ingestion.consumer as consumer_mod
 
     original_consume = fake_consumer.consume
-    call_count = 0
 
     def consume_once(*args: Any, **kwargs: Any) -> list[FakeMessage | None]:
-        nonlocal call_count
-        call_count += 1
         result = original_consume(*args, **kwargs)
         consumer_mod.running = False
         return result
@@ -129,11 +137,8 @@ def test_consumer_skips_kafka_errors(mock_kafka_cls: MagicMock, mock_mongo_cls: 
     import hr_pro_platform.ingestion.consumer as consumer_mod
 
     original_consume = fake_consumer.consume
-    call_count = 0
 
     def consume_once(*args: Any, **kwargs: Any) -> list[FakeMessage | None]:
-        nonlocal call_count
-        call_count += 1
         result = original_consume(*args, **kwargs)
         consumer_mod.running = False
         return result
@@ -145,3 +150,180 @@ def test_consumer_skips_kafka_errors(mock_kafka_cls: MagicMock, mock_mongo_cls: 
     consumer_mod.run_consumer()
 
     assert fake_consumer._closed is True
+
+
+# ---------------------------------------------------------------------------
+# mongo.py — MongoIngestionClient
+# ---------------------------------------------------------------------------
+
+
+def _make_msg(topic: str = "t", partition: int = 0, offset: int = 0) -> MagicMock:
+    msg = MagicMock()
+    msg.topic.return_value = topic
+    msg.partition.return_value = partition
+    msg.offset.return_value = offset
+    return msg
+
+
+@patch("hr_pro_platform.ingestion.mongo.MongoClient")
+def test_insert_many_returns_true_on_success(mock_cls: MagicMock) -> None:
+    from hr_pro_platform.ingestion.mongo import MongoIngestionClient
+
+    mock_collection = MagicMock()
+    mock_collection.insert_many.return_value = MagicMock(inserted_ids=["id1"])
+
+    client = MongoIngestionClient()
+    client._collection = mock_collection
+
+    result = client.insert_many_fragments([("personal-data", {"name": "Ana"}, _make_msg())])
+    assert result is True
+    mock_collection.insert_many.assert_called_once()
+
+
+@patch("hr_pro_platform.ingestion.mongo.MongoClient")
+def test_insert_many_returns_true_on_duplicate_key(mock_cls: MagicMock) -> None:
+    from hr_pro_platform.ingestion.mongo import MongoIngestionClient
+
+    mock_collection = MagicMock()
+    bwe = BulkWriteError({
+        "writeErrors": [{"code": 11000, "errmsg": "duplicate"}],
+        "nInserted": 0,
+    })
+    mock_collection.insert_many.side_effect = bwe
+
+    client = MongoIngestionClient()
+    client._collection = mock_collection
+
+    result = client.insert_many_fragments([("personal-data", {"name": "Ana"}, _make_msg())])
+    assert result is True
+
+
+@patch("hr_pro_platform.ingestion.mongo.MongoClient")
+def test_insert_many_returns_false_on_unrecoverable_error(mock_cls: MagicMock) -> None:
+    from hr_pro_platform.ingestion.mongo import MongoIngestionClient
+
+    mock_collection = MagicMock()
+    bwe = BulkWriteError({
+        "writeErrors": [{"code": 99999, "errmsg": "storage failure"}],
+        "nInserted": 0,
+    })
+    mock_collection.insert_many.side_effect = bwe
+
+    client = MongoIngestionClient()
+    client._collection = mock_collection
+
+    result = client.insert_many_fragments([("personal-data", {"name": "Ana"}, _make_msg())])
+    assert result is False
+
+
+def test_insert_many_returns_true_on_empty_list() -> None:
+    from hr_pro_platform.ingestion.mongo import MongoIngestionClient
+
+    client = MongoIngestionClient()
+    result = client.insert_many_fragments([])
+    assert result is True
+
+
+@patch("hr_pro_platform.ingestion.mongo.MONGODB_COLLECTION", "test_col")
+@patch("hr_pro_platform.ingestion.mongo.MONGODB_DB", "test_db")
+@patch("hr_pro_platform.ingestion.mongo.MONGODB_URI", "mongodb://localhost:27017")
+@patch("hr_pro_platform.ingestion.mongo.MongoClient")
+def test_connect_calls_ping(mock_cls: MagicMock) -> None:
+    from hr_pro_platform.ingestion.mongo import MongoIngestionClient
+
+    mock_client = MagicMock()
+    mock_cls.return_value = mock_client
+
+    client = MongoIngestionClient()
+    client.connect()
+
+    mock_client.admin.command.assert_called_once_with("ping")
+
+
+@patch("hr_pro_platform.ingestion.mongo.MONGODB_COLLECTION", "test_col")
+@patch("hr_pro_platform.ingestion.mongo.MONGODB_DB", "test_db")
+@patch("hr_pro_platform.ingestion.mongo.MONGODB_URI", "mongodb://localhost:27017")
+@patch("hr_pro_platform.ingestion.mongo.MongoClient")
+def test_connect_creates_indexes(mock_cls: MagicMock) -> None:
+    from hr_pro_platform.ingestion.mongo import MongoIngestionClient
+
+    mock_collection = MagicMock()
+    mock_client = MagicMock()
+    mock_client.__getitem__ = MagicMock(
+        return_value=MagicMock(__getitem__=MagicMock(return_value=mock_collection))
+    )
+    mock_cls.return_value = mock_client
+
+    client = MongoIngestionClient()
+    client.connect()
+
+    assert mock_collection.create_index.call_count == 2
+    mock_collection.create_index.assert_any_call(
+        [("partition", 1), ("offset", 1), ("topic", 1)],
+        unique=True,
+        name="unique_kafka_message",
+    )
+    mock_collection.create_index.assert_any_call("topic", name="topic_lookup")
+
+
+@patch("hr_pro_platform.ingestion.mongo.MONGODB_COLLECTION", "test_col")
+@patch("hr_pro_platform.ingestion.mongo.MONGODB_DB", "test_db")
+@patch("hr_pro_platform.ingestion.mongo.MONGODB_URI", "mongodb://localhost:27017")
+@patch("hr_pro_platform.ingestion.mongo.MongoClient")
+def test_connect_raises_on_ping_failure(mock_cls: MagicMock) -> None:
+    from hr_pro_platform.ingestion.mongo import MongoIngestionClient
+
+    mock_client = MagicMock()
+    mock_client.admin.command.side_effect = Exception("connection refused")
+    mock_cls.return_value = mock_client
+
+    client = MongoIngestionClient()
+    with pytest.raises(Exception, match="connection refused"):
+        client.connect()
+
+
+@patch("hr_pro_platform.ingestion.mongo.MONGODB_COLLECTION", "test_col")
+@patch("hr_pro_platform.ingestion.mongo.MONGODB_DB", "test_db")
+@patch("hr_pro_platform.ingestion.mongo.MONGODB_URI", "mongodb://localhost:27017")
+@patch("hr_pro_platform.ingestion.mongo.MongoClient")
+def test_close_calls_client_close(mock_cls: MagicMock) -> None:
+    from hr_pro_platform.ingestion.mongo import MongoIngestionClient
+
+    mock_client = MagicMock()
+    mock_cls.return_value = mock_client
+
+    client = MongoIngestionClient()
+    client._client = mock_client
+    client.close()
+
+    mock_client.close.assert_called_once()
+
+
+def test_close_noop_when_not_connected() -> None:
+    from hr_pro_platform.ingestion.mongo import MongoIngestionClient
+
+    client = MongoIngestionClient()
+    client.close()
+
+
+# ---------------------------------------------------------------------------
+# main.py
+# ---------------------------------------------------------------------------
+
+
+@patch("hr_pro_platform.ingestion.main.run_consumer")
+def test_main_calls_run_consumer(mock_run: MagicMock) -> None:
+    from hr_pro_platform.ingestion.main import main
+
+    main()
+    mock_run.assert_called_once()
+
+
+@patch("hr_pro_platform.ingestion.main.time.sleep")
+@patch("hr_pro_platform.ingestion.main.run_consumer", side_effect=Exception("boom"))
+def test_main_exits_after_max_retries(mock_run: MagicMock, mock_sleep: MagicMock) -> None:
+    from hr_pro_platform.ingestion.main import main
+
+    with pytest.raises(SystemExit, match="1"):
+        main()
+    assert mock_run.call_count == 5
