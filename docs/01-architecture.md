@@ -17,7 +17,7 @@ flowchart LR
     P -->|upsert curado| SQL[(PostgreSQL)]
     P --> O
     SQL --> A[FastAPI]
-    A --> UI[Streamlit]
+    A --> UI[Frontend SPA]
     A --> O
 ```
 
@@ -32,7 +32,7 @@ flowchart LR
 | Redis | Estado parcial con TTL | Fragmentos correlacionados | Estado temporal | Ser fuente de verdad |
 | PostgreSQL | Datos curados, consistentes y consultables | Registro integrado | Tablas e índices | Retener payload raw |
 | API | Consultas controladas a datos curados | HTTP | JSON | Transformar eventos |
-| Dashboard | Experiencia de consulta y métricas | API / Prometheus | Vista web | Acceso directo a bases |
+| Frontend SPA | Experiencia de consulta y métricas | API / Prometheus | Vista web | Acceso directo a bases |
 
 ## Flujo lógico de datos
 
@@ -103,7 +103,19 @@ La decisión y sus consecuencias están registradas en
 | Esencial | Kafka, ingest-worker, MongoDB, process-worker, PostgreSQL | Kafka → raw → persona curada |
 | Medio | Docker Compose, logs, tests, CI | `docker compose` y arnés en verde |
 | Avanzado | Redis, Prometheus, API | Métricas y consultas HTTP |
-| Experto | Reinicio automático y Streamlit | Pipeline continuo y demo navegable |
+| Experto | Reinicio automático y frontend accesible | Pipeline continuo y demo navegable |
+
+## Frontend and deployment direction
+
+For the expert-level interface, the preferred future implementation is a React +
+TypeScript + Vite static SPA consuming FastAPI. The intended AWS delivery shape is a
+private S3 origin served through CloudFront with Origin Access Control (OAC); API and
+workers remain separately deployable containers when that delivery task is approved.
+
+This is an architectural direction, not deployed infrastructure or a claim of AWS
+readiness. Streamlit remains an acceptable fallback only for a constrained demo if a
+dedicated frontend implementation cannot be completed. All implemented user-facing
+flows must follow ADR-0007.
 
 ## Decisiones asociadas
 
@@ -113,3 +125,5 @@ La decisión y sus consecuencias están registradas en
 - [ADR-0004](adr/0004-configuration-and-secrets.md): configuración y secretos externos.
 - [ADR-0005](adr/0005-kafka-acknowledgement-after-raw-persistence.md): propuesta de
   confirmación Kafka después de persistir raw; pendiente de HRP-34.
+- [ADR-0007](adr/0007-accessibility-and-sustainable-delivery.md): accessibility and
+  sustainable-delivery policy for future user-facing and deployment work.

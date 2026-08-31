@@ -79,9 +79,9 @@ implicit one. This task designs; it does not implement.
 | Never contains | A resolved "person" record, a correlation decision, a business classification | A raw/unclassified payload, PII beyond what is explicitly approved for curated storage |
 
 This boundary is a direct application of ADR-0002 and the architecture invariants in
-`docs/01-architecture.md` ("Redis no puede ser necesaria para reconstruir la verdad
-de negocio", "un evento raw conserva payload original y metadatos Kafka"). No new
-invariant is introduced.
+`docs/01-architecture.md`: Redis cannot be required to reconstruct business truth,
+and a raw event preserves its original payload and Kafka metadata. No new invariant
+is introduced.
 
 ### MongoDB: raw zone
 
