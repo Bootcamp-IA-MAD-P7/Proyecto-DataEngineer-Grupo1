@@ -319,7 +319,20 @@ Para detenerlo sin borrar el volumen:
 docker compose -f infra/compose.dev.yml down
 ```
 
-### 4. Configurar el consumer
+### 4. Construir la imagen de la aplicación
+
+El Dockerfile empaqueta únicamente el consumer Python existente. La configuración se
+inyecta en tiempo de ejecución mediante variables de entorno; la imagen no incluye
+`.env`, secretos, Kafka educativo ni servicios de base de datos.
+
+```powershell
+docker build --tag hr-pro-platform:local .
+```
+
+Este build no sustituye al Compose final del proyecto. La ejecución integrada con
+MongoDB, PostgreSQL y los demás servicios se implementará en tareas posteriores.
+
+### 5. Configurar el consumer
 
 Copia `.env.example` como `.env` y completa únicamente valores autorizados. Las
 variables de proceso tienen prioridad y `.env` nunca se versiona.
