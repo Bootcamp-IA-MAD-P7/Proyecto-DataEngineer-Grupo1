@@ -41,7 +41,9 @@ See [ADR-0005](adr/0005-kafka-acknowledgement-after-raw-persistence.md).
 ## PostgreSQL: curated zone
 
 Planned tables, with candidate columns detailed in
-[the HRP-25 specification](specs/HRP-25-modelo-datos.md):
+[the HRP-25 specification](specs/HRP-25-modelo-datos.md) and candidate primary keys,
+foreign keys, indexes and naming conventions detailed in
+[the HRP-52 specification](specs/HRP-52-tablas-relaciones.md):
 
 - `employees`
 - `locations`
