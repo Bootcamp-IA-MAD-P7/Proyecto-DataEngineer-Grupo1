@@ -185,10 +185,12 @@ def test_insert_many_returns_true_on_duplicate_key(mock_cls: MagicMock) -> None:
     from hr_pro_platform.ingestion.mongo import MongoIngestionClient
 
     mock_collection = MagicMock()
-    bwe = BulkWriteError({
-        "writeErrors": [{"code": 11000, "errmsg": "duplicate"}],
-        "nInserted": 0,
-    })
+    bwe = BulkWriteError(
+        {
+            "writeErrors": [{"code": 11000, "errmsg": "duplicate"}],
+            "nInserted": 0,
+        }
+    )
     mock_collection.insert_many.side_effect = bwe
 
     client = MongoIngestionClient()
@@ -203,10 +205,12 @@ def test_insert_many_returns_false_on_unrecoverable_error(mock_cls: MagicMock) -
     from hr_pro_platform.ingestion.mongo import MongoIngestionClient
 
     mock_collection = MagicMock()
-    bwe = BulkWriteError({
-        "writeErrors": [{"code": 99999, "errmsg": "storage failure"}],
-        "nInserted": 0,
-    })
+    bwe = BulkWriteError(
+        {
+            "writeErrors": [{"code": 99999, "errmsg": "storage failure"}],
+            "nInserted": 0,
+        }
+    )
     mock_collection.insert_many.side_effect = bwe
 
     client = MongoIngestionClient()
