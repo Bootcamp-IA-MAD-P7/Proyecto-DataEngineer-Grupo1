@@ -81,6 +81,7 @@ ruff format --check .
 mypy src
 pytest
 docker compose -f infra/compose.dev.yml config --quiet
+docker build --tag hr-pro-platform:local .
 docker compose -f infra/compose.dev.yml up -d mongo
 docker compose -f infra/compose.dev.yml ps
 docker compose -f infra/compose.dev.yml exec -T mongo `
@@ -90,3 +91,6 @@ docker compose -f infra/compose.dev.yml exec -T mongo `
 El umbral inicial de cobertura es 75 %. Un contenedor saludable y un `ping` correcto
 solo demuestran disponibilidad de MongoDB; todavía no prueban la persistencia raw ni
 la política de confirmación de offsets.
+
+La imagen de aplicación solo demuestra que el consumer puede empaquetarse sin incluir
+el entorno local. No reemplaza el Compose final ni demuestra conectividad a Kafka.
