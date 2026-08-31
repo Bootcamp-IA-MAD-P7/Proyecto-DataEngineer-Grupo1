@@ -30,7 +30,7 @@ feature/docs/fix/chore (HRP-XX) -> pull request + CI + revisión -> develop
 
 | Automatización | Disparador | Resultado |
 |---|---|---|
-| `quality` | PR o push a `develop` | Formato, lint, tipos y tests |
+| `quality` | PR o push a `develop` | Specs, pre-commit, formato, lint, tipos, tests y sintaxis de Compose |
 | `PR governance` | PR a `develop` | Rechaza títulos sin clave Jira y tipo convencional |
 | `PR labels` | PR a `develop` | Etiqueta por área modificada |
 | `Generate presentation daily` | Ejecución manual | Genera una daily y abre una PR; nunca hace push directo a `develop` |
