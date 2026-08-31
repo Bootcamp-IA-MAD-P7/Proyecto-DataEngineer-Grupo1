@@ -1,65 +1,66 @@
-# Paquete de tarea — HRP-52
+# Task packet — HRP-52
 
-**Estado:** Borrador
-**Responsable:** Johans
-**Revisor humano:** Miguel
+**Status:** Draft
+**Owner:** Johans
+**Human reviewer:** Miguel
 **Jira:** HRP-52
 **Spec:** `docs/specs/HRP-52-tablas-relaciones.md`
-**Rama prevista:** `feature/HRP-52-tablas-relaciones`
+**Planned branch:** `feature/HRP-52-tablas-relaciones`
 
-## Resultado esperado
+## Expected outcome
 
-Diseño relacional documentado y revisable de las tablas PostgreSQL ya propuestas en
-HRP-25: claves primarias, claves foráneas candidatas, índices técnicos candidatos y
-convención de nombres, sin fijar una clave de correlación de negocio ni crear SQL.
+A documented, human-reviewable relational design for the PostgreSQL tables already
+proposed in HRP-25: candidate primary keys, candidate foreign keys, candidate
+technical indexes and a naming convention, without fixing a business correlation key
+and without writing SQL.
 
-## Contexto autorizado
+## Authorised context
 
-- Briefing / documento: tarea Jira HRP-52, hija de HRP-39.
-- Documentación local relevante: `docs/specs/HRP-25-modelo-datos.md`,
+- Briefing / document: Jira task HRP-52, child of HRP-39.
+- Relevant local documentation: `docs/specs/HRP-25-modelo-datos.md`,
   `docs/03-data-model.md`, `docs/adr/0002-raw-and-curated-storage.md`,
   `docs/adr/0006-person-correlation-key.md`.
-- Evidencia Kafka observada (si aplica): la misma de HRP-24/HRP-29; no se realizó
-  observación nueva para HRP-52.
-- Decisiones o ADRs relacionadas: ADR-0002, ADR-0006 (permanece `Proposed`).
+- Observed Kafka evidence (if applicable): the same evidence already recorded by
+  HRP-24/HRP-29; no new observation was performed for HRP-52.
+- Related decisions or ADRs: ADR-0002, ADR-0006 (remains `Proposed`).
 
-## Dependencias y límites
+## Dependencies and limits
 
-- Depende de: HRP-25 (fusionada, PR #18/#19). Sin enlace formal "depende de" en
-  Jira, pero condicionada por el comentario de Miguel en HRP-52 exigiendo
-  coherencia con el modelo global.
-- No incluye: crear tablas reales, SQL, migraciones, Docker ni ETL (eso es HRP-54 y
-  HRP-53, que HRP-52 bloquea).
-- Riesgo o incógnita: cardinalidad real entre `employees` y las tablas dependientes,
-  pendiente de ADR-0006.
-- Restricción: no leer, clonar ni analizar el generador educativo.
+- Depends on: HRP-25 (merged, PR #18/#19). No formal "depends on" link exists in
+  Jira, but Miguel's comment on HRP-52 requires coherence with the global data
+  model.
+- Does not include: creating real tables, SQL, migrations, Docker or ETL — that is
+  HRP-54 and HRP-53, both blocked by HRP-52.
+- Risk or unknown: the real cardinality between `employees` and its dependent
+  tables, pending ADR-0006.
+- Constraint: do not read, clone or analyse the educational data generator.
 
-## Petición al asistente
+## Request to the assistant
 
-**Rol:** Revisor/diseñador de arquitectura de datos (serving-engineer).
-**Pregunta concreta:** ¿El diseño de claves e índices formaliza HRP-25 sin fijar una
-cardinalidad o restricción única que ADR-0006 no haya aprobado?
-**Formato de salida esperado:** tablas de claves/índices por entidad, diagrama de
-relaciones candidatas y lista de lo que sigue pendiente.
-**Criterios con los que se evaluará:** coherencia con HRP-25, ausencia de reglas de
-negocio inventadas, revisión de Miguel.
+**Role:** Data architecture reviewer/designer (serving-engineer).
+**Concrete question:** Does the key/index design formalise HRP-25 without fixing a
+cardinality or uniqueness rule that ADR-0006 has not approved?
+**Expected output format:** per-entity key/index tables, a candidate relationship
+diagram and an explicit list of what remains pending.
+**Evaluation criteria:** coherence with HRP-25, no invented business rules, Miguel's
+review.
 
-## Revisión humana del resultado
+## Human review of the result
 
-- [ ] Hechos y supuestos están separados.
-- [ ] Las rutas y referencias citadas existen.
-- [ ] No se inventan campos, topics o comportamientos de Kafka.
-- [ ] La propuesta respeta alcance y seguridad.
-- [ ] Se ha aplicado o descartado el resultado, indicando motivo.
+- [ ] Facts and assumptions are separated.
+- [ ] Cited paths and references exist.
+- [ ] No field, topic or Kafka behaviour is invented.
+- [ ] The proposal respects scope and security constraints.
+- [ ] The result has been applied or discarded, with a stated reason.
 
-## Registro del uso de IA
+## AI usage log
 
-- Herramienta / rol: Claude Code, rol de revisor/diseñador de arquitectura de datos
+- Tool / role: Claude Code, data architecture reviewer/designer role
   (serving-engineer).
-- Fecha: 2026-08-31.
-- Salida resumida: formalización de claves primarias, claves foráneas candidatas,
-  índices técnicos y convención de nombres para las tablas PostgreSQL ya propuestas
-  en HRP-25, en `docs/specs/HRP-52-tablas-relaciones.md`, sin resolver la clave de
-  correlación de persona (ADR-0006 permanece `Proposed`).
-- Decisión humana: pendiente.
-- Revisor: Miguel (pendiente de revisión).
+- Date: 2026-08-31.
+- Summary of output: formalised candidate primary keys, candidate foreign keys,
+  technical indexes and a naming convention for the PostgreSQL tables already
+  proposed in HRP-25, in `docs/specs/HRP-52-tablas-relaciones.md`, without resolving
+  the person-correlation key (ADR-0006 remains `Proposed`).
+- Human decision: pending.
+- Reviewer: Miguel (review pending).
