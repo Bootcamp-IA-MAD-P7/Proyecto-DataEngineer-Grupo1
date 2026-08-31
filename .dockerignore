@@ -1,0 +1,16 @@
+.git
+.github
+.env
+.env.*
+.venv
+venv
+__pycache__
+.pytest_cache
+.mypy_cache
+.ruff_cache
+coverage.xml
+htmlcov
+data
+logs
+prometheus_data
+grafana_data

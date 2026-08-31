@@ -1,48 +1,49 @@
-# Modelo de datos
+# Data model
 
-El diseño detallado (colecciones, tablas, columnas propuestas y límites raw/curado)
-vive en [docs/specs/HRP-25-modelo-datos.md](specs/HRP-25-modelo-datos.md). Este
-documento resume ese diseño; ante cualquier discrepancia, la spec HRP-25 es la
-fuente de verdad hasta que se apruebe una tarea de implementación.
+The detailed design—collections, tables, proposed columns, and the raw/curated
+boundary—lives in [the HRP-25 specification](specs/HRP-25-modelo-datos.md). This
+document is a concise summary. If there is a discrepancy, the HRP-25 specification
+is the source of truth until an implementation task is approved.
 
-## MongoDB: zona raw
+## MongoDB: raw zone
 
-Colecciones previstas:
+Planned collections:
 
-- `raw_events`: evento original, metadatos Kafka, fecha de recepción y estado de proceso.
-- `invalid_events`: evento que no supera la validación técnica (no la clasificación
-  estructural `non-conforming/unknown`), junto al motivo.
-- `processing_audit`: trazabilidad de transformación y carga, del lado raw.
+- `raw_events`: original event, Kafka metadata, receipt time, and processing state.
+- `invalid_events`: an event that fails technical validation (not structural
+  `non-conforming/unknown` classification), together with its reason.
+- `processing_audit`: raw-side transformation and loading traceability.
 
-Índice técnico previsto para evitar duplicados: `topic + partition + offset`.
+The proposed technical duplicate-prevention index is `topic + partition + offset`.
 
-Sobre mínimo propuesto del documento raw:
+Minimum proposed raw-event document:
 
-| Campo | Tipo | Propósito |
+| Field | Type | Purpose |
 |---|---|---|
-| `payload` | objeto JSON | Evidencia original, sin renombrar ni normalizar |
-| `topic` | string | Metadato técnico de Kafka |
-| `partition` | integer | Metadato técnico de Kafka |
-| `offset` | integer | Metadato técnico de Kafka |
-| `received_at` | datetime UTC | Momento de recepción en la plataforma |
-| `processing_status` | string técnico | Estado operativo, no clasificación de negocio |
+| `payload` | JSON object | Original evidence, without renaming or normalisation |
+| `topic` | string | Kafka technical metadata |
+| `partition` | integer | Kafka technical metadata |
+| `offset` | integer | Kafka technical metadata |
+| `received_at` | UTC datetime | Time at which the platform received the event |
+| `processing_status` | technical string | Operational status, not a business classification |
 
-La clasificación estructural (A–E o `non-conforming/unknown`, según
-`docs/02-data-contract.md`) no se persiste como campo de `raw_events` en este
-diseño: es un resultado de proceso, no un hecho raw. Dónde auditar esa
-clasificación queda pendiente (ver HRP-25).
+Structural classification (A–E or `non-conforming/unknown`, as defined in
+`docs/02-data-contract.md`) is not persisted as a `raw_events` field in this
+design. It is a processing result, not a raw fact. The location for auditing that
+classification remains pending (see HRP-25).
 
-ADR-0005 propone que el índice compuesto sea único y que la confirmación del offset
-solo ocurra tras una inserción correcta o cuando MongoDB demuestre que las mismas
-coordenadas ya existen. HRP-34 debe validar este diseño con pruebas antes de que la
-propuesta pueda aceptarse; HRP-35 y HRP-36 deberán respetar la decisión finalmente
-aprobada. Véase
-[ADR-0005](adr/0005-kafka-acknowledgement-after-raw-persistence.md).
+ADR-0005 proposes that the compound index be unique and that offset acknowledgement
+occur only after a successful insertion or when MongoDB proves that the same
+coordinates already exist. HRP-34 must validate this design with tests before the
+proposal may be accepted; HRP-35 and HRP-36 must follow the final approved decision.
+See [ADR-0005](adr/0005-kafka-acknowledgement-after-raw-persistence.md).
 
-## PostgreSQL: zona curada
+## PostgreSQL: curated zone
 
-Tablas previstas, con columnas candidatas detalladas en
-[docs/specs/HRP-25-modelo-datos.md](specs/HRP-25-modelo-datos.md):
+Planned tables, with candidate columns detailed in
+[the HRP-25 specification](specs/HRP-25-modelo-datos.md) and candidate primary keys,
+foreign keys, indexes and naming conventions detailed in
+[the HRP-52 specification](specs/HRP-52-tablas-relaciones.md):
 
 - `employees`
 - `locations`
@@ -51,16 +52,15 @@ Tablas previstas, con columnas candidatas detalladas en
 - `network_data`
 - `processing_audit`
 
-Ninguna tabla incluye todavía una restricción única de negocio (p. ej. sobre
-`passport`): `passport`, `fullname` y `address` son candidatos de correlación
-observados por HRP-29, no una clave aprobada. La clave de correlación de persona,
-la cardinalidad entre `employees` y las tablas dependientes, y la política de
-upsert idempotente quedan pendientes de
-[ADR-0006](adr/0006-person-correlation-key.md), que permanece `Proposed` hasta
-disponer de evidencia adicional revisada por una persona.
+No table currently includes a business unique constraint (for example, on
+`passport`). `passport`, `fullname`, and `address` are correlation candidates
+observed by HRP-29, not approved keys. The person correlation key, the cardinality
+between `employees` and dependent tables, and the idempotent-upsert policy remain
+pending in [ADR-0006](adr/0006-person-correlation-key.md), which stays `Proposed`
+until additional evidence has received human review.
 
-El diseño final se aprobará en la tarea Jira de modelo relacional después de validar
-el contrato de eventos reales. Esta spec (HRP-25) no autoriza SQL, migraciones,
-Docker, ETL ni código de API: esas tareas son responsabilidad de futuros tickets
-Jira (persistencia raw, conexión ETL → PostgreSQL, creación de tablas) una vez el
-diseño reciba revisión humana.
+The final design will be approved in the relational-data-model Jira task after the
+real-event contract is validated. HRP-25 does not authorise SQL, migrations, Docker,
+ETL, or API code. Those are the responsibility of future Jira tasks—raw persistence,
+ETL-to-PostgreSQL integration, and table creation—once the design has received human
+review.

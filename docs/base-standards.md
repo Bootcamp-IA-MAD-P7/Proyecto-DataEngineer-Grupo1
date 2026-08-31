@@ -50,3 +50,19 @@ alwaysApply: true
 
 Do not call a task complete if its required spec, tests, documentation, PR review,
 quality evidence or Jira closing note is missing.
+
+## 6. Accessibility and sustainable delivery
+
+- Every task that affects a user interface, API response, visualisation, deployment or
+  resource use assesses its accessibility and sustainability applicability in its spec.
+- Implemented user-facing flows target WCAG 2.2 AA. Use semantic HTML and native
+  controls before WAI-ARIA; ARIA complements native semantics and does not replace
+  them.
+- Do not claim formal WCAG conformance, carbon neutrality, an SCI score, energy
+  savings or AWS deployment without verifiable evidence for the implemented scope.
+- Prefer the smallest dependency set and architecture that meet an approved need.
+  Avoid duplicate processing or storage, unbounded retention, unnecessary transfer,
+  aggressive polling and avoidable client work.
+- Privacy, accessibility, security, maintainability and performance are complementary
+  sustainability concerns. None may be weakened to optimise another.
+- See ADR-0007 for mandatory, conditional and deferred requirements.
