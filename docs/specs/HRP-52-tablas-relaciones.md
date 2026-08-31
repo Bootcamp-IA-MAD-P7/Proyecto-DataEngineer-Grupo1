@@ -55,9 +55,9 @@ relationships; it does not create them.
   `pending` here, exactly as HRP-25 left it.
 - HRP-52 has no formal "blocked by" link in Jira, but its own comment thread (Miguel
   Redondo Núñez: "El diseño SQL debe ser coherente con el modelo global de MongoDB y
-  PostgreSQL") makes HRP-25 an accepted precondition. HRP-52 is the parent of
-  HRP-53 (Docker) and blocks HRP-54 (create tables/keys/indexes): neither should
-  start from this design until it receives human review.
+  PostgreSQL") makes HRP-25 an accepted precondition. HRP-52 blocks HRP-54 (create
+  tables/keys/indexes) after human review. HRP-53 (Docker) is independent and may
+  proceed in parallel.
 
 ### Risks
 

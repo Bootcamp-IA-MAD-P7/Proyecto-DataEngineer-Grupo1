@@ -29,8 +29,9 @@ and without writing SQL.
 - Depends on: HRP-25 (merged, PR #18/#19). No formal "depends on" link exists in
   Jira, but Miguel's comment on HRP-52 requires coherence with the global data
   model.
-- Does not include: creating real tables, SQL, migrations, Docker or ETL — that is
-  HRP-54 and HRP-53, both blocked by HRP-52.
+- Does not include: creating real tables, SQL, migrations, Docker or ETL — those
+  belong to HRP-54 and HRP-53. HRP-54 depends on this reviewed design; HRP-53 is an
+  independent Docker enablement task and may proceed in parallel.
 - Risk or unknown: the real cardinality between `employees` and its dependent
   tables, pending ADR-0006.
 - Constraint: do not read, clone or analyse the educational data generator.
