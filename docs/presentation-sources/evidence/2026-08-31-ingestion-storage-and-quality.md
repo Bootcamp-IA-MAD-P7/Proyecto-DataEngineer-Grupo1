@@ -29,7 +29,7 @@ The platform has moved beyond a purely documented foundation. It now includes:
 - continuous polling with technical-only logs;
 - MongoDB client connection with `ping`;
 - MongoDB indexes for technical lookup and duplicate protection;
-- initial batch insertion of valid fragments;
+- raw and invalid envelope persistence with technical idempotency;
 - tests covering consumer, MongoDB client, duplicate handling and retry boundaries.
 
 ## Limits
@@ -45,6 +45,10 @@ The project still lacks:
 - business validation and cleaning rules;
 - PostgreSQL service, migrations and writes;
 - API, frontend, Redis and Prometheus.
+
+HRP-34 integration evidence was executed against real MongoDB with synthetic Kafka
+messages. A real Kafka-broker E2E was not executed. Human review and merge remain
+pending.
 
 ## Presentation angle
 

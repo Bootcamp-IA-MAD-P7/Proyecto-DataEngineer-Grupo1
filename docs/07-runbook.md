@@ -56,7 +56,7 @@ busca, analiza ni se emplea como fuente de contrato.
 No consultar logs del generador como mecanismo de descubrimiento. La evidencia válida
 se registra en `docs/observations/` mediante una tarea HRP-29 revisable.
 
-## IntegraciÃ³n local HRP-34
+## Integración local HRP-34
 
 Iniciar solo MongoDB:
 
@@ -66,7 +66,7 @@ docker compose -f infra/compose.dev.yml up -d mongo
 
 Usar colecciones limpias configuradas mediante `MONGODB_COLLECTION` y
 `MONGODB_INVALID_COLLECTION`. No ejecutar teardown global ni `down -v`; el Compose es
-compartido con PostgreSQL. La integraciÃ³n validada usa MongoDB real y mensajes Kafka
+compartido con PostgreSQL. La integración validada usa MongoDB real y mensajes Kafka
 simulados; no es un E2E con broker real.
 
 ## Incidencia de datos

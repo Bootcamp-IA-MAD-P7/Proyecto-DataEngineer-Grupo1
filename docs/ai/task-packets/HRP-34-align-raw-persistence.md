@@ -237,7 +237,10 @@ pre-merge acceptance gate.
   narrative drift and the HRP-53 shared Compose context.
 - Human planning decision: approved by Gabriela for implementation preparation on
   2026-08-31.
-- Technical result: not implemented.
+- Technical result: implemented and validated by the focused unit and real-MongoDB
+  integration tests; broader CI and human review remain pending.
+- Focused validation: `25` consumer unit tests and `2` real-MongoDB integration tests
+  passed on the implementation branch.
 - Miguel review: pending.
 - Additional mandatory CODEOWNERS reviewers: pending determination before PR.
 - ADR-0005 decision: remains `Proposed`.
