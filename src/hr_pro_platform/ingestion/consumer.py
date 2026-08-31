@@ -5,8 +5,10 @@ from typing import Any
 from confluent_kafka import Consumer, KafkaError
 
 from .config import KAFKA_CONFIG, KAFKA_TOPICS
+from .detector import detect_topic
 from .error_handler import get_logger
 from .mongo import MongoIngestionClient
+from .validator import validate
 
 logger = get_logger("consumer")
 
@@ -71,7 +73,20 @@ def run_consumer() -> None:
                         consumer.commit(message=msg)
                         continue
 
-                    valid.append((topic, data, msg))
+                    detected_topic = detect_topic(data)
+                    if detected_topic is None:
+                        logger.warning("Could not detect fragment type | offset=%s", msg.offset())
+                        consumer.commit(message=msg)
+                        continue
+
+                    if not validate(detected_topic, data):
+                        logger.warning(
+                            "Validation failed | topic=%s offset=%s", detected_topic, msg.offset()
+                        )
+                        consumer.commit(message=msg)
+                        continue
+
+                    valid.append((detected_topic, data, msg))
 
                 if valid:
                     saved = mongo_client.insert_many_fragments(valid)
