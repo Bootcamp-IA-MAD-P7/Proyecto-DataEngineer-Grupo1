@@ -94,12 +94,17 @@ def test_consumer_processes_valid_messages(
 
     fake_consumer.consume = consume_once  # type: ignore[assignment]
     mock_kafka_cls.return_value = fake_consumer
+    from hr_pro_platform.ingestion.mongo import PersistenceOutcome
+
+    mock_mongo_cls.return_value.persist_batch.return_value = [
+        PersistenceOutcome("authorised-topic", 0, 7, "inserted")
+    ]
 
     consumer_mod.running = True
     consumer_mod.run_consumer()
 
     assert fake_consumer._closed is True
-    mock_mongo_cls.return_value.insert_many_fragments.assert_called_once()
+    mock_mongo_cls.return_value.persist_batch.assert_called_once()
 
 
 @patch("hr_pro_platform.ingestion.consumer.MongoIngestionClient")
@@ -123,11 +128,85 @@ def test_consumer_skips_kafka_errors(mock_kafka_cls: MagicMock, mock_mongo_cls: 
 
     fake_consumer.consume = consume_once  # type: ignore[assignment]
     mock_kafka_cls.return_value = fake_consumer
+    from hr_pro_platform.ingestion.mongo import PersistenceOutcome
+
+    mock_mongo_cls.return_value.persist_invalid_event.return_value = PersistenceOutcome(
+        "authorised-topic", 0, 7, "inserted"
+    )
 
     consumer_mod.running = True
     consumer_mod.run_consumer()
 
     assert fake_consumer._closed is True
+
+
+@pytest.mark.parametrize(
+    ("payload", "reason"),
+    [
+        (None, "missing_value"),
+        (b"{invalid", "invalid_json"),
+        (b"[1, 2]", "non_object_json"),
+        (b"\xff", "invalid_utf8"),
+    ],
+)
+@patch("hr_pro_platform.ingestion.consumer.MongoIngestionClient")
+@patch("hr_pro_platform.ingestion.consumer.Consumer")
+def test_ac_05_routes_technical_invalid_values(
+    mock_kafka_cls: MagicMock,
+    mock_mongo_cls: MagicMock,
+    payload: bytes | None,
+    reason: str,
+) -> None:
+    fake_consumer = FakeConsumer(messages=[FakeMessage(payload=payload)])
+    import hr_pro_platform.ingestion.consumer as consumer_mod
+
+    original_consume = fake_consumer.consume
+
+    def consume_once(*args: Any, **kwargs: Any) -> list[FakeMessage | None]:
+        result = original_consume(*args, **kwargs)
+        consumer_mod.running = False
+        return result
+
+    fake_consumer.consume = consume_once  # type: ignore[assignment]
+    mock_kafka_cls.return_value = fake_consumer
+    from hr_pro_platform.ingestion.mongo import PersistenceOutcome
+
+    mock_mongo_cls.return_value.persist_batch.return_value = [
+        PersistenceOutcome("authorised-topic", 0, 7, "inserted")
+    ]
+    consumer_mod.running = True
+    consumer_mod.run_consumer()
+
+    mock_mongo_cls.return_value.persist_invalid_event.assert_called_once_with(
+        "authorised-topic", 0, 7, payload, reason
+    )
+
+
+@patch("hr_pro_platform.ingestion.consumer.MongoIngestionClient")
+@patch("hr_pro_platform.ingestion.consumer.Consumer")
+def test_ac_02_ac_03_ac_04_persist_json_object_without_business_classification(
+    mock_kafka_cls: MagicMock, mock_mongo_cls: MagicMock
+) -> None:
+    payload = b'{"unknown": true}'
+    fake_consumer = FakeConsumer(messages=[FakeMessage(payload=payload)])
+    import hr_pro_platform.ingestion.consumer as consumer_mod
+
+    original_consume = fake_consumer.consume
+
+    def consume_once(*args: Any, **kwargs: Any) -> list[FakeMessage | None]:
+        result = original_consume(*args, **kwargs)
+        consumer_mod.running = False
+        return result
+
+    fake_consumer.consume = consume_once  # type: ignore[assignment]
+    mock_kafka_cls.return_value = fake_consumer
+    consumer_mod.running = True
+    consumer_mod.run_consumer()
+
+    mock_mongo_cls.return_value.persist_batch.assert_called_once_with(
+        [("authorised-topic", {"unknown": True}, 0, 7)]
+    )
+    mock_mongo_cls.return_value.persist_invalid_event.assert_not_called()
 
 
 # ---------------------------------------------------------------------------
@@ -239,7 +318,7 @@ def test_connect_creates_indexes(mock_cls: MagicMock) -> None:
     client = MongoIngestionClient()
     client.connect()
 
-    assert mock_collection.create_index.call_count == 2
+    assert mock_collection.create_index.call_count == 3
     mock_collection.create_index.assert_any_call(
         [("partition", 1), ("offset", 1), ("topic", 1)],
         unique=True,
@@ -286,6 +365,115 @@ def test_close_noop_when_not_connected() -> None:
 
     client = MongoIngestionClient()
     client.close()
+
+
+def test_ac_06_raw_duplicate_returns_already_exists_without_second_insert() -> None:
+    from hr_pro_platform.ingestion.mongo import MongoIngestionClient
+
+    raw = MagicMock()
+    invalid = MagicMock()
+    raw.find_one.return_value = {"topic": "t"}
+    invalid.find_one.return_value = None
+    client = MongoIngestionClient()
+    client._collection = raw
+    client._invalid_collection = invalid
+
+    outcome = client.persist_raw_event("t", {"synthetic": True}, 0, 1)
+
+    assert outcome.status == "already_exists"
+    raw.insert_one.assert_not_called()
+    invalid.find_one.assert_called_once()
+
+
+def test_ac_06_opposite_collection_returns_unresolved_conflict() -> None:
+    from hr_pro_platform.ingestion.mongo import MongoIngestionClient
+
+    raw = MagicMock()
+    invalid = MagicMock()
+    invalid.find_one.return_value = {"topic": "t"}
+    client = MongoIngestionClient()
+    client._collection = raw
+    client._invalid_collection = invalid
+
+    outcome = client.persist_raw_event("t", {"synthetic": True}, 0, 1)
+
+    assert outcome.status == "unresolved_conflict"
+    raw.insert_one.assert_not_called()
+
+
+def test_ac_07_batch_returns_one_outcome_per_coordinate() -> None:
+    from hr_pro_platform.ingestion.mongo import MongoIngestionClient
+
+    raw = MagicMock()
+    invalid = MagicMock()
+    invalid.find_one.return_value = None
+    raw.find_one.side_effect = [None, {"topic": "t"}]
+    client = MongoIngestionClient()
+    client._collection = raw
+    client._invalid_collection = invalid
+
+    outcomes = client.persist_batch([("t", {"synthetic": 1}, 0, 1), ("t", {"synthetic": 2}, 0, 2)])
+
+    assert [outcome.status for outcome in outcomes] == ["inserted", "already_exists"]
+    assert [(outcome.partition, outcome.offset) for outcome in outcomes] == [(0, 1), (0, 2)]
+
+
+def test_ac_08_ac_10_commits_each_contiguous_partition_prefix() -> None:
+    from hr_pro_platform.ingestion.consumer import _durable_prefix_messages
+    from hr_pro_platform.ingestion.mongo import PersistenceOutcome
+
+    messages = [
+        FakeMessage(_offset=1),
+        FakeMessage(_offset=2),
+        FakeMessage(_partition=1, _offset=4),
+    ]
+    outcomes = [
+        PersistenceOutcome("authorised-topic", 0, 1, "inserted"),
+        PersistenceOutcome("authorised-topic", 0, 2, "already_exists"),
+        PersistenceOutcome("authorised-topic", 1, 4, "inserted"),
+    ]
+    commits = _durable_prefix_messages(messages, outcomes)
+    assert {(message.partition(), message.offset()) for message in commits} == {(0, 2), (1, 4)}
+
+
+def test_ac_09_conflict_stops_prefix_without_commit() -> None:
+    from hr_pro_platform.ingestion.consumer import _durable_prefix_messages
+    from hr_pro_platform.ingestion.mongo import PersistenceOutcome
+
+    messages = [FakeMessage(_offset=1), FakeMessage(_offset=2)]
+    outcomes = [
+        PersistenceOutcome("authorised-topic", 0, 1, "inserted"),
+        PersistenceOutcome("authorised-topic", 0, 2, "unresolved_conflict"),
+    ]
+    commits = _durable_prefix_messages(messages, outcomes)
+    assert [(message.partition(), message.offset()) for message in commits] == [(0, 1)]
+
+
+def test_ac_11_conflict_log_contains_no_payload_or_operation(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    from hr_pro_platform.ingestion.mongo import MongoIngestionClient
+
+    raw = MagicMock()
+    invalid = MagicMock()
+    raw.find_one.return_value = None
+    invalid.find_one.return_value = {"topic": "t", "payload": "SYNTHETIC_SECRET"}
+    client = MongoIngestionClient()
+    client._collection = raw
+    client._invalid_collection = invalid
+
+    with caplog.at_level("ERROR"):
+        client.persist_raw_event("t", {"payload": "SYNTHETIC_SECRET"}, 0, 1)
+
+    assert "SYNTHETIC_SECRET" not in caplog.text
+    assert "writeErrors" not in caplog.text
+
+
+def test_ac_12_consumer_route_does_not_invoke_business_modules() -> None:
+    from hr_pro_platform.ingestion import consumer
+
+    assert "hr_pro_platform.ingestion.detector" not in consumer.__dict__
+    assert "hr_pro_platform.ingestion.validator" not in consumer.__dict__
 
 
 # ---------------------------------------------------------------------------
