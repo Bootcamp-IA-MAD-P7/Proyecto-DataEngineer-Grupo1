@@ -38,6 +38,15 @@ coordinates already exist. HRP-34 must validate this design with tests before th
 proposal may be accepted; HRP-35 and HRP-36 must follow the final approved decision.
 See [ADR-0005](adr/0005-kafka-acknowledgement-after-raw-persistence.md).
 
+## HRP-34 raw boundary
+
+JSON objects are stored before classification; `unknown` and `non-conforming` remain
+in `raw_events`. Technical-invalid values use `invalid_events` with the closed codes
+`missing_value`, `invalid_utf8`, `invalid_json` and `non_object_json`. Missing values
+use `payload: null`; present invalid bytes are BSON Binary only inside MongoDB.
+Collection names are configured with `MONGODB_COLLECTION` and
+`MONGODB_INVALID_COLLECTION`, and identity is `topic + partition + offset`.
+
 ## PostgreSQL: curated zone
 
 Planned tables, with candidate columns detailed in

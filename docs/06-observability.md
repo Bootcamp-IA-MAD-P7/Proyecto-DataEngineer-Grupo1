@@ -1,5 +1,10 @@
 # Observabilidad
 
+HRP-34 prohíbe registrar payloads, BSON Binary, PII, secretos u operaciones MongoDB.
+Los conflictos registran solo coordenadas y tipo técnico y no autorizan acknowledgement.
+La evidencia de sostenibilidad se limita a batching acotado, idempotencia y evitar
+redelivery no acotado, sin afirmaciones de energía o carbono.
+
 ## Logs
 
 Los logs serán estructurados y contendrán, cuando estén disponibles: `topic`,

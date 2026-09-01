@@ -1,18 +1,43 @@
 import json
 import signal
+from collections import defaultdict
 from typing import Any
 
 from confluent_kafka import Consumer, KafkaError
 
 from .config import KAFKA_CONFIG, KAFKA_TOPICS
-from .detector import detect_topic
 from .error_handler import get_logger
-from .mongo import MongoIngestionClient
-from .validator import validate
+from .mongo import MongoIngestionClient, PersistenceOutcome
 
 logger = get_logger("consumer")
 
 running = True
+
+
+def _durable_prefix_messages(messages: list[Any], outcomes: list[PersistenceOutcome]) -> list[Any]:
+    by_coordinate = {
+        (outcome.topic, outcome.partition, outcome.offset): outcome for outcome in outcomes
+    }
+    grouped: dict[tuple[str, int], list[Any]] = defaultdict(list)
+    for message in messages:
+        grouped[(message.topic(), message.partition())].append(message)
+
+    commits: list[Any] = []
+    for partition_messages in grouped.values():
+        ordered = sorted(partition_messages, key=lambda message: message.offset())
+        expected = ordered[0].offset()
+        last_durable = None
+        for message in ordered:
+            if message.offset() != expected:
+                break
+            outcome = by_coordinate.get((message.topic(), message.partition(), message.offset()))
+            if outcome is None or outcome.status not in {"inserted", "already_exists"}:
+                break
+            last_durable = message
+            expected += 1
+        if last_durable is not None:
+            commits.append(last_durable)
+    return commits
 
 
 def _shutdown(sig: int, frame: object) -> None:
@@ -50,55 +75,70 @@ def run_consumer() -> None:
                 if not messages:
                     continue
 
-                valid: list[tuple[str, dict[str, Any], Any]] = []
+                raw_events: list[tuple[str, dict[str, Any], int, int]] = []
+                outcome_messages: list[Any] = []
+                outcomes: list[PersistenceOutcome] = []
                 for msg in messages:
                     if msg.error():
                         _handle_kafka_error(msg)
                         continue
 
                     topic = msg.topic()
+                    if topic is None:
+                        logger.warning("Kafka message missing topic")
+                        continue
+                    partition = msg.partition()
+                    offset = msg.offset()
+                    if partition is None or offset is None:
+                        logger.warning("Kafka message missing coordinate")
+                        continue
 
                     value = msg.value()
-                    if topic is None or value is None:
-                        logger.warning(f"Empty message value | offset={msg.offset()}")
-                        consumer.commit(message=msg)
+                    if value is None:
+                        outcomes.append(
+                            mongo_client.persist_invalid_event(
+                                topic, partition, offset, None, "missing_value"
+                            )
+                        )
+                        outcome_messages.append(msg)
                         continue
 
                     try:
                         data = json.loads(value.decode("utf-8"))
-                    except (json.JSONDecodeError, UnicodeDecodeError) as e:
-                        logger.warning(
-                            f"Could not deserialise | topic={topic} offset={msg.offset()} | {e}"
+                    except UnicodeDecodeError:
+                        outcomes.append(
+                            mongo_client.persist_invalid_event(
+                                topic, partition, offset, value, "invalid_utf8"
+                            )
                         )
-                        consumer.commit(message=msg)
+                        outcome_messages.append(msg)
                         continue
-
-                    detected_topic = detect_topic(data)
-                    if detected_topic is None:
-                        logger.warning("Could not detect fragment type | offset=%s", msg.offset())
-                        consumer.commit(message=msg)
-                        continue
-
-                    if not validate(detected_topic, data):
-                        logger.warning(
-                            "Validation failed | topic=%s offset=%s", detected_topic, msg.offset()
+                    except json.JSONDecodeError:
+                        outcomes.append(
+                            mongo_client.persist_invalid_event(
+                                topic, partition, offset, value, "invalid_json"
+                            )
                         )
-                        consumer.commit(message=msg)
+                        outcome_messages.append(msg)
                         continue
 
-                    valid.append((detected_topic, data, msg))
+                    if not isinstance(data, dict):
+                        outcomes.append(
+                            mongo_client.persist_invalid_event(
+                                topic, partition, offset, value, "non_object_json"
+                            )
+                        )
+                        outcome_messages.append(msg)
+                        continue
 
-                if valid:
-                    saved = mongo_client.insert_many_fragments(valid)
-                    if saved:
-                        consumer.commit(message=valid[-1][2])
-                        logger.info(f"Batch saved | {len(valid)} messages")
-                        msg_count += len(valid)
-                        if msg_count >= 1000:
-                            logger.info(f"Heartbeat | {msg_count} messages processed")
-                            msg_count = 0
-                    else:
-                        logger.error("Batch insert failed — skipping commit, Kafka will redeliver")
+                    raw_events.append((topic, data, partition, offset))
+                    outcome_messages.append(msg)
+
+                if raw_events:
+                    outcomes.extend(mongo_client.persist_batch(raw_events))
+                for commit_message in _durable_prefix_messages(outcome_messages, outcomes):
+                    consumer.commit(message=commit_message)
+                msg_count += len(raw_events)
 
             except Exception as e:
                 logger.error(f"Unexpected error: {e}")

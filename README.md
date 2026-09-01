@@ -41,7 +41,7 @@ generador y sin versionar datos personales.
 | Consumer configurable | Completado | HRP-30, tests unitarios y configuración por entorno | No persiste ni transforma payloads |
 | Consumo continuo | Completado | HRP-31, integrada mediante PR #14 | Validación de runtime, no prueba E2E |
 | MongoDB local | Completado | HRP-33 y PR #27 | Servicio local, cliente MongoDB e índices técnicos disponibles |
-| Persistencia raw inicial | Completada con revisión pendiente | HRP-34 y PR #29 | Debe alinearse el sobre raw final antes del ETL y la demo completa |
+| Persistencia raw | Implementada en la rama HRP-34, revisión pendiente | HRP-34 y pruebas unitarias/integración MongoDB real | No está mergeada; Kafka real-broker E2E no ejecutado |
 | Duplicados técnicos | Completado | HRP-36, índice único y tests de `BulkWriteError` | Es deduplicación Kafka, no deduplicación de personas |
 | Errores técnicos | Completado | HRP-37, manejo de errores permanentes/transitorios | Falta observabilidad completa del pipeline |
 | Análisis de correlación | En curso | HRP-43 | Debe analizar candidatos y decidir si existe evidencia suficiente |
@@ -71,8 +71,9 @@ Hoy se puede demostrar, de manera honesta y reproducible:
 
 Todavía no se puede demostrar un perfil completo en PostgreSQL ni una consulta desde
 API o frontend. Antes de vender el flujo como final, también hay que revisar que el
-sobre raw definitivo preserve claramente el topic Kafka original, partición, offset,
-payload y estado de procesamiento sin confundirlos con la clasificación del fragmento.
+La implementación de HRP-34 ya preserva el topic Kafka original, partición, offset,
+payload y estado de procesamiento sin confundirlos con la clasificación del fragmento;
+la revisión humana de la corrección sigue pendiente.
 
 ## Arquitectura
 
@@ -110,7 +111,7 @@ invariante final del pipeline, el equipo debe comprobar que MongoDB:
 Un fallo de MongoDB debe dejar el offset sin confirmar para permitir reentrega. La
 política pretende evitar pérdida silenciosa. El seguimiento técnico vive en
 [ADR-0005](docs/adr/0005-kafka-acknowledgement-after-raw-persistence.md) y en las
-tareas posteriores que alineen el sobre raw final con la demo completa.
+ADR-0005 permanece `Proposed` hasta la revisión humana de Miguel.
 
 ### Sobre raw mínimo
 
@@ -126,8 +127,8 @@ tareas posteriores que alineen el sobre raw final con la demo completa.
 ```
 
 El ejemplo expresa la propuesta de estructura, no datos reales. La combinación
-`topic + partition + offset` deberá validarse como índice único en HRP-34 antes de
-considerar aprobada la política de idempotencia.
+`topic + partition + offset` se utiliza como identidad técnica e índice único en HRP-34;
+la política definitiva sigue sujeta a revisión humana.
 
 ## Evidencia Kafka disponible
 
@@ -186,7 +187,7 @@ servicio arrancado, una spec o un diseño por sí solos cuentan como trabajo en 
 | Check literal | Estado | Evidencia actual | Próxima prueba de cierre |
 |---|---|---|---|
 | Consumer Kafka en tiempo real y miles de mensajes por segundo | [![En curso][status-active]][status-active-link] | HRP-30 y HRP-31: consumer configurable y continuo validado | Medición de carga sostenida y tasa de mensajes |
-| Persistir los mensajes Kafka en MongoDB | [![Completado][status-done]][status-done-link] | HRP-33/34/35/36/37 y PRs #27/#29 | Revisión del sobre raw final antes del ETL |
+| Persistir los mensajes Kafka en MongoDB | [![Completado][status-done]][status-done-link] | HRP-34 y pruebas unitarias/integración MongoDB real | Revisión humana antes del merge |
 | Agrupar Personal, Location, Professional, Bank y Net Data por persona | [![En curso][status-active]][status-active-link] | Contrato HRP-24; análisis HRP-43 activo | Analizar candidatos en HRP-43; solo después, y si hay evidencia, definir correlación; HRP-44 clasifica y HRP-45 valida/limpia |
 | Persistir los datos agrupados en una base SQL | [![En curso][status-active]][status-active-link] | Diseño PostgreSQL HRP-25 activo | Esquema, migración, upsert y consulta de validación |
 | Ramas organizadas y commits limpios | [![Completado][status-done]][status-done-link] | `develop`, PRs, CODEOWNERS, ruleset y títulos con Jira | Mantener la política en todas las contribuciones |
@@ -222,9 +223,9 @@ servicio arrancado, una spec o un diseño por sí solos cuentan como trabajo en 
 | Git / GitHub | [![Completado][status-done]][status-done-link] | Repositorio, PRs, revisión, CI, tags y gobernanza |
 | Docker / Docker Compose | [![En curso][status-active]][status-active-link] | MongoDB local; stack de aplicación pendiente |
 | Python | [![Completado][status-done]][status-done-link] | Consumer y arnés en Python 3.11 |
-| Kafka | [![En curso][status-active]][status-active-link] | Conexión y consumo continuo; rendimiento y persistencia pendientes |
+| Kafka | [![En curso][status-active]][status-active-link] | Conexión, consumo continuo y persistencia raw HRP-34 | Rendimiento y E2E con broker real pendientes |
 | Pandas | [![Opcional][status-optional]][status-optional-link] | No se añade hasta que una necesidad ETL justifique la dependencia |
-| MongoDB | [![En curso][status-active]][status-active-link] | Servicio local disponible; repositorio raw pendiente |
+| MongoDB | [![En curso][status-active]][status-active-link] | Servicio local y persistencia raw HRP-34 disponibles | Evolución posterior del pipeline pendiente |
 | PostgreSQL | [![En curso][status-active]][status-active-link] | Modelo HRP-25 en desarrollo; servicio y persistencia pendientes |
 | Jira | [![Completado][status-done]][status-done-link] | Backlog, responsables, estados y dependencias del proyecto |
 
@@ -451,9 +452,10 @@ en límites de componentes se revisan con el área afectada.
 
 ## Próximos cortes verticales
 
-1. **Alinear sobre raw y frontera ETL.** Revisar que HRP-34/35/36/37 preserve
-   claramente el topic Kafka original, partición, offset, payload, clasificación
-   técnica y estado de procesamiento antes de usarlo como entrada del ETL.
+1. **Revisar sobre raw y frontera ETL.** Confirmar mediante revisión humana que
+   HRP-34 preserve claramente el topic Kafka original, partición, offset, payload,
+   clasificación técnica y estado de procesamiento antes de usarlo como entrada del
+   ETL.
 2. **Análisis de correlación.** HRP-43 compara con evidencia autorizada los candidatos
    `passport`, `fullname` y `address`, documenta coincidencias, ambigüedades y
    conflictos y determina si es seguro proponer una estrategia. Si la evidencia no es
@@ -466,6 +468,18 @@ en límites de componentes se revisan con el área afectada.
    integración y E2E.
 6. **Observabilidad y producto.** Añadir Redis, Prometheus, API y frontend accesible
    cuando el flujo esencial ya tenga una referencia estable.
+
+## Frontera raw de HRP-34
+
+Todo JSON object parseable, incluidos `unknown` y `non-conforming`, se persiste en
+`raw_events` antes de clasificación o validación. Los fallos técnicos se enrutan a
+`invalid_events` con `missing_value`, `invalid_utf8`, `invalid_json` o
+`non_object_json`; `None` usa `payload: null` y los bytes inválidos son BSON Binary
+solo dentro de MongoDB. La identidad es `topic + partition + offset`; los conflictos
+no permiten acknowledgement y los offsets avanzan solo por el prefijo durable
+contiguo de cada topic-partition. Las colecciones se configuran con
+`MONGODB_COLLECTION` y `MONGODB_INVALID_COLLECTION`. La colección incompatible
+existente permanece sin cambios.
 
 ## Diferenciales del proyecto
 
