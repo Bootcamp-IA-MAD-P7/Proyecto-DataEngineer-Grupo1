@@ -33,6 +33,11 @@ Este entorno es externo al repositorio del equipo. Se obtiene únicamente para e
 el Docker Compose documentado; el código del generador nunca se abre, inspecciona,
 busca, analiza ni se emplea como fuente de contrato.
 
+Los comandos Docker Compose de este entorno deben ejecutarse únicamente desde la raíz
+del repositorio educativo externo, después de cambiar deliberadamente a esa carpeta.
+No ejecutar `docker compose up --build -d` desde la raíz del repositorio HR Pro. Para
+los servicios propiedad de HR Pro, usar siempre `docker compose -f infra/compose.dev.yml`.
+
 1. Crear una carpeta independiente del repositorio del equipo.
 2. Obtener el repositorio educativo y, desde su raíz, ejecutar:
 
