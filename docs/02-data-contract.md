@@ -15,6 +15,10 @@ esa evidencia permanece pendiente.
 Estos grupos proceden del contexto público autorizado. No existe todavía un mapping
 aprobado entre ellos y las variantes estructurales observadas A–E.
 
+The mapping from exact observed shapes to business domains is defined by HRP-44:
+[`docs/specs/HRP-44-domain-classification.md`](specs/HRP-44-domain-classification.md).
+Technical A–E labels remain neutral observation references.
+
 | Tipo | Campos documentados |
 |---|---|
 | Personal data | Name, Lastname, Sex, Telfnumber, Passport, E-Mail |
