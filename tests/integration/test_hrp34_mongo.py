@@ -60,7 +60,9 @@ def test_ac_13_real_mongo_binary_null_replay_conflict_and_legacy_isolation(
 
     invalid_payload = b"not-json"
     assert (
-        mongo_client.persist_invalid_event("synthetic-topic", 0, 10, invalid_payload, "invalid_json").status
+        mongo_client.persist_invalid_event(
+            "synthetic-topic", 0, 10, invalid_payload, "invalid_json"
+        ).status
         == "inserted"
     )
     stored_invalid = invalid.find_one({"topic": "synthetic-topic", "partition": 0, "offset": 10})
@@ -73,7 +75,10 @@ def test_ac_13_real_mongo_binary_null_replay_conflict_and_legacy_isolation(
     stored_missing = invalid.find_one({"topic": "synthetic-topic", "partition": 0, "offset": 11})
     assert stored_missing["payload"] is None  # type: ignore[index]
 
-    assert mongo_client.persist_raw_event("synthetic-topic", {"synthetic": 1}, 0, 12).status == "inserted"
+    assert (
+        mongo_client.persist_raw_event("synthetic-topic", {"synthetic": 1}, 0, 12).status
+        == "inserted"
+    )
     with pytest.raises(DuplicateKeyError):
         raw.insert_one(
             {
@@ -85,7 +90,10 @@ def test_ac_13_real_mongo_binary_null_replay_conflict_and_legacy_isolation(
                 "processing_status": "pending",
             }
         )
-    assert mongo_client.persist_raw_event("synthetic-topic", {"synthetic": 1}, 0, 12).status == "already_exists"
+    assert (
+        mongo_client.persist_raw_event("synthetic-topic", {"synthetic": 1}, 0, 12).status
+        == "already_exists"
+    )
     assert raw.count_documents({"topic": "synthetic-topic", "partition": 0, "offset": 12}) == 1
 
     conflict = mongo_client.persist_raw_event("synthetic-topic", {"synthetic": 2}, 0, 10)
