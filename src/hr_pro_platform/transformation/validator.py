@@ -4,7 +4,7 @@ from collections.abc import Mapping
 from dataclasses import dataclass
 from typing import Final
 
-from .classifier import DOMAIN_FIELDS, UNKNOWN
+from .classifier import DOMAIN_FIELDS, UNKNOWN, classify_payload
 
 SUPPORTED_CLASSIFICATIONS: Final[frozenset[str]] = frozenset(DOMAIN_FIELDS)
 
@@ -38,6 +38,14 @@ def validate_fragment(payload: object, classification: str) -> ValidationResult:
             is_valid=False,
             classification=classification,
             errors=("unsupported_classification",),
+            payload=payload,
+        )
+
+    if classify_payload(payload) != classification:
+        return ValidationResult(
+            is_valid=False,
+            classification=classification,
+            errors=("classification_mismatch",),
             payload=payload,
         )
 

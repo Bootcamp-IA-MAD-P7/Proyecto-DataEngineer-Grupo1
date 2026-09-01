@@ -1,7 +1,7 @@
 # HRP-45 - Validation and cleaning boundary
 
-**Status:** Draft - pending human review
-**Owner:**
+**Status:** Implemented - pending human review; not merged
+**Owner:** Gabriela
 **Jira:** HRP-45
 **Dependencies:** HRP-34 raw persistence boundary; HRP-44 domain-classification contract
 **Related ADR:** None. ADR-0006 remains Proposed and blocked and is explicitly outside this task.
@@ -15,7 +15,12 @@ changing the MongoDB RAW boundary.
 ## Context and scope
 
 The component runs downstream of RAW persistence and consumes a fragment together
-with the result of the HRP-44 structural classifier. The current data contract
+with the result of the HRP-44 structural classifier. Payload/classification
+structural consistency is validated by reusing the HRP-44 `classify_payload`
+contract. A supported classification is valid only when
+`classify_payload(payload) == classification`. This is structural contract
+validation only; it does not imply semantic field-value validation. The current
+data contract
 does not define field formats, ranges, requiredness, nullability, semantics or
 normalization for observed business values.
 
@@ -63,7 +68,10 @@ of scope.
 ## Defined behavior
 
 - An object-like payload paired with one of the five HRP-44 supported domain
-  classifications is accepted without applying unapproved business validation.
+  classifications is accepted only when `classify_payload(payload)` returns the
+  supplied classification; no unapproved business validation is applied.
+- A supported classification that disagrees with `classify_payload(payload)`
+  produces an explicit `classification_mismatch` error.
 - Results are deterministic for equivalent inputs and classification context.
 - Malformed or non-mapping input is rejected explicitly by the result API; it is
   not repaired or converted into a fabricated object.
@@ -104,12 +112,15 @@ on ADR-0006.
 ## Acceptance criteria
 
 - [ ] **AC-01:** A structurally supported, classified fragment is accepted without
-  invented business validation.
+  invented business validation when the supplied classification matches
+  `classify_payload(payload)`.
 - [ ] **AC-02:** Equivalent input and classification context produce the same
   validation result.
 - [ ] **AC-03:** Validation does not mutate the input payload or technical metadata.
 - [ ] **AC-04:** Malformed or non-mapping input produces an explicit invalid result
   without fabrication or silent coercion.
+- [ ] **AC-04a:** An empty, structurally unsupported, or wrong-domain mapping
+  produces `classification_mismatch` when a supported classification is supplied.
 - [ ] **AC-05:** Unknown or unsupported classification is handled explicitly and
   is not mapped to a known domain.
 - [ ] **AC-06:** The implementation contains no person correlation, aggregation or
@@ -138,10 +149,11 @@ Focused unit tests only; no live Kafka, database or educational payloads.
 
 | Level | Case | Acceptance criteria | Evidence expected |
 |---|---|---|---|
-| Unitario | Supported classified object | AC-01, AC-08 | Explicit valid result; payload preserved |
+| Unitario | Supported classified object with matching HRP-44 shape | AC-01, AC-08 | Explicit valid result; payload preserved |
 | Unitario | Repeated equivalent validation | AC-02 | Identical deterministic results |
 | Unitario | Input mutation guard | AC-03 | Original payload remains unchanged |
 | Unitario | Non-mapping or malformed input | AC-04 | Explicit invalid result and reason |
+| Unitario | Empty or wrong-domain mapping | AC-04a | `classification_mismatch` |
 | Unitario | Unknown/unsupported classification | AC-05 | Explicit unsupported outcome |
 | Unitario | No semantic cleaning | AC-07, AC-09 | Values are not trimmed, changed or defaulted |
 | Boundary review | Scope and prohibited logic | AC-06, AC-10 | No identity, aggregation or business-key behavior |
@@ -151,7 +163,7 @@ or address rules.
 
 ## Evidence of closure
 
-- Branch / PR: pending HRP-44 merge and human review
-- Commit: not created
-- Commands and result: pending implementation
+- Branch / PR: `feature/HRP-45-validation-cleaning`; PR open/pending review (number not available)
+- Commit: `6c26f24` (implementation baseline; review fix uncommitted)
+- Commands and result: validate_specs passed for 22 files; pre-review focused tests 10 passed; pre-review full suite 79 passed, 3 skipped; pre-commit and mypy passed. Review-fix validation pending.
 - Jira closure comment: not applicable before review and merge

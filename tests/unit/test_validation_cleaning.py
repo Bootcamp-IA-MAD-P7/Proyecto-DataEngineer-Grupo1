@@ -7,7 +7,14 @@ from hr_pro_platform.transformation.validator import ValidationResult, validate_
 
 
 def test_supported_classified_fragment_is_accepted_without_business_rules_ac01() -> None:
-    payload = {"email": "not-an-email", "salary": "not-a-number"}
+    payload = {
+        "name": "synthetic",
+        "last_name": "synthetic",
+        "sex": ["unresolved"],
+        "telfnumber": "not-a-phone",
+        "passport": "not-a-passport",
+        "email": "not-an-email",
+    }
 
     result = validate_fragment(payload, "Personal")
 
@@ -17,18 +24,34 @@ def test_supported_classified_fragment_is_accepted_without_business_rules_ac01()
 
 
 def test_validation_is_deterministic_ac02() -> None:
-    payload = {"value": "same"}
+    payload = {"address": "same", "IPv4": "not-an-ip"}
 
     assert validate_fragment(payload, "Net") == validate_fragment(payload, "Net")
 
 
 def test_validation_does_not_mutate_input_payload_ac03() -> None:
-    payload = {"nested": {"value": "  unchanged  "}}
+    payload = {"fullname": "  unchanged  ", "city": "synthetic", "address": "synthetic"}
     original = deepcopy(payload)
 
     validate_fragment(payload, "Location")
 
     assert payload == original
+
+
+def test_empty_mapping_mismatches_supported_classification_ac04() -> None:
+    result = validate_fragment({}, "Personal")
+
+    assert result.is_valid is False
+    assert result.errors == ("classification_mismatch",)
+
+
+def test_wrong_supported_classification_is_explicit_mismatch_ac04() -> None:
+    payload = {"fullname": "synthetic", "city": "synthetic", "address": "synthetic"}
+
+    result = validate_fragment(payload, "Personal")
+
+    assert result.is_valid is False
+    assert result.errors == ("classification_mismatch",)
 
 
 def test_non_mapping_payload_has_explicit_invalid_result_ac04() -> None:
@@ -50,19 +73,19 @@ def test_unknown_classification_is_explicitly_rejected_ac05() -> None:
 
 
 def test_validation_has_no_identity_or_aggregation_behavior_ac06() -> None:
-    result = validate_fragment({"passport": "same"}, "Bank")
+    result = validate_fragment({"passport": "same", "IBAN": "same", "salary": "same"}, "Bank")
 
     assert not hasattr(result, "person_id")
-    assert result.payload == {"passport": "same"}
+    assert result.payload == {"passport": "same", "IBAN": "same", "salary": "same"}
 
 
 def test_values_are_preserved_without_cleaning_or_normalization_ac07() -> None:
-    payload = {"value": "  MiXeD value  "}
+    payload = {"address": "  MiXeD value  ", "IPv4": "  unchanged  "}
 
     result = validate_fragment(payload, "Professional")
 
     assert result.payload == payload
-    assert result.payload["value"] == "  MiXeD value  "
+    assert result.payload["address"] == "  MiXeD value  "
 
 
 def test_validation_result_exposes_status_context_and_reasons_ac08() -> None:
@@ -75,7 +98,7 @@ def test_validation_result_exposes_status_context_and_reasons_ac08() -> None:
 
 
 def test_unresolved_business_values_are_not_guessed_invalid_ac09() -> None:
-    payload = {"email": "unknown-format", "IPv4": "unknown-format"}
+    payload = {"address": "unknown-format", "IPv4": "unknown-format"}
 
     result = validate_fragment(payload, "Net")
 
@@ -83,7 +106,7 @@ def test_unresolved_business_values_are_not_guessed_invalid_ac09() -> None:
 
 
 def test_result_is_immutable_and_pure_boundary_is_explicit_ac10() -> None:
-    result = validate_fragment({"field": "value"}, "Bank")
+    result = validate_fragment({"passport": "value", "IBAN": "value", "salary": "value"}, "Bank")
 
     assert result.errors == ()
     try:
