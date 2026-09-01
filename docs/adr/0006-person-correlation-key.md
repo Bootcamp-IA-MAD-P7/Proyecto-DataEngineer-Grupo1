@@ -58,6 +58,27 @@ business constraint until this ADR is accepted.
 - HRP-25 is not blocked by this ADR remaining `Proposed`: it documents the boundary
   without assuming an answer.
 
+## HRP-43 evidence assessment — 2026-09-01
+
+The authorised observation is recorded in
+`docs/observations/2026-09-01-HRP-43-person-correlation.md`. It analysed 2,000 RAW
+events from the corrected clean collection using exact raw equality without
+normalization or hashing. `passport` supports a partial Personal/Bank connection,
+`fullname` supports a partial Location/Professional connection, and `address`
+supports a partial Location/Net connection. Location therefore bridges Professional
+and Net in the observed sample, while Personal/Bank remain disconnected from those
+shapes.
+
+The evidence does not expose true person identity, collision ground truth, universal
+coverage, completeness, or conflict semantics. It therefore supports no universal
+person key. The global HRP-43 outcome is **Insufficient evidence**; absence of observed
+collisions is not evidence of uniqueness. ADR-0006 remains Proposed and blocked.
+
+HRP-44 and HRP-45 may proceed independently where they do not require global person
+identity. Complete person aggregation, business uniqueness, and person-key PostgreSQL
+upserts remain blocked until stronger evidence and the decisions listed above are
+reviewed and accepted.
+
 ## Acceptance gate
 
 The status may change from `Proposed` to `Accepted` only after the evidence above is
