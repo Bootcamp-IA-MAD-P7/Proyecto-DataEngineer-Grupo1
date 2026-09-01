@@ -1,6 +1,6 @@
 # HRP-43 — Empirical person-correlation discovery
 
-**Status:** Draft; blocked pending authorised clean RAW evidence and human review
+**Status:** Investigation complete; global outcome insufficient evidence; pending human review
 **Owner:** Gabriela
 **Jira:** HRP-43
 **Branch:** `investigation/HRP-43-person-correlation`
@@ -28,6 +28,8 @@ the same person. This specification does not select or implement a person key.
 - HRP-34 documents clean configurable targets via `MONGODB_COLLECTION` and
   `MONGODB_INVALID_COLLECTION`; its legacy collection is not an authorised HRP-43
   source.
+- The authorised 2026-09-01 observation is recorded in
+  `docs/observations/2026-09-01-HRP-43-person-correlation.md`.
 
 ## Scope
 
@@ -56,10 +58,10 @@ the same person. This specification does not select or implement a person key.
 The configured collection mechanism is documented by HRP-34, but a configuration
 variable alone does not prove that a particular collection exists, was produced by
 the corrected ingestion path, or is authorised as value-level evidence for HRP-43.
-The repository currently provides no value-level RAW observation, collection
-inventory, or evidence identifying a specific clean dataset as an authorised HRP-43
-source. Empirical observation therefore remains blocked until that source is
-established.
+The authorised observation used the clean collection `raw_events_hrp43_20260901` in
+database `hr_pro`, with 2,000 RAW events and zero invalid events. Its evidence record
+is linked below. This establishes the dataset used for this investigation; it does
+not establish a universal person key or prove person identity.
 
 Before observation, a human-reviewed procedure must identify the clean collection,
 confirm that it was produced by the corrected ingestion path, record its
@@ -103,10 +105,10 @@ report raw and transformed comparisons separately and leave approval pending.
 
 | Candidate | Evidence required | Current status |
 |---|---|---|
-| `passport` | Cross-variant value matches, coverage, collisions and counterexamples | Insufficient evidence |
-| `fullname` | Cross-variant value matches, coverage, collisions and counterexamples | Insufficient evidence |
-| `address` | Cross-variant value matches, coverage, collisions and counterexamples | Insufficient evidence |
-| Composite | Evidence-backed component rationale and collision analysis | Insufficient evidence |
+| `passport` | 798 present; 401 distinct; 397 repeated and cross-shape values | Supported as partial Personal/Bank candidate; not universal |
+| `fullname` | 801 present; 402 distinct; 399 repeated and cross-shape values | Supported as partial Location/Professional candidate; not universal |
+| `address` | 801 present; 401 distinct; 400 repeated and cross-shape values | Supported as partial Location/Net candidate; not universal |
+| Composite | No identity-grounded evidence for a universal composite | Insufficient evidence |
 
 Each candidate must end as exactly one of: **Supported by current evidence**,
 **Rejected**, or **Insufficient evidence**. No absence of collisions in a small sample
@@ -114,20 +116,22 @@ may be presented as proof of uniqueness.
 
 ## Evidence record
 
-The resulting sanitised observation should be stored under `docs/observations/` with
-the observation date and HRP-43 reference. It must state method, authorization,
-sample scope, provenance policy, field inventory, candidate matrix, missingness,
-matches, collisions, counterexamples, limitations, and reviewer status. It must not
-contain complete payloads or identifying values.
+The resulting sanitised observation is stored at
+`docs/observations/2026-09-01-HRP-43-person-correlation.md`. It records method,
+authorization, sample scope, provenance policy, field inventory, candidate metrics,
+limitations, and reviewer status. It contains no complete payloads or identifying
+values.
 
 ## Dependencies and downstream implications
 
-HRP-34 is a prerequisite for an authorised RAW observation. HRP-44 may define
+HRP-34 is a prerequisite for an authorised RAW observation and has now supplied the
+clean dataset used by this investigation. HRP-44 may define
 structural classification independently, provided it does not encode person identity;
 HRP-45 may define validation/cleaning independently where it does not assume a person
 key. Person aggregation, correlation-based curated upserts, and business uniqueness
-remain blocked until HRP-43 evidence and ADR-0006 approval exist. PostgreSQL schema
-design may proceed without a business-key constraint, as established by HRP-25.
+remain blocked because this evidence does not establish global person identity or
+uniqueness. PostgreSQL schema design may proceed without a business-key constraint,
+as established by HRP-25.
 
 ## Test implications
 
@@ -140,7 +144,8 @@ applicable.
 
 ## Acceptance criteria
 
-- [ ] Authorised corrected clean RAW source and human review status are evidenced.
+- [x] Authorised corrected clean RAW source and observation authorization are evidenced;
+      human review remains pending.
 - [ ] No generator material, complete payload, secret, or identifying value is used.
 - [ ] Protocol preserves safe technical provenance and separates facts from inference.
 - [ ] Candidate coverage, missingness, repetition, collisions, representation
@@ -156,13 +161,14 @@ applicable.
 
 Stop if the source would require generator inspection, if documentation materially
 contradicts the authorised boundary, if the clean RAW source cannot be authorised, or
-if evidence is insufficient for a defensible decision. Current empirical observation
-is blocked because no specific clean RAW dataset has yet been evidenced as an
-authorised HRP-43 value-level source satisfying the HRP-34 clean-data boundary.
+if evidence is insufficient for a defensible decision. The observation is complete for
+the authorised sample, but the global correlation outcome remains **Insufficient
+evidence** because person identity, collision ground truth, and universal coverage
+were not observable.
 
 ## Completion evidence
 
-- Specification: this document; pending human review.
-- Sanitised observation: pending authorised evidence acquisition.
+- Specification: this document; investigation complete, pending human review.
+- Sanitised observation: `docs/observations/2026-09-01-HRP-43-person-correlation.md`.
 - ADR-0006 decision: remains Proposed; pending evidence and separate human review.
 - Branch / PR / commit / Jira closure: not authorised in this step.
