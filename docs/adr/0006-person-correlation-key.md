@@ -2,9 +2,11 @@
 
 ## Status
 
-Accepted - provisional and controlled operational correlation strategy. This is
-accepted for constructing the project's consolidated records under the documented
-limitations; it is not a claim of real-world identity truth or universal uniqueness.
+Accepted in principle - provisional and controlled operational correlation strategy.
+This is accepted for constructing the project's consolidated records under the
+documented limitations; it is not a claim of real-world identity truth or universal
+uniqueness. Versioned acceptance of this ADR remains subject to human review and
+merge of PR #42.
 
 ## Context
 
@@ -122,7 +124,7 @@ unique business key through this ADR.
 The decision is based on the authorized read-only observation of the corrected RAW
 collection `hr_pro.raw_events_hrp43_20260901`, containing 2,000 RAW events. The
 evidence is recorded in `docs/observations/2026-09-01-HRP-43-person-correlation.md`
-and the subsequent sanitized correlation-chain audit.
+and `docs/observations/2026-09-02-HRP-50-adr0006-correlation-evidence.md`.
 
 Observed exact-equality evidence:
 
@@ -136,10 +138,12 @@ Observed exact-equality evidence:
 - Case, whitespace, diacritic and combined normalization experiments added no
   matches and introduced no observed collisions.
 
-Human architecture review approved this provisional and controlled operational
-strategy under the limitations and responsibility boundaries in this ADR. No human
-reviewer name, approval timestamp, Jira comment identifier or other unavailable
-traceability detail is asserted here.
+Prior team discussion supported formalizing this provisional and controlled
+operational strategy under the limitations and responsibility boundaries in this ADR.
+The versioned acceptance of ADR-0006 is represented by human review and merge of
+PR #42. While PR #42 remains pending, this document does not claim that the ADR has
+completed its human approval gate. No human reviewer name, approval timestamp, Jira
+comment identifier or other unavailable traceability detail is asserted here.
 
 ## Risks and limitations
 
@@ -188,7 +192,9 @@ specifications define persistence enforcement.
 
 ## Acceptance gate
 
-The status is `Accepted` for the provisional and controlled operational strategy
-recorded above, based on the authorized evidence and human architecture approval.
-Future changes to the approved edges, comparison policy, transitivity, identity
-boundary or responsibility boundaries require a new reviewed ADR decision.
+The decision is `Accepted in principle` for the provisional and controlled
+operational strategy recorded above, based on the authorized evidence and prior team
+discussion. The versioned ADR acceptance gate completes only after human review and
+merge of PR #42. Future changes to the approved edges, comparison policy,
+transitivity, identity boundary or responsibility boundaries require a new reviewed
+ADR decision.
