@@ -219,6 +219,42 @@ def test_ambiguous_component_is_preserved_without_resolution_ac09() -> None:
     assert result.records[0].provenance == ("b", "p1", "p2")
 
 
+def test_multiple_same_domain_groups_preserve_boundaries_and_provenance_ac09() -> None:
+    personal_result = PersonalGroupingResult(
+        (
+            PersonalGroup("P-002", "grouped", (grouped(personal("P-002"), "p2"),)),
+            PersonalGroup("P-001", "grouped", (grouped(personal("P-001"), "p1"),)),
+        ),
+        (),
+    )
+    location_result = LocationGroupingResult(
+        (LocationGroup("Ada Example", "grouped", (grouped(location(), "l"),)),),
+        (),
+    )
+    original_personal = deepcopy(personal_result)
+    original_location = deepcopy(location_result)
+
+    first = inputs(personal_result=personal_result, location_result=location_result)
+    second = inputs(
+        personal_result=PersonalGroupingResult(tuple(reversed(personal_result.groups)), ()),
+        location_result=location_result,
+    )
+
+    assert first == second
+    assert first.records[0].status == "ambiguous"
+    personal_contribution = first.records[0].domains["personal"]
+    assert personal_contribution is not None
+    assert [group.key for group in personal_contribution.groups] == ["P-001", "P-002"]
+    assert [
+        tuple(fragment.source_reference for fragment in group.fragments)
+        for group in personal_contribution.groups
+    ] == [("p1",), ("p2",)]
+    assert len(personal_contribution.fragments) == 2
+    assert first.records[0].provenance == ("l", "p1", "p2")
+    assert personal_result == original_personal
+    assert location_result == original_location
+
+
 def test_unresolved_input_is_kept_outside_records_ac10() -> None:
     unresolved = PersonalUnresolved(
         status="uncorrelated",

@@ -9,14 +9,15 @@ from .fragment_contract import (
     ClassifiedFragment,
     GroupedFragment,
     JSONPayload,
-    JSONValue,
-    SourceReference,
+    UnresolvedFragment,
+)
+from .fragment_contract import (
+    JSONValue as JSONValue,
 )
 from .validator import validate_fragment
 
 LOCATION: Final = "Location"
 GroupingStatus = Literal["grouped", "ambiguous"]
-UnresolvedStatus = Literal["uncorrelated", "unsupported"]
 
 
 @dataclass(frozen=True)
@@ -26,16 +27,6 @@ class LocationGroup:
     key: str
     status: GroupingStatus
     fragments: tuple[GroupedFragment, ...]
-
-
-@dataclass(frozen=True)
-class UnresolvedFragment:
-    """A fragment that cannot be grouped under the HRP-46 contract."""
-
-    status: UnresolvedStatus
-    payload: JSONValue
-    source_reference: SourceReference
-    reason: str
 
 
 @dataclass(frozen=True)
@@ -65,6 +56,7 @@ def group_location_fragments(
                 UnresolvedFragment(
                     status="unsupported",
                     payload=fragment.payload,
+                    classification=fragment.classification,
                     source_reference=fragment.source_reference,
                     reason=validation.errors[0],
                 )
@@ -76,6 +68,7 @@ def group_location_fragments(
                 UnresolvedFragment(
                     status="unsupported",
                     payload=fragment.payload,
+                    classification=fragment.classification,
                     source_reference=fragment.source_reference,
                     reason="not_location_fragment",
                 )
@@ -88,6 +81,7 @@ def group_location_fragments(
                 UnresolvedFragment(
                     status="unsupported",
                     payload=fragment.payload,
+                    classification=fragment.classification,
                     source_reference=fragment.source_reference,
                     reason="payload_not_mapping",
                 )
@@ -101,6 +95,7 @@ def group_location_fragments(
                 UnresolvedFragment(
                     status="uncorrelated",
                     payload=fragment.payload,
+                    classification=fragment.classification,
                     source_reference=fragment.source_reference,
                     reason="fullname_unusable",
                 )

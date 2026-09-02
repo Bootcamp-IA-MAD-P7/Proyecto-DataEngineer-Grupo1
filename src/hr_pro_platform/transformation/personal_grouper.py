@@ -9,14 +9,12 @@ from .fragment_contract import (
     ClassifiedFragment,
     GroupedFragment,
     JSONPayload,
-    JSONValue,
-    SourceReference,
+    UnresolvedFragment,
 )
 from .validator import validate_fragment
 
 PERSONAL: Final = "Personal"
 GroupingStatus = Literal["grouped", "ambiguous"]
-UnresolvedStatus = Literal["uncorrelated", "unsupported"]
 
 
 @dataclass(frozen=True)
@@ -26,17 +24,6 @@ class PersonalGroup:
     key: str
     status: GroupingStatus
     fragments: tuple[GroupedFragment, ...]
-
-
-@dataclass(frozen=True)
-class UnresolvedFragment:
-    """A fragment that cannot be grouped under the HRP-61 contract."""
-
-    status: UnresolvedStatus
-    payload: JSONValue
-    classification: str
-    source_reference: SourceReference
-    reason: str
 
 
 @dataclass(frozen=True)

@@ -1,6 +1,6 @@
 # HRP-50 - Consolidated person record
 
-**Status:** Specification draft; pending human review
+**Status:** Implemented and merged; contract hardening tracked by HRP-96
 **Jira:** HRP-50 - Crear un único registro final por persona
 **Owner:** Gabriela Granja
 **Related ADR:** [`docs/adr/0006-person-correlation-key.md`](../adr/0006-person-correlation-key.md)
@@ -141,9 +141,10 @@ the required final reference field.
 
 The concrete storage form is delegated to the ingestion/raw-persistence contract.
 HRP-50 therefore does not choose Kafka coordinates, Mongo `_id`, UUIDs or hashes.
-The amended grouped-output contracts require this abstract capability before
-implementation; the current committed implementations remain payload-only until
-their implementation work is deliberately updated.
+The grouped-output contracts implement this abstract capability through
+`GroupedFragment.source_reference`. HRP-96 standardizes unresolved-fragment typing
+and preserves original same-domain group boundaries without changing that provenance
+contract.
 
 ## Consolidated output contract
 
@@ -166,6 +167,11 @@ ConsolidatedPersonRecord
   provenance: tuple[SourceReference, ...]
 
 DomainContribution
+  groups: tuple[DomainGroupContribution, ...]
+  fragments: compatibility view over every retained group fragment
+
+DomainGroupContribution
+  key: str
   fragments: tuple[GroupedFragment, ...]
 
 UnresolvedContribution
@@ -358,21 +364,19 @@ Jira HRP-50
   -> ADR-0006
   -> HRP-46 / HRP-47 / HRP-48 / HRP-49 / HRP-61
   -> docs/observations/2026-09-02-HRP-50-adr0006-correlation-evidence.md
-  -> future transformation code (pending implementation)
-  -> future tests (pending implementation)
-  -> human-reviewed PR (pending)
-  -> Jira closure after merge and evidence (pending)
+  -> transformation implementation and tests
+  -> PR #43
+  -> merge commit 5ed33f4
+  -> HRP-96 contract-hardening follow-up
 ```
 
-## Open decisions before implementation
+## Post-merge contract status
 
-No HRP-50-owned contract decisions remain open. The concrete raw-persistence
+No HRP-50-owned correlation decision remains open. The concrete raw-persistence
 representation behind the abstract `SourceReference` is delegated to the existing
-ingestion/raw-persistence contract and is not selected by HRP-50. The remaining
-implementation dependency is to update the five existing grouper implementations to
-satisfy their amended provenance-bearing output contracts. Their domain
-specifications now define the required impact; their grouping semantics remain
-unchanged.
+ingestion/raw-persistence contract and is not selected by HRP-50. HRP-96 records the
+post-merge hardening needed to standardize unresolved-fragment typing and make
+same-domain group boundaries explicit. It does not reopen or change ADR-0006.
 
 These decisions must not be resolved by inventing a global identity key, copying PII
 into traceability metadata or performing a broad refactor.
