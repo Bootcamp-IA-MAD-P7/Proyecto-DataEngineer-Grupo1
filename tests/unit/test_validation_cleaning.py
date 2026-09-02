@@ -82,8 +82,10 @@ def test_validation_has_no_identity_or_aggregation_behavior_ac06() -> None:
 def test_values_are_preserved_without_cleaning_or_normalization_ac07() -> None:
     payload = {"address": "  MiXeD value  ", "IPv4": "  unchanged  "}
 
-    result = validate_fragment(payload, "Professional")
+    result = validate_fragment(payload, "Net")
 
+    assert result.is_valid is True
+    assert result.errors == ()
     assert result.payload == payload
     assert result.payload["address"] == "  MiXeD value  "
 

@@ -1,6 +1,6 @@
 # HRP-45 - Validation and cleaning boundary
 
-**Status:** Implemented - pending human review; not merged
+**Status:** Implemented - PR #36; pending final approval or merge
 **Owner:** Gabriela
 **Jira:** HRP-45
 **Dependencies:** HRP-34 raw persistence boundary; HRP-44 domain-classification contract
@@ -163,7 +163,7 @@ or address rules.
 
 ## Evidence of closure
 
-- Branch / PR: `feature/HRP-45-validation-cleaning`; PR open/pending review (number not available)
-- Commit: `6c26f24` (implementation baseline; review fix uncommitted)
-- Commands and result: validate_specs passed for 22 files; pre-review focused tests 10 passed; pre-review full suite 79 passed, 3 skipped; pre-commit and mypy passed. Review-fix validation pending.
+- Branch / PR: `feature/HRP-45-validation-cleaning`; PR #36 pending final approval or merge
+- Review-fix commit: `13cc3f8`
+- Post-fix validation: CI green; focused tests 12 passed; full suite 81 passed, 3 skipped; coverage 81.59% with the 75% threshold passed; pre-commit, validate_specs (22 files), Ruff, Ruff format, mypy and git diff --check passed.
 - Jira closure comment: not applicable before review and merge
