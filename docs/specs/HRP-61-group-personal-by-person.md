@@ -227,6 +227,8 @@ before merge and closure.
 
 - The specification, smallest Personal-domain implementation and focused
   synthetic tests are available for human review and match this contract.
+- Specification commit: `01b01e5` (`docs(HRP-61): specify Personal grouping by person`).
+- Implementation commit: `30e2d00` (`feat(HRP-61): group Personal fragments by person`).
 - Focused behavior, type, lint and specification validation evidence is recorded
   in this document; repository-wide limitations are recorded separately here.
 - Human review, commit, push, PR creation, PR merge and Jira closure remain
@@ -266,13 +268,16 @@ Jira HRP-61
   -> exact Personal `passport` operational grouping
   -> HRP-46/47/48/49 domain-local grouping precedents
   -> ADR-0006 global identity limitation
+  -> commit `01b01e5` specification
+  -> commit `30e2d00` implementation
 ```
 
 ## Evidence and status
 
-- Specification: drafted and updated with implementation evidence; pending human
-  review.
+- Specification: completed; pending human review.
 - Production implementation: `src/hr_pro_platform/transformation/personal_grouper.py`.
+- Specification commit: `01b01e5` (`docs(HRP-61): specify Personal grouping by person`).
+- Implementation commit: `30e2d00` (`feat(HRP-61): group Personal fragments by person`).
 - Focused tests: `tests/unit/test_personal_grouper.py`; 11 tests passed with
   repository coverage options disabled. The standard focused command also
   passed all 11 assertions but exited on the repository-wide 75% coverage gate.
