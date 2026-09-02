@@ -3,6 +3,7 @@
 from copy import deepcopy
 
 from hr_pro_platform.transformation.classifier import UNKNOWN
+from hr_pro_platform.transformation.fragment_contract import GroupedFragment
 from hr_pro_platform.transformation.location_grouper import (
     ClassifiedFragment,
     JSONValue,
@@ -18,8 +19,12 @@ def location(
     return {"fullname": fullname, "city": city, "address": address}
 
 
-def fragment(payload: JSONValue, classification: str = "Location") -> ClassifiedFragment:
-    return ClassifiedFragment(payload=payload, classification=classification)
+def fragment(
+    payload: JSONValue, classification: str = "Location", source: str = "source-1"
+) -> ClassifiedFragment:
+    return ClassifiedFragment(
+        payload=payload, classification=classification, source_reference=source
+    )
 
 
 def test_valid_location_is_grouped_by_exact_fullname_ac01() -> None:
@@ -29,7 +34,7 @@ def test_valid_location_is_grouped_by_exact_fullname_ac01() -> None:
     assert len(result.groups) == 1
     assert result.groups[0].key == "  Example Person  "
     assert result.groups[0].status == "grouped"
-    assert result.groups[0].fragments == (payload,)
+    assert result.groups[0].fragments == (GroupedFragment(payload, "source-1"),)
 
 
 def test_equal_and_different_fullnames_define_local_groups_without_identity_ac02() -> None:
@@ -83,7 +88,7 @@ def test_conflicting_same_key_values_are_preserved_as_ambiguous_ac05() -> None:
     result = group_location_fragments([fragment(first), fragment(second)])
 
     assert result.groups[0].status == "ambiguous"
-    assert result.groups[0].fragments == (first, second)
+    assert [item.payload for item in result.groups[0].fragments] == [first, second]
 
 
 def test_unsupported_classification_or_invalid_upstream_input_is_explicit_ac06() -> None:
@@ -139,6 +144,6 @@ def test_grouping_has_no_fallback_or_global_identity_and_keeps_persistence_outsi
     )
 
     assert [group.key for group in result.groups] == ["Ada Example", "Bob Example"]
-    assert result.groups[0].fragments[0]["fullname"] == "Ada Example"
+    assert result.groups[0].fragments[0].payload["fullname"] == "Ada Example"
     assert not hasattr(result, "person_id")
     assert not hasattr(result.groups[0], "employee_id")
