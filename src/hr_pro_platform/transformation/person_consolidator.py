@@ -5,22 +5,44 @@ from collections.abc import Mapping
 from dataclasses import dataclass
 from typing import Literal
 
-from .bank_grouper import BankGroupingResult
+from .bank_grouper import BankGroup, BankGroupingResult
 from .fragment_contract import GroupedFragment, JSONValue, SourceReference
-from .location_grouper import LocationGroupingResult
-from .net_grouper import NetGroupingResult
-from .personal_grouper import PersonalGroupingResult
-from .professional_grouper import ProfessionalGroupingResult
+from .location_grouper import LocationGroup, LocationGroupingResult
+from .net_grouper import NetGroup, NetGroupingResult
+from .personal_grouper import PersonalGroup, PersonalGroupingResult
+from .professional_grouper import ProfessionalGroup, ProfessionalGroupingResult
 
 DomainName = Literal["personal", "location", "professional", "bank", "net"]
 ConsolidationStatus = Literal["complete", "incomplete", "ambiguous"]
+GroupRecord = PersonalGroup | LocationGroup | ProfessionalGroup | BankGroup | NetGroup
+GroupingResult = (
+    PersonalGroupingResult
+    | LocationGroupingResult
+    | ProfessionalGroupingResult
+    | BankGroupingResult
+    | NetGroupingResult
+)
+
+
+@dataclass(frozen=True)
+class DomainGroupContribution:
+    """One original domain-local group retained inside a component."""
+
+    key: str
+    fragments: tuple[GroupedFragment, ...]
 
 
 @dataclass(frozen=True)
 class DomainContribution:
     """Grouped evidence contributed by one domain."""
 
-    fragments: tuple[GroupedFragment, ...]
+    groups: tuple[DomainGroupContribution, ...]
+
+    @property
+    def fragments(self) -> tuple[GroupedFragment, ...]:
+        """Return a compatibility view without losing original group boundaries."""
+
+        return tuple(fragment for group in self.groups for fragment in group.fragments)
 
 
 @dataclass(frozen=True)
@@ -133,13 +155,13 @@ def _nodes(
     )
 
 
-def _node(domain: DomainName, group: object) -> _Node:
-    fragments = tuple(sorted(group.fragments, key=_canonical_fragment))  # type: ignore[attr-defined]
+def _node(domain: DomainName, group: GroupRecord) -> _Node:
+    fragments = tuple(sorted(group.fragments, key=_canonical_fragment))
     return _Node(
         domain=domain,
-        key=group.key,  # type: ignore[attr-defined]
+        key=group.key,
         fragments=fragments,
-        ambiguous=group.status == "ambiguous",  # type: ignore[attr-defined]
+        ambiguous=group.status == "ambiguous",
     )
 
 
@@ -180,13 +202,13 @@ def _record(
     rules: set[str] = set()
     component_indexes = {all_nodes.index(node) for node in component}
     for node in component:
-        contribution = DomainContribution(node.fragments)
+        group_contribution = DomainGroupContribution(node.key, node.fragments)
         existing = domains[node.domain]
         if existing is None:
-            domains[node.domain] = contribution
+            domains[node.domain] = DomainContribution((group_contribution,))
         else:
             domains[node.domain] = DomainContribution(
-                tuple(sorted(existing.fragments + contribution.fragments, key=_canonical_fragment))
+                tuple(sorted(existing.groups + (group_contribution,), key=lambda group: group.key))
             )
         for pair, pair_rules in rules_by_pair.items():
             if pair[0] in component_indexes and pair[1] in component_indexes:
@@ -219,15 +241,15 @@ def _record(
     )
 
 
-def _unresolved(*results: object) -> tuple[UnresolvedContribution, ...]:
+def _unresolved(*results: GroupingResult) -> tuple[UnresolvedContribution, ...]:
     entries: list[UnresolvedContribution] = []
     for result in results:
-        for item in result.unresolved:  # type: ignore[attr-defined]
+        for item in result.unresolved:
             entries.append(
                 UnresolvedContribution(
                     payload=item.payload,
-                    context=getattr(item, "classification", None),
-                    source_reference=getattr(item, "source_reference", None),
+                    context=item.classification,
+                    source_reference=item.source_reference,
                     reason=item.reason,
                 )
             )

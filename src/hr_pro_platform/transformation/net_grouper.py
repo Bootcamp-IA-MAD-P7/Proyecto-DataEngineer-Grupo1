@@ -9,14 +9,15 @@ from .fragment_contract import (
     ClassifiedFragment,
     GroupedFragment,
     JSONPayload,
-    JSONValue,
-    SourceReference,
+    UnresolvedFragment,
+)
+from .fragment_contract import (
+    JSONValue as JSONValue,
 )
 from .validator import validate_fragment
 
 NET: Final = "Net"
 GroupingStatus = Literal["grouped", "ambiguous"]
-UnresolvedStatus = Literal["uncorrelated", "unsupported"]
 
 
 @dataclass(frozen=True)
@@ -26,17 +27,6 @@ class NetGroup:
     key: str
     status: GroupingStatus
     fragments: tuple[GroupedFragment, ...]
-
-
-@dataclass(frozen=True)
-class UnresolvedFragment:
-    """A fragment that cannot be grouped under the HRP-49 contract."""
-
-    status: UnresolvedStatus
-    payload: JSONValue
-    classification: str
-    source_reference: SourceReference
-    reason: str
 
 
 @dataclass(frozen=True)
