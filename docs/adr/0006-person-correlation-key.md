@@ -79,6 +79,25 @@ identity. Complete person aggregation, business uniqueness, and person-key Postg
 upserts remain blocked until stronger evidence and the decisions listed above are
 reviewed and accepted.
 
+## HRP-46 operational clarification - 2026-09-02
+
+For HRP-46 only, human architectural review authorizes `fullname` as a
+domain-local operational correlation key for Location grouping. This is an ETL
+processing decision under the limitations above; it is not new empirical evidence
+and does not change this ADR's global status.
+
+An exact equal `fullname` places Location fragments in the same operational bucket.
+It does not prove that they represent the same real-world person, is not a global
+`person_id`, is not a cross-domain key, and does not establish uniqueness. Missing
+or unusable values remain uncorrelated. Exact repeated evidence may be handled
+idempotently, while distinct values under one operational bucket remain explicit
+conflicts and are not silently resolved or discarded.
+
+HRP-46 does not use `address`, `passport`, email, telephone, IBAN, a composite,
+fuzzy matching or a fallback key. Global/cross-domain identity, business
+uniqueness, complete-person aggregation and curated business-key upserts remain
+unresolved and blocked by this ADR.
+
 ## Acceptance gate
 
 The status may change from `Proposed` to `Accepted` only after the evidence above is
