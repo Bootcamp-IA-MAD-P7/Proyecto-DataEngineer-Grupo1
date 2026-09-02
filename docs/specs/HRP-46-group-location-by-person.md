@@ -13,7 +13,7 @@ transformation using the exact delivered `fullname` value as its bucket key.
 This operational key is not a global person identifier and does not claim that
 equal values identify the same real-world person.
 
-## Context and authorized decision
+## Context and decision under review
 
 HRP-44 identifies the supported Location shape as:
 
@@ -22,10 +22,10 @@ HRP-44 identifies the supported Location shape as:
 ```
 
 HRP-43 and ADR-0006 establish that `fullname` and `address` are correlation
-candidates only and do not prove global identity or uniqueness. Human
-architectural review authorizes `fullname` for HRP-46 as a domain-local
-operational grouping value under those known limitations. This is an ETL
-architecture decision, not new empirical evidence.
+candidates only and do not prove global identity or uniqueness. PR #37 proposes
+`fullname` for HRP-46 as an exact, domain-local operational grouping value under
+those known limitations and requests human review and approval. This is an ETL
+architecture decision under review, not new empirical evidence.
 
 The technical Kafka identity `topic + partition + offset` remains event
 provenance/idempotency, never person identity.
@@ -132,8 +132,9 @@ business uniqueness and person-level aggregation.
   marked `ambiguous` without silent conflict resolution or data loss.
 - [ ] **AC-06:** Unsupported classification, malformed input or failed upstream
   validation produces an explicit `unsupported` outcome.
-- [ ] **AC-07:** Inputs remain unchanged and the transformation does not modify
-  RAW data, Kafka ingestion, HRP-44 or HRP-45 behavior.
+- [ ] **AC-07:** The payload and classification context remain unchanged, and the
+  transformation does not modify RAW data, Kafka ingestion, HRP-44 or HRP-45
+  behavior.
 - [ ] **AC-08:** No address/passport/cross-domain/fuzzy/fallback correlation or
   global `person_id` is created, and persistence remains outside this story.
 
@@ -150,15 +151,16 @@ Focused unit tests use synthetic fixtures and reference AC identifiers:
 | Unusable accepted key | AC-04 | `uncorrelated` outcome |
 | Conflicting same-key values | AC-05 | `ambiguous`, all distinct payloads preserved |
 | Unsupported/invalid input | AC-06 | `unsupported` outcome |
-| Input immutability and boundaries | AC-07, AC-08 | No mutation or identity leakage |
+| Payload/classification immutability and boundaries | AC-07, AC-08 | No mutation or identity leakage |
 
 No test may assert global uniqueness or use `address`, `passport`, email,
 telephone, IBAN, fuzzy matching or an invented fallback key.
 
 ## Definition of Ready
 
-The human-approved HRP-46 operational decision defines the Location-only
-`fullname` contract. Global identity remains a separate blocked decision. Any
+PR #37 proposes the Location-only exact `fullname` operational decision for
+human review and approval. Until approval is recorded, the implementation remains
+pending review. Global identity remains a separate blocked decision. Any
 downstream persistence integration requires its own approved contract and is not
 a prerequisite for this pure grouping transformation.
 
@@ -194,7 +196,8 @@ Jira HRP-46
 - Branch: `feature/HRP-46-group-location-by-person`
 - Base: synchronized `develop` at `f608156`
 - Implementation: complete in the working tree; pending human review
-- Validation: HRP-46 tests 9 passed; full suite 90 passed, 3 skipped; coverage 83.17% with the 75% threshold passed; specification validation passed for 23 files; repository Ruff check passed with pre-existing inaccessible-path warnings; targeted HRP-46 Ruff format check passed; mypy passed; git diff check passed
-- Repository Ruff format: unable to complete because Ruff crashed while traversing an inaccessible/non-source path; no HRP-46 formatting issue was reported by the targeted check
-- Pre-commit: unable to rerun because the local pre-commit SQLite cache is read-only; no quality configuration was changed
-- PR / commit / Jira closure: not created or authorized
+- PR: #37; human review requested; reviewer reports checks green and branch mergeable
+- Commits: `ee1d695` (specification), `e4d52fe` (local correlation boundary), `8f2d03e` (implementation), `8cceb78` (tests)
+- Validation: focused HRP-46 tests 9 passed; full pytest 90 passed, 3 skipped; coverage 83.17% with the 75% threshold passed; `validate_specs` 23 specification files passed; Ruff check passed; Ruff format check passed with 147 files already formatted when unrelated inaccessible/local cache paths were excluded; mypy passed for 18 source files; `git diff --check` passed
+- CI: PR #37 reviewer reports checks green and branch mergeable; individual CI job names/statuses are not recorded here
+- Jira closure: pending; not claimed by this PR

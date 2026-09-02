@@ -117,7 +117,7 @@ def test_unsupported_classification_or_invalid_upstream_input_is_explicit_ac06()
     }
 
 
-def test_grouping_does_not_mutate_payloads_or_metadata_ac07() -> None:
+def test_grouping_does_not_mutate_payload_or_classification_context_ac07() -> None:
     payload = location("  Ada Example  ", "synthetic", "synthetic")
     original = deepcopy(payload)
     input_fragment = fragment(payload)
