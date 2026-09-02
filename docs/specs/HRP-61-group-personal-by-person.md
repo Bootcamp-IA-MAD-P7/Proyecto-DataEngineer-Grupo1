@@ -229,10 +229,13 @@ before merge and closure.
   synthetic tests are available for human review and match this contract.
 - Specification commit: `01b01e5` (`docs(HRP-61): specify Personal grouping by person`).
 - Implementation commit: `30e2d00` (`feat(HRP-61): group Personal fragments by person`).
+- Traceability commit: `19aee20` (`docs(HRP-61): record implementation traceability`).
 - Focused behavior, type, lint and specification validation evidence is recorded
   in this document; repository-wide limitations are recorded separately here.
-- Human review, commit, push, PR creation, PR merge and Jira closure remain
-  pending and are not claimed.
+- Push is complete and PR #41 is open for HRP-61 review.
+- After human approval and merge, PR #41 can close HRP-61 only. It does not
+  implement, close or provide implementation evidence for HRP-50.
+- Human approval, merge and Jira closure remain pending and are not claimed.
 
 ## Risks and limitations
 
@@ -270,6 +273,8 @@ Jira HRP-61
   -> ADR-0006 global identity limitation
   -> commit `01b01e5` specification
   -> commit `30e2d00` implementation
+  -> commit `19aee20` traceability
+  -> PR #41 for HRP-61 only
 ```
 
 ## Evidence and status
@@ -278,6 +283,11 @@ Jira HRP-61
 - Production implementation: `src/hr_pro_platform/transformation/personal_grouper.py`.
 - Specification commit: `01b01e5` (`docs(HRP-61): specify Personal grouping by person`).
 - Implementation commit: `30e2d00` (`feat(HRP-61): group Personal fragments by person`).
+- Traceability commit: `19aee20` (`docs(HRP-61): record implementation traceability`).
+- Tests: completed; focused HRP-61 tests passed as recorded below.
+- Push: completed.
+- PR creation: completed — PR #41 for HRP-61 only.
+- CI/check status: unverified; no CI-green claim is made.
 - Focused tests: `tests/unit/test_personal_grouper.py`; 11 tests passed with
   repository coverage options disabled. The standard focused command also
   passed all 11 assertions but exited on the repository-wide 75% coverage gate.
@@ -291,7 +301,9 @@ Jira HRP-61
 - Mypy: `mypy src` passed for 22 source files.
 - Specification validation: `scripts/validate_specs.py` passed for 27 specification files.
 - `git diff --check`: passed.
-- Commit, push, PR, merge and Jira closure: not performed or claimed.
+- Human approval, merge and Jira closure: pending.
+- No final consolidated person record exists in PR #41; HRP-50 remains outside
+  this PR and unresolved.
 
 ## ADR impact
 
