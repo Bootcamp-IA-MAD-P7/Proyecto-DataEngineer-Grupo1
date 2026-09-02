@@ -3,23 +3,20 @@
 import json
 from collections.abc import Iterable, Mapping
 from dataclasses import dataclass
-from typing import Final, Literal, TypeAlias, cast
+from typing import Final, Literal, cast
 
+from .fragment_contract import (
+    ClassifiedFragment,
+    GroupedFragment,
+    JSONPayload,
+    JSONValue,
+    SourceReference,
+)
 from .validator import validate_fragment
 
 PERSONAL: Final = "Personal"
 GroupingStatus = Literal["grouped", "ambiguous"]
 UnresolvedStatus = Literal["uncorrelated", "unsupported"]
-JSONValue: TypeAlias = None | bool | int | float | str | list["JSONValue"] | dict[str, "JSONValue"]
-JSONPayload: TypeAlias = Mapping[str, JSONValue]
-
-
-@dataclass(frozen=True)
-class ClassifiedFragment:
-    """A fragment together with its upstream classification context."""
-
-    payload: JSONValue
-    classification: str
 
 
 @dataclass(frozen=True)
@@ -28,7 +25,7 @@ class PersonalGroup:
 
     key: str
     status: GroupingStatus
-    fragments: tuple[JSONPayload, ...]
+    fragments: tuple[GroupedFragment, ...]
 
 
 @dataclass(frozen=True)
@@ -38,6 +35,7 @@ class UnresolvedFragment:
     status: UnresolvedStatus
     payload: JSONValue
     classification: str
+    source_reference: SourceReference
     reason: str
 
 
@@ -54,7 +52,7 @@ def group_personal_fragments(
 ) -> PersonalGroupingResult:
     """Group validated Personal fragments by exact ``passport``."""
 
-    buckets: dict[str, list[JSONPayload]] = {}
+    buckets: dict[str, list[GroupedFragment]] = {}
     unresolved: list[UnresolvedFragment] = []
 
     for fragment in fragments:
@@ -65,6 +63,7 @@ def group_personal_fragments(
                     status="unsupported",
                     payload=fragment.payload,
                     classification=fragment.classification,
+                    source_reference=fragment.source_reference,
                     reason=validation.errors[0],
                 )
             )
@@ -76,6 +75,7 @@ def group_personal_fragments(
                     status="unsupported",
                     payload=fragment.payload,
                     classification=fragment.classification,
+                    source_reference=fragment.source_reference,
                     reason="not_personal_fragment",
                 )
             )
@@ -88,6 +88,7 @@ def group_personal_fragments(
                     status="unsupported",
                     payload=fragment.payload,
                     classification=fragment.classification,
+                    source_reference=fragment.source_reference,
                     reason="payload_not_mapping",
                 )
             )
@@ -101,14 +102,19 @@ def group_personal_fragments(
                     status="uncorrelated",
                     payload=fragment.payload,
                     classification=fragment.classification,
+                    source_reference=fragment.source_reference,
                     reason="passport_unusable",
                 )
             )
             continue
 
+        grouped_fragment = GroupedFragment(
+            payload=json_payload,
+            source_reference=fragment.source_reference,
+        )
         bucket = buckets.setdefault(passport, [])
-        if not any(existing == json_payload for existing in bucket):
-            bucket.append(json_payload)
+        if grouped_fragment not in bucket:
+            bucket.append(grouped_fragment)
 
     groups = tuple(
         PersonalGroup(
@@ -127,6 +133,7 @@ def group_personal_fragments(
                     item.status,
                     item.reason,
                     item.classification,
+                    item.source_reference,
                     _canonical_value(item.payload),
                 ),
             )
@@ -137,4 +144,6 @@ def group_personal_fragments(
 def _canonical_value(value: object) -> str:
     """Return a stable ordering representation for JSON-compatible values."""
 
+    if isinstance(value, GroupedFragment):
+        value = (value.payload, value.source_reference)
     return json.dumps(value, ensure_ascii=True, sort_keys=True, separators=(",", ":"))

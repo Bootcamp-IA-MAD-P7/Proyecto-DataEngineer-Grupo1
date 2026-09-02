@@ -14,15 +14,20 @@ def net(address: JSONValue, ipv4: JSONValue = "synthetic") -> dict[str, JSONValu
     return {"address": address, "IPv4": ipv4}
 
 
-def fragment(payload: JSONValue, classification: str = "Net") -> ClassifiedFragment:
-    return ClassifiedFragment(payload=payload, classification=classification)
+def fragment(
+    payload: JSONValue, classification: str = "Net", source: str = "source-1"
+) -> ClassifiedFragment:
+    return ClassifiedFragment(
+        payload=payload, classification=classification, source_reference=source
+    )
 
 
 def test_valid_net_payload_is_retained_ac01() -> None:
     payload = net("Net address 001")
     result = group_net_fragments([fragment(payload)])
     assert result.groups[0].key == "Net address 001"
-    assert result.groups[0].fragments == (payload,)
+    assert result.groups[0].fragments[0].payload == payload
+    assert result.groups[0].fragments[0].source_reference == "source-1"
 
 
 def test_same_and_different_addresses_define_domain_local_groups_ac02() -> None:
@@ -56,8 +61,7 @@ def test_distinct_same_address_evidence_is_ambiguous_ac05() -> None:
     result = group_net_fragments([fragment(first), fragment(second)])
     assert result.groups[0].status == "ambiguous"
     assert len(result.groups[0].fragments) == 2
-    assert first in result.groups[0].fragments
-    assert second in result.groups[0].fragments
+    assert [item.payload for item in result.groups[0].fragments] == [first, second]
 
 
 def test_unsupported_net_input_is_explicit_ac06() -> None:

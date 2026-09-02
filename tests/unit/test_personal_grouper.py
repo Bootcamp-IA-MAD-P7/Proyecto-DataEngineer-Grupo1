@@ -21,7 +21,9 @@ def personal_fragment(
         "passport": passport,
         "email": f"{name.lower()}@example.test",
     }
-    return ClassifiedFragment(payload=payload, classification=classification)
+    return ClassifiedFragment(
+        payload=payload, classification=classification, source_reference="source-1"
+    )
 
 
 def test_same_exact_passports_share_one_personal_bucket_ac02() -> None:
@@ -98,7 +100,9 @@ def test_non_personal_and_malformed_input_are_unsupported_ac08() -> None:
     result = group_personal_fragments(
         [
             personal_fragment(classification="Bank"),
-            ClassifiedFragment(payload=["not an object"], classification="Personal"),
+            ClassifiedFragment(
+                payload=["not an object"], classification="Personal", source_reference="source-1"
+            ),
         ]
     )
 

@@ -14,15 +14,20 @@ def bank(passport: JSONValue, iban: JSONValue = "synthetic") -> dict[str, JSONVa
     return {"passport": passport, "IBAN": iban, "salary": "synthetic-salary"}
 
 
-def fragment(payload: JSONValue, classification: str = "Bank") -> ClassifiedFragment:
-    return ClassifiedFragment(payload=payload, classification=classification)
+def fragment(
+    payload: JSONValue, classification: str = "Bank", source: str = "source-1"
+) -> ClassifiedFragment:
+    return ClassifiedFragment(
+        payload=payload, classification=classification, source_reference=source
+    )
 
 
 def test_valid_bank_payload_is_retained_ac01() -> None:
     payload = bank("P-001")
     result = group_bank_fragments([fragment(payload)])
     assert result.groups[0].key == "P-001"
-    assert result.groups[0].fragments == (payload,)
+    assert result.groups[0].fragments[0].payload == payload
+    assert result.groups[0].fragments[0].source_reference == "source-1"
 
 
 def test_same_and_different_passports_define_domain_local_groups_ac02() -> None:
@@ -56,8 +61,7 @@ def test_distinct_same_passport_evidence_is_ambiguous_ac05() -> None:
     result = group_bank_fragments([fragment(first), fragment(second)])
     assert result.groups[0].status == "ambiguous"
     assert len(result.groups[0].fragments) == 2
-    assert first in result.groups[0].fragments
-    assert second in result.groups[0].fragments
+    assert [item.payload for item in result.groups[0].fragments] == [first, second]
 
 
 def test_unsupported_bank_input_is_explicit_ac06() -> None:

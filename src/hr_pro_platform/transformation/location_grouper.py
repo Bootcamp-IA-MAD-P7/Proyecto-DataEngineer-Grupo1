@@ -3,23 +3,20 @@
 import json
 from collections.abc import Iterable, Mapping
 from dataclasses import dataclass
-from typing import Final, Literal, TypeAlias, cast
+from typing import Final, Literal, cast
 
+from .fragment_contract import (
+    ClassifiedFragment,
+    GroupedFragment,
+    JSONPayload,
+    JSONValue,
+    SourceReference,
+)
 from .validator import validate_fragment
 
 LOCATION: Final = "Location"
 GroupingStatus = Literal["grouped", "ambiguous"]
 UnresolvedStatus = Literal["uncorrelated", "unsupported"]
-JSONValue: TypeAlias = None | bool | int | float | str | list["JSONValue"] | dict[str, "JSONValue"]
-JSONPayload: TypeAlias = Mapping[str, JSONValue]
-
-
-@dataclass(frozen=True)
-class ClassifiedFragment:
-    """A fragment together with its upstream classification context."""
-
-    payload: JSONValue
-    classification: str
 
 
 @dataclass(frozen=True)
@@ -28,7 +25,7 @@ class LocationGroup:
 
     key: str
     status: GroupingStatus
-    fragments: tuple[JSONPayload, ...]
+    fragments: tuple[GroupedFragment, ...]
 
 
 @dataclass(frozen=True)
@@ -37,6 +34,7 @@ class UnresolvedFragment:
 
     status: UnresolvedStatus
     payload: JSONValue
+    source_reference: SourceReference
     reason: str
 
 
@@ -57,7 +55,7 @@ def group_location_fragments(
     input. Invalid or non-Location fragments are retained as unresolved output.
     """
 
-    buckets: dict[str, list[JSONPayload]] = {}
+    buckets: dict[str, list[GroupedFragment]] = {}
     unresolved: list[UnresolvedFragment] = []
 
     for fragment in fragments:
@@ -67,6 +65,7 @@ def group_location_fragments(
                 UnresolvedFragment(
                     status="unsupported",
                     payload=fragment.payload,
+                    source_reference=fragment.source_reference,
                     reason=validation.errors[0],
                 )
             )
@@ -77,6 +76,7 @@ def group_location_fragments(
                 UnresolvedFragment(
                     status="unsupported",
                     payload=fragment.payload,
+                    source_reference=fragment.source_reference,
                     reason="not_location_fragment",
                 )
             )
@@ -88,6 +88,7 @@ def group_location_fragments(
                 UnresolvedFragment(
                     status="unsupported",
                     payload=fragment.payload,
+                    source_reference=fragment.source_reference,
                     reason="payload_not_mapping",
                 )
             )
@@ -100,14 +101,19 @@ def group_location_fragments(
                 UnresolvedFragment(
                     status="uncorrelated",
                     payload=fragment.payload,
+                    source_reference=fragment.source_reference,
                     reason="fullname_unusable",
                 )
             )
             continue
 
+        grouped_fragment = GroupedFragment(
+            payload=json_payload,
+            source_reference=fragment.source_reference,
+        )
         bucket = buckets.setdefault(fullname, [])
-        if not any(existing == json_payload for existing in bucket):
-            bucket.append(json_payload)
+        if grouped_fragment not in bucket:
+            bucket.append(grouped_fragment)
 
     groups = tuple(
         LocationGroup(
@@ -119,7 +125,13 @@ def group_location_fragments(
     )
     ordered_unresolved = tuple(
         sorted(
-            unresolved, key=lambda item: (item.status, item.reason, _canonical_value(item.payload))
+            unresolved,
+            key=lambda item: (
+                item.status,
+                item.reason,
+                item.source_reference,
+                _canonical_value(item.payload),
+            ),
         )
     )
     return LocationGroupingResult(groups=groups, unresolved=ordered_unresolved)
@@ -129,7 +141,7 @@ def _canonical_value(value: object) -> str:
     """Return a stable ordering representation for JSON-compatible values."""
 
     return json.dumps(
-        value,
+        (value.payload, value.source_reference) if isinstance(value, GroupedFragment) else value,
         ensure_ascii=True,
         sort_keys=True,
         separators=(",", ":"),

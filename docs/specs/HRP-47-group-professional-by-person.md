@@ -188,6 +188,15 @@ evidence assigned to that domain-local bucket. Unresolved entries preserve the
 payload and classification context and identify whether the fragment is
 uncorrelated or unsupported. No persistence target is part of the result.
 
+Each grouped fragment is represented as a `GroupedFragment` containing the payload
+and one abstract, non-sensitive `source_reference` to the persisted RAW/source
+event. The reference must be deterministic and stable enough for downstream
+traceability, without full raw messages, PII-derived hashes, secrets or generator
+information. The concrete reference form is delegated to the ingestion/raw-
+persistence contract. This amendment preserves Professional's exact `fullname`
+grouping, duplicate semantics and unresolved behavior; it does not add a
+cross-domain correlation rule.
+
 ## Result states
 
 The result uses these states:

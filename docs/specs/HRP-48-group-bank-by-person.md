@@ -68,9 +68,16 @@ metadata.
 
 Output is `BankGroupingResult(groups, unresolved)`. Each `BankGroup` contains
 the exact string key, a status, and distinct payload evidence as
-`tuple[JSONPayload, ...]`. Each unresolved result preserves payload and
+`tuple[GroupedFragment, ...]`. Each `GroupedFragment` contains the payload and
+one abstract, deterministic, non-sensitive `source_reference` to the persisted
+RAW/source event. Each unresolved result preserves payload and
 classification context and gives a status and technical reason. No persistence
 target or person identifier is present.
+
+The concrete source-reference form is delegated to the ingestion/raw-persistence
+contract; this amendment does not select Kafka coordinates or Mongo `_id`. It only
+preserves provenance required downstream by HRP-50 and does not change Bank's exact
+`passport` grouping, duplicate semantics or unresolved behavior.
 
 ## Result states and edge behavior
 
