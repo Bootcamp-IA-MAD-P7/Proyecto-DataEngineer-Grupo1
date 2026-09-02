@@ -77,8 +77,8 @@ contract preserves group boundaries.
 
 ## Completion evidence
 
-- Branch / PR: `feature/HRP-96-consolidation-contract-hardening` / pending
-- Commit: pending
+- Branch / PR: `feature/HRP-96-consolidation-contract-hardening` / PR #44
+- Implementation commit: `cc3dec2`
 - Commands and results:
   - affected-file `ruff check`: passed;
   - affected-file `ruff format --check`: passed;
