@@ -157,8 +157,15 @@ formal accessibility, carbon, energy or deployment claim is made.
 
 ## Evidence and status
 
-Implementation and validation evidence are pending execution. Human review,
-approval, commit, PR, merge and Jira closure are not claimed.
+The HRP-48 implementation and focused tests exist in this branch. The
+implementation commit is `430308c`, and PR #39 exists with green GitHub
+checks. Local focused HRP-48 tests passed, as did the relevant HRP-47 + HRP-48
+regression tests. The local repository-wide pytest run reported `104 passed, 3
+skipped, 3 errors`; the three errors were environment/temp-directory permission
+errors, not HRP-48 assertion failures. This local limitation is preserved
+separately from the successful GitHub PR checks, which are the merge/PR
+validation evidence. Human approval and merge remain pending. Jira closure is
+not claimed.
 
 ## ADR impact
 

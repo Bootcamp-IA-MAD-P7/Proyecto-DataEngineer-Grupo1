@@ -11,7 +11,7 @@ from hr_pro_platform.transformation.classifier import UNKNOWN
 
 
 def bank(passport: JSONValue, iban: JSONValue = "synthetic") -> dict[str, JSONValue]:
-    return {"passport": passport, "IBAN": iban, "salary": 1000}
+    return {"passport": passport, "IBAN": iban, "salary": "synthetic-salary"}
 
 
 def fragment(payload: JSONValue, classification: str = "Bank") -> ClassifiedFragment:
@@ -39,7 +39,7 @@ def test_duplicate_bank_payloads_are_deterministic_ac03() -> None:
 
 
 def test_missing_bank_passport_is_unsupported_ac04() -> None:
-    result = group_bank_fragments([fragment({"IBAN": "synthetic", "salary": 1000})])
+    result = group_bank_fragments([fragment({"IBAN": "synthetic", "salary": "synthetic-salary"})])
     assert result.unresolved[0].status == "unsupported"
     assert result.unresolved[0].reason == "classification_mismatch"
 
