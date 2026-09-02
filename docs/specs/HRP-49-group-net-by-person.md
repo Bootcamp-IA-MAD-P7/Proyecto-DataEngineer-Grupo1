@@ -101,9 +101,22 @@ implemented on `feature/HRP-49-group-net-by-person` from the merged HRP-48 base.
 ## Definition of Done
 
 The specification, smallest Net sibling implementation and focused synthetic
-tests exist; relevant specification, lint, format, type and test checks pass; and
-the result is ready for human review. Commit, push, PR, merge and Jira closure
-remain human actions.
+tests exist. The implementation commit is recorded in Git, the branch is pushed,
+and Pull Request [#40](https://github.com/Bootcamp-IA-MAD-P7/Proyecto-DataEngineerGrupo1/pull/40)
+has been created. Human approval, merge and Jira closure remain pending.
+
+## Evidence and status
+
+- Implementation commit: `f759f0e8b4f23cc8d02a644049c6b377c2b5a95`
+  (`HRP-49 feat: group Net fragments by person`).
+- Branch: `feature/HRP-49-group-net-by-person`, present on `origin`.
+- Pull Request: [#40](https://github.com/Bootcamp-IA-MAD-P7/Proyecto-DataEngineerGrupo1/pull/40).
+- GitHub CI/check status: unverified in the current environment; no green or
+  failing CI result is claimed.
+- Local specification validation for this review fix: passed (`26` specifications).
+- Human approval: pending.
+- Merge: pending.
+- Jira closure: pending.
 
 ## Risks and limitations
 
