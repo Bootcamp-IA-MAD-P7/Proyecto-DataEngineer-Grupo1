@@ -1,7 +1,7 @@
 # HRP-47 - Group Professional Data by person
 
 **Status:** Implementation-ready; pending HRP-47 human review; global identity remains unresolved  
-**Owner:** Pending Jira assignment  
+**Owner:** Gabriela Granja
 **Jira:** HRP-47  
 **Branch:** `feature/HRP-47-group-professional-by-person`  
 **Base:** synchronized `develop` at `c87daf7`  
@@ -400,7 +400,12 @@ business uniqueness or an irreversible persistence rule.
 - Specification: finalized; implementation added and pending human review
 - Production implementation: `src/hr_pro_platform/transformation/professional_grouper.py`
 - Focused tests: `tests/unit/test_professional_grouper.py` (8 tests)
-- PR / commit / Jira closure: not created or authorized
+- PR: #38 — current evidence shows green governance checks, labels and quality checks
+- Commits:
+  - `3ea1f51` — docs(HRP-47): define professional grouping specification
+  - `f56b262` — feat(HRP-47): group Professional fragments by exact fullname
+  - `ac31a8b` — test(HRP-47): cover deterministic professional grouping
+- Jira closure: PENDING until merge and the final evidence comment
 - Validation: `python scripts/validate_specs.py` passed for 24 specification
   files; focused HRP-47 tests passed (8); full pytest passed (98 passed, 3
   skipped: PostgreSQL environment unavailable); targeted Ruff and format checks
@@ -408,4 +413,6 @@ business uniqueness or an irreversible persistence rule.
   Repository-wide Ruff traversal was blocked by inaccessible local paths, so
   the valid source check was run on the changed source and test files. Isolated
   pre-commit was attempted but could not fetch hook environments because the
-  network was unavailable. No CI evidence is claimed before a PR exists.
+  network was unavailable. Current PR #38 evidence covers governance checks,
+  labels and quality checks; merge, human approval, Jira closure and release
+  completion are not claimed.
