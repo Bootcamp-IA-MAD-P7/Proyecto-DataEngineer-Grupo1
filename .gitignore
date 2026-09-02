@@ -22,6 +22,9 @@ venv/
 .DS_Store
 Thumbs.db
 
+# Local Claude Code settings (per-machine, personal)
+.claude/settings.local*.json
+
 # Runtime data
 data/
 logs/
