@@ -1,6 +1,6 @@
 # HRP-61 - Group Personal Data by person
 
-**Status:** Draft; pending human review
+**Status:** Implementation complete; pending human review
 **Owner:** Gabriela Granja
 **Jira:** HRP-61
 **Branch:** `feature/HRP-61-group-personal-by-person`
@@ -219,21 +219,18 @@ unique.
 
 The Personal structural contract, upstream classification and validation
 boundaries, exact local grouping semantics, acceptance criteria and focused
-synthetic test strategy are defined. The task does not require generator access
-or resolution of global identity. Human review is required before production
-implementation.
+synthetic test strategy are defined. The implementation does not require
+generator access or resolution of global identity. Human review remains required
+before merge and closure.
 
 ## Definition of Done
 
-- This specification is reviewed and accepted by a human.
-- This specification-only change does not claim implementation or test evidence;
-  those belong to a later HRP-61 implementation step.
-- The later implementation step adds the smallest Personal-domain implementation
-  and focused synthetic tests matching this contract.
-- Relevant specification, lint, format, type and test checks pass during the
-  later implementation step.
-- No claim is made here for implementation, tests, CI, commit, push, PR merge or
-  Jira closure.
+- The specification, smallest Personal-domain implementation and focused
+  synthetic tests are available for human review and match this contract.
+- Focused behavior, type, lint and specification validation evidence is recorded
+  in this document; repository-wide limitations are recorded separately here.
+- Human review, commit, push, PR creation, PR merge and Jira closure remain
+  pending and are not claimed.
 
 ## Risks and limitations
 
@@ -273,9 +270,22 @@ Jira HRP-61
 
 ## Evidence and status
 
-- Specification: drafted; pending human review.
-- Production implementation: not included in HRP-61 specification work.
-- Focused tests: not included in HRP-61 specification work.
+- Specification: drafted and updated with implementation evidence; pending human
+  review.
+- Production implementation: `src/hr_pro_platform/transformation/personal_grouper.py`.
+- Focused tests: `tests/unit/test_personal_grouper.py`; 11 tests passed with
+  repository coverage options disabled. The standard focused command also
+  passed all 11 assertions but exited on the repository-wide 75% coverage gate.
+- Full pytest: 124 passed, 3 skipped and 3 environment-related errors caused by
+  Windows temporary-directory permission failures in existing tests.
+- Ruff check: repository-wide command passed with permission warnings for
+  inaccessible pre-existing paths; changed files passed targeted Ruff checks.
+- Ruff format: changed files passed targeted format checking. The repository-wide
+  command is blocked by pre-existing unformatted files under
+  `.pre-commit-home-hrp44-final` and `.tmp-pre-commit-hrp46`.
+- Mypy: `mypy src` passed for 22 source files.
+- Specification validation: `scripts/validate_specs.py` passed for 27 specification files.
+- `git diff --check`: passed.
 - Commit, push, PR, merge and Jira closure: not performed or claimed.
 
 ## ADR impact
