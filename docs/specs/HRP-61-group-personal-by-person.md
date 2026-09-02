@@ -123,7 +123,9 @@ unresolved entries. Each group contains:
 
 - `key`: the exact usable `passport` string;
 - `status`: `grouped` or `ambiguous`; and
-- `fragments`: distinct Personal payload evidence preserved in the group.
+- `fragments`: distinct `GroupedFragment` values preserved in the group. A
+  `GroupedFragment` contains the payload and one abstract, non-sensitive
+  `source_reference` identifying the persisted RAW/source event that contributed it.
 
 Unresolved entries preserve the payload, classification context and a technical
 reason. No persistence target, global identifier or PostgreSQL key is present.
@@ -147,6 +149,11 @@ Exact repeated JSON-compatible payload evidence is represented once within a
 bucket. This is transformation-level evidence deduplication only. It is not
 Kafka event idempotency, business duplicate resolution, global identity or
 PostgreSQL upsert behavior.
+
+The concrete source-reference form is delegated to the ingestion/raw-persistence
+contract; this amendment does not select Kafka coordinates or Mongo `_id`. It only
+preserves provenance required downstream by HRP-50 and does not change Personal's
+exact `passport` grouping, duplicate semantics or unresolved behavior.
 
 Groups, fragments and unresolved outcomes are ordered deterministically using a
 canonical JSON representation. Equivalent inputs in different arrival orders

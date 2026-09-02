@@ -56,7 +56,14 @@ mutated.
 Input is an iterable of JSON-compatible `ClassifiedFragment` values. A valid Net
 fragment must pass the existing validator and have classification `Net`. The
 output is `NetGroupingResult(groups, unresolved)`, with `NetGroup.fragments` typed
-as `tuple[JSONPayload, ...]`. No persistence target or person identifier is present.
+as `tuple[GroupedFragment, ...]`. A `GroupedFragment` contains the payload and one
+abstract, deterministic, non-sensitive `source_reference` to the persisted
+RAW/source event. No persistence target or person identifier is present.
+
+The concrete source-reference form is delegated to the ingestion/raw-persistence
+contract; this amendment does not select Kafka coordinates or Mongo `_id`. It only
+preserves provenance required downstream by HRP-50 and does not change Net's exact
+`address` grouping, duplicate semantics or unresolved behavior.
 
 ## Invariants and exclusions
 

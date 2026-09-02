@@ -76,7 +76,9 @@ outside this contract.
 
 - `key`: the exact `fullname` string;
 - `status`: `grouped` or `ambiguous`; and
-- `fragments`: distinct payloads preserved in the group.
+- `fragments`: distinct `GroupedFragment` values preserved in the group. A
+  `GroupedFragment` contains the payload and one non-sensitive `source_reference`
+  identifying the persisted RAW/source event that contributed it.
 
 Unresolved entries have one of these states:
 
@@ -89,6 +91,16 @@ Identical repeated evidence is represented once. Distinct conflicting payloads
 remain present and are not silently resolved or discarded. Results are
 independent of input order. No global person identifier is created and no
 persistence target is owned by this story.
+
+### Downstream provenance amendment
+
+The grouped fragment representation preserves `payload` together with an abstract
+`source_reference` for HRP-50. The reference must deterministically identify one
+persisted RAW/source event, remain non-sensitive and avoid duplicated business PII,
+full raw messages, PII-derived hashes, secrets or generator information. Its
+concrete storage form is delegated to the ingestion/raw-persistence contract; this
+amendment does not select Kafka coordinates or Mongo `_id` and does not change
+Location's exact `fullname` grouping semantics or unresolved behavior.
 
 ## Grouping semantics
 

@@ -72,7 +72,7 @@ HRP-51 responsibility.
 | HRP-48 | Bank grouping by exact `passport` | Existing grouped output; payload-only provenance gap |
 | HRP-49 | Net grouping by exact `address` | Existing grouped output; payload-only provenance gap |
 | HRP-61 | Personal grouping by exact `passport` | Existing grouped output; payload-only provenance gap |
-| Source provenance | A non-sensitive reference for every contributing source fragment | **OPEN DECISION / implementation dependency** |
+| Source provenance | An abstract non-sensitive reference for every contributing source fragment | Defined at transformation level; concrete raw-persistence form remains delegated |
 
 The existing groupers must not be refactored as part of this specification task. If
 their output types cannot supply the required provenance, implementation must first
@@ -92,6 +92,8 @@ The current modules independently define similar `ClassifiedFragment` types. The
 group records do not expose classification context or source metadata, and their
 unresolved result shapes are not identical. HRP-50 must consume an explicitly
 approved input contract rather than silently assuming these differences are resolved.
+The affected domain specifications now require provenance-bearing grouped fragments
+for downstream HRP-50 use; their domain-local grouping semantics remain unchanged.
 
 ## Correlation rules
 
@@ -137,25 +139,40 @@ architecture and repository contracts confirm that choice. Kafka
 does not force it because the current HRP-50 input contracts do not establish it as
 the required final reference field.
 
-**OPEN DECISION:** choose and approve the concrete `SourceReference` fields and
-update the upstream grouped-output contract if necessary. Until then, the current
-payload-only group outputs are insufficient for HRP-50 acceptance criterion AC-12.
+The concrete storage form is delegated to the ingestion/raw-persistence contract.
+HRP-50 therefore does not choose Kafka coordinates, Mongo `_id`, UUIDs or hashes.
+The amended grouped-output contracts require this abstract capability before
+implementation; the current committed implementations remain payload-only until
+their implementation work is deliberately updated.
 
 ## Consolidated output contract
 
-The transformation-level result is conceptually:
+The transformation-level result is:
 
 ```text
+ConsolidationResult
+  records: tuple[ConsolidatedPersonRecord, ...]
+  unresolved: tuple[UnresolvedContribution, ...]
+
 ConsolidatedPersonRecord
   domains:
-    Personal: DomainContribution | null
-    Location: DomainContribution | null
-    Professional: DomainContribution | null
-    Bank: DomainContribution | null
-    Net: DomainContribution | null
-  status: complete | incomplete | ambiguous | unresolved
-  correlation: CorrelationTrace
+    personal: DomainContribution | null
+    location: DomainContribution | null
+    professional: DomainContribution | null
+    bank: DomainContribution | null
+    net: DomainContribution | null
+  status: complete | incomplete | ambiguous
+  correlation_rules: tuple[str, ...]
   provenance: tuple[SourceReference, ...]
+
+DomainContribution
+  fragments: tuple[GroupedFragment, ...]
+
+UnresolvedContribution
+  payload: JSON-compatible value
+  context: upstream classification/context when available
+  source_reference: SourceReference when available
+  reason: technical reason
 ```
 
 `DomainContribution` contains the grouped fragment evidence for one domain and its
@@ -169,14 +186,16 @@ domain only when the input contract establishes that this is non-ambiguous. If
 multiple same-domain groups or fragments make the component operationally ambiguous,
 all evidence is retained and the record status is `ambiguous`.
 
-Unresolved inputs are not silently dropped. They remain in an explicit unresolved
-result/output path. Whether unresolved entries are returned alongside consolidated
-records or through a separate result collection is an **OPEN DECISION**, but their
-payload, context and source reference must remain recoverable.
+Unresolved inputs are not silently dropped. They are returned in
+`ConsolidationResult.unresolved`, outside `records`, through an explicit
+`UnresolvedContribution` representation preserving the available payload, context
+and source reference. This follows the existing `groups` plus `unresolved` pattern
+used by the domain groupers and does not perform HRP-51 reconciliation.
 
-`CorrelationTrace` contains an ordered tuple of the stable rule identifiers actually
+`correlation_rules` contains an ordered tuple of the stable rule identifiers actually
 used to connect the component. It must not store passport, name, fullname or address
-values merely for convenience.
+values merely for convenience. `source_references` is the canonical ordered union of
+the references carried by all `GroupedFragment` values in the record.
 
 No SQL table, database key, upsert operation or global business identifier is defined
 here.
@@ -192,13 +211,16 @@ HRP-50 identifies and represents the following states:
 - `ambiguous`: the connected component contains conflicting or multiple same-domain
   grouped evidence such that HRP-50 cannot represent one unambiguous contribution for
   that domain. All evidence remains present; no precedence is applied.
-- `unresolved`: an input cannot participate in a valid operational component, or the
-  required provenance/input contract is unavailable. It is surfaced, not discarded.
+Unresolved material is not a `ConsolidatedPersonRecord.status`; it is an entry in
+`ConsolidationResult.unresolved` when an input cannot participate in an approved
+operational component because required correlation data or structure is unavailable.
+A missing implementation capability such as provenance is a contract blocker, not a
+reason to emit a misleading consolidated record.
 
-Deterministic status precedence is:
+Deterministic status precedence for records is:
 
 ```text
-unresolved > ambiguous > incomplete > complete
+ambiguous > incomplete > complete
 ```
 
 This precedence only describes transformation output. HRP-51 will define any future
@@ -344,13 +366,13 @@ Jira HRP-50
 
 ## Open decisions before implementation
 
-1. Approve the concrete non-sensitive `SourceReference` shape.
-2. Decide whether unresolved entries are returned in the same result type or a
-   separate explicit result path.
-3. Confirm the exact serialized names and representation of `DomainContribution` and
-   `CorrelationTrace`.
-4. Confirm whether the current five grouping outputs will be minimally extended to
-   carry provenance or whether HRP-50 receives a separate approved envelope.
+No HRP-50-owned contract decisions remain open. The concrete raw-persistence
+representation behind the abstract `SourceReference` is delegated to the existing
+ingestion/raw-persistence contract and is not selected by HRP-50. The remaining
+implementation dependency is to update the five existing grouper implementations to
+satisfy their amended provenance-bearing output contracts. Their domain
+specifications now define the required impact; their grouping semantics remain
+unchanged.
 
 These decisions must not be resolved by inventing a global identity key, copying PII
 into traceability metadata or performing a broad refactor.
