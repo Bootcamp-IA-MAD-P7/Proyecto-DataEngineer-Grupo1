@@ -117,11 +117,310 @@ def test_insert_mapping_round_trips_through_a_real_database(
         try:
             if outcome is not None and outcome.employee_id is not None:
                 # Scoped to exactly the employee row this test created, not a
-                # fixed predicate that could match unrelated data.
+                # fixed reference/predicate that could match a row this
+                # execution did not create. processing_audit is deleted
+                # first, by employee_id, before the employees row itself --
+                # deleting employees first would null out employee_id
+                # (ON DELETE SET NULL) and make this scoping impossible.
                 with live_connection.cursor() as cleanup_cursor:
+                    cleanup_cursor.execute(
+                        "DELETE FROM processing_audit WHERE employee_id = %s",
+                        (outcome.employee_id,),
+                    )
                     cleanup_cursor.execute(
                         "DELETE FROM employees WHERE id = %s", (outcome.employee_id,)
                     )
                 live_connection.commit()
         finally:
             repository.close()
+
+
+def test_reprocessing_the_same_source_reference_inserts_once_and_skips_the_second_time(
+    live_connection: psycopg.Connection[tuple[object, ...]],
+) -> None:
+    from hr_pro_platform.storage.person_mapper import CandidateRow, PersonRecordMapping
+    from hr_pro_platform.storage.person_repository import InsertOutcome, PersonRepository
+    from hr_pro_platform.storage.postgres import PostgresSchemaClient
+
+    schema_client = PostgresSchemaClient()
+    schema_client.connect()
+    try:
+        schema_client.create_schema()
+    finally:
+        schema_client.close()
+
+    mapping = PersonRecordMapping(
+        status="complete",
+        correlation_rules=(),
+        provenance=("integration-test-dedup-source",),
+        employees=(
+            CandidateRow(
+                table="employees",
+                group_key="INTEGRATION-TEST-P-DEDUP",
+                fields={
+                    "first_name": "DedupTest",
+                    "last_name": "Fixture",
+                    "passport": "INTEGRATION-TEST-P-DEDUP",
+                },
+                source_reference="integration-test-dedup-source",
+            ),
+        ),
+        locations=(),
+        professional_profiles=(),
+        bank_accounts=(),
+        network_data=(),
+    )
+
+    repository = PersonRepository()
+    repository.connect()
+    first_outcome: InsertOutcome | None = None
+    second_outcome: InsertOutcome | None = None
+    try:
+        first_outcome = repository.insert_mapping(mapping)
+        second_outcome = repository.insert_mapping(mapping)
+
+        assert first_outcome.inserted is True
+        assert second_outcome.inserted is False
+        assert second_outcome.skipped_reason == "already_processed"
+        assert second_outcome.employee_id is None
+
+        with live_connection.cursor() as cursor:
+            cursor.execute(
+                "SELECT count(*) FROM employees WHERE passport = %s",
+                ("INTEGRATION-TEST-P-DEDUP",),
+            )
+            employee_count = cursor.fetchone()
+            cursor.execute(
+                "SELECT count(*) FROM processing_audit WHERE raw_event_ref = %s",
+                ("integration-test-dedup-source",),
+            )
+            audit_count = cursor.fetchone()
+
+        assert employee_count == (1,)  # not duplicated by the second attempt
+        assert audit_count == (1,)  # not duplicated either
+    finally:
+        try:
+            if first_outcome is not None and first_outcome.employee_id is not None:
+                # Scoped to the employee_id this run created (audit deleted
+                # first, by employee_id, before the employees row), not to
+                # the fixed source_reference string -- a fixed-string delete
+                # would remove an audit row this run did not create if one
+                # already existed under that exact reference.
+                with live_connection.cursor() as cleanup_cursor:
+                    cleanup_cursor.execute(
+                        "DELETE FROM processing_audit WHERE employee_id = %s",
+                        (first_outcome.employee_id,),
+                    )
+                    cleanup_cursor.execute(
+                        "DELETE FROM employees WHERE id = %s", (first_outcome.employee_id,)
+                    )
+                live_connection.commit()
+        finally:
+            repository.close()
+
+
+def test_two_distinct_source_references_both_insert_and_only_the_replay_skips(
+    live_connection: psycopg.Connection[tuple[object, ...]],
+) -> None:
+    """Real-database proof that the idempotency check filters by the exact
+    requested source_reference, not by "any row exists". A mock cannot prove
+    this -- it only simulates application logic, not actual SQL filtering
+    (see the equivalent, mock-only test in tests/unit/test_person_repository.py
+    for why this scenario needs a live database to be meaningful).
+    """
+    from hr_pro_platform.storage.person_mapper import CandidateRow, PersonRecordMapping
+    from hr_pro_platform.storage.person_repository import InsertOutcome, PersonRepository
+    from hr_pro_platform.storage.postgres import PostgresSchemaClient
+
+    schema_client = PostgresSchemaClient()
+    schema_client.connect()
+    try:
+        schema_client.create_schema()
+    finally:
+        schema_client.close()
+
+    shared_passport = "INTEGRATION-TEST-P-REF-SHARED"
+
+    def build_mapping(source_reference: str) -> PersonRecordMapping:
+        # Deliberately identical business fields across A and B (same
+        # passport, same name) -- only source_reference differs, so a
+        # lookup that ignores the requested reference (e.g.
+        # "SELECT 1 FROM processing_audit LIMIT 1") would incorrectly
+        # report B as already processed once A is inserted. Nothing in the
+        # employees schema enforces passport uniqueness, so two rows with
+        # the same passport are a valid, expected outcome here.
+        return PersonRecordMapping(
+            status="complete",
+            correlation_rules=(),
+            provenance=(source_reference,),
+            employees=(
+                CandidateRow(
+                    table="employees",
+                    group_key=shared_passport,
+                    fields={
+                        "first_name": "TwoRefTest",
+                        "last_name": "Fixture",
+                        "passport": shared_passport,
+                    },
+                    source_reference=source_reference,
+                ),
+            ),
+            locations=(),
+            professional_profiles=(),
+            bank_accounts=(),
+            network_data=(),
+        )
+
+    mapping_a = build_mapping("integration-test-source-A")
+    mapping_b = build_mapping("integration-test-source-B")
+
+    repository = PersonRepository()
+    repository.connect()
+    outcome_a: InsertOutcome | None = None
+    outcome_b: InsertOutcome | None = None
+    try:
+        outcome_a = repository.insert_mapping(mapping_a)
+        outcome_b = repository.insert_mapping(mapping_b)
+        replay_a = repository.insert_mapping(mapping_a)
+        replay_b = repository.insert_mapping(mapping_b)
+
+        assert outcome_a.inserted is True
+        assert outcome_b.inserted is True
+        assert replay_a.inserted is False
+        assert replay_a.skipped_reason == "already_processed"
+        assert replay_b.inserted is False
+        assert replay_b.skipped_reason == "already_processed"
+
+        created_employee_ids = [
+            outcome.employee_id
+            for outcome in (outcome_a, outcome_b)
+            if outcome is not None and outcome.employee_id is not None
+        ]
+
+        with live_connection.cursor() as cursor:
+            cursor.execute(
+                "SELECT count(*) FROM employees WHERE id = ANY(%s)",
+                (created_employee_ids,),
+            )
+            employee_count = cursor.fetchone()
+
+        assert employee_count == (2,)  # one per reference, no cross-reference skip
+    finally:
+        try:
+            # Scoped to exactly the employee_id values this run created, not
+            # to the fixed source_reference strings -- deleting by a fixed
+            # reference could remove an audit row this run did not create.
+            # Delete processing_audit (by employee_id) before employees.
+            with live_connection.cursor() as cleanup_cursor:
+                created_employee_ids = [
+                    outcome.employee_id
+                    for outcome in (outcome_a, outcome_b)
+                    if outcome is not None and outcome.employee_id is not None
+                ]
+                if created_employee_ids:
+                    cleanup_cursor.execute(
+                        "DELETE FROM processing_audit WHERE employee_id = ANY(%s)",
+                        (created_employee_ids,),
+                    )
+                    cleanup_cursor.execute(
+                        "DELETE FROM employees WHERE id = ANY(%s)",
+                        (created_employee_ids,),
+                    )
+            live_connection.commit()
+        finally:
+            repository.close()
+
+
+def test_skipping_a_pre_existing_reference_leaves_its_audit_record_untouched(
+    live_connection: psycopg.Connection[tuple[object, ...]],
+) -> None:
+    """Regression test for a cleanup bug: deleting processing_audit rows by
+    a fixed source_reference string (instead of by the employee_id this
+    test run actually created) could remove an audit record that already
+    existed before this test ran. This seeds that pre-existing state
+    directly, confirms insert_mapping() skips it without touching it, and
+    proves the record is still there afterward.
+    """
+    from hr_pro_platform.storage.person_mapper import CandidateRow, PersonRecordMapping
+    from hr_pro_platform.storage.person_repository import PersonRepository
+    from hr_pro_platform.storage.postgres import PostgresSchemaClient
+
+    schema_client = PostgresSchemaClient()
+    schema_client.connect()
+    try:
+        schema_client.create_schema()
+    finally:
+        schema_client.close()
+
+    pre_existing_reference = "integration-test-pre-existing-source"
+    pre_existing_employee_id: int | None = None
+
+    # Seed state this test run did not create, bypassing PersonRepository.
+    with live_connection.cursor() as seed_cursor:
+        seed_cursor.execute(
+            "INSERT INTO employees (first_name, last_name, passport) "
+            "VALUES (%s, %s, %s) RETURNING id",
+            ("PreExisting", "Fixture", "INTEGRATION-TEST-P-PREEXISTING"),
+        )
+        result = seed_cursor.fetchone()
+        assert result is not None
+        pre_existing_employee_id = result[0]
+        seed_cursor.execute(
+            "INSERT INTO processing_audit (employee_id, stage, status, raw_event_ref) "
+            "VALUES (%s, %s, %s, %s)",
+            (pre_existing_employee_id, "insert", "inserted", pre_existing_reference),
+        )
+    live_connection.commit()
+
+    mapping = PersonRecordMapping(
+        status="complete",
+        correlation_rules=(),
+        provenance=(pre_existing_reference,),
+        employees=(
+            CandidateRow(
+                table="employees",
+                group_key="INTEGRATION-TEST-P-PREEXISTING",
+                fields={
+                    "first_name": "PreExisting",
+                    "last_name": "Fixture",
+                    "passport": "INTEGRATION-TEST-P-PREEXISTING",
+                },
+                source_reference=pre_existing_reference,
+            ),
+        ),
+        locations=(),
+        professional_profiles=(),
+        bank_accounts=(),
+        network_data=(),
+    )
+
+    repository = PersonRepository()
+    repository.connect()
+    try:
+        outcome = repository.insert_mapping(mapping)
+
+        assert outcome.inserted is False
+        assert outcome.skipped_reason == "already_processed"
+        assert outcome.employee_id is None
+        # This run created nothing for this reference (outcome.employee_id
+        # is None), so a cleanup correctly scoped to "employee_ids this run
+        # created" has nothing to delete here -- the pre-existing audit
+        # record must remain exactly as seeded, not duplicated or removed.
+        with live_connection.cursor() as cursor:
+            cursor.execute(
+                "SELECT count(*) FROM processing_audit WHERE raw_event_ref = %s",
+                (pre_existing_reference,),
+            )
+            audit_count = cursor.fetchone()
+        assert audit_count == (1,)
+    finally:
+        with live_connection.cursor() as cleanup_cursor:
+            cleanup_cursor.execute(
+                "DELETE FROM processing_audit WHERE employee_id = %s",
+                (pre_existing_employee_id,),
+            )
+            cleanup_cursor.execute(
+                "DELETE FROM employees WHERE id = %s", (pre_existing_employee_id,)
+            )
+        live_connection.commit()
+        repository.close()
