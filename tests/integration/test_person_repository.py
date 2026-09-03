@@ -977,12 +977,12 @@ def test_concurrent_enrichment_of_the_same_reference_does_not_duplicate_a_depend
         # thread finished; it may still be alive, and since Python cannot
         # forcibly terminate a thread, that is reported as a clear failure
         # here rather than silently proceeding as if nothing were wrong.
-        assert all(
-            not thread.is_alive() for thread in threads
-        ), "a worker thread did not terminate within its bounded join timeout"
-        assert (
-            not monitor_thread.is_alive()
-        ), "the monitor thread did not terminate within its bounded join timeout"
+        assert all(not thread.is_alive() for thread in threads), (
+            "a worker thread did not terminate within its bounded join timeout"
+        )
+        assert not monitor_thread.is_alive(), (
+            "the monitor thread did not terminate within its bounded join timeout"
+        )
         assert not errors, f"concurrent enrichment raised: {errors}"
         assert not monitor_errors, f"the contention monitor raised: {monitor_errors}"
         assert contention_observed.is_set(), (
@@ -1166,9 +1166,9 @@ def test_enrichment_covers_all_four_dependent_tables_and_isolates_two_employees(
         )
         assert set(outcome_a2.enriched_tables) == set(all_tables)
 
-        assert (
-            audit_snapshot(employee_id_b) == audit_before_a_enrichment
-        ), "enriching employee A modified employee B's processing_audit marker"
+        assert audit_snapshot(employee_id_b) == audit_before_a_enrichment, (
+            "enriching employee A modified employee B's processing_audit marker"
+        )
 
         outcome_b2 = repository.insert_mapping(
             enriched_mapping(ref_b, passport_b, "IsolationB", shared_marker)
@@ -1178,12 +1178,12 @@ def test_enrichment_covers_all_four_dependent_tables_and_isolates_two_employees(
         for table in all_tables:
             rows_a = rows_for(employee_id_a, table)
             rows_b = rows_for(employee_id_b, table)
-            assert rows_a == [
-                (employee_id_a, shared_marker)
-            ], f"unexpected rows for employee A in {table}: {rows_a}"
-            assert rows_b == [
-                (employee_id_b, shared_marker)
-            ], f"unexpected rows for employee B in {table}: {rows_b}"
+            assert rows_a == [(employee_id_a, shared_marker)], (
+                f"unexpected rows for employee A in {table}: {rows_a}"
+            )
+            assert rows_b == [(employee_id_b, shared_marker)], (
+                f"unexpected rows for employee B in {table}: {rows_b}"
+            )
 
         # Replay both enrichments with identical input: since both were
         # already fully enriched, no further rows should be inserted (a
@@ -1200,12 +1200,12 @@ def test_enrichment_covers_all_four_dependent_tables_and_isolates_two_employees(
         assert replay_a.enriched_tables == ()
         assert replay_b.enriched_tables == ()
         for table in all_tables:
-            assert rows_for(employee_id_a, table) == [
-                (employee_id_a, shared_marker)
-            ], f"replay duplicated a row for employee A in {table}"
-            assert rows_for(employee_id_b, table) == [
-                (employee_id_b, shared_marker)
-            ], f"replay duplicated a row for employee B in {table}"
+            assert rows_for(employee_id_a, table) == [(employee_id_a, shared_marker)], (
+                f"replay duplicated a row for employee A in {table}"
+            )
+            assert rows_for(employee_id_b, table) == [(employee_id_b, shared_marker)], (
+                f"replay duplicated a row for employee B in {table}"
+            )
     finally:
         with live_connection.cursor() as cleanup_cursor:
             for outcome in (outcome_a1, outcome_b1):
