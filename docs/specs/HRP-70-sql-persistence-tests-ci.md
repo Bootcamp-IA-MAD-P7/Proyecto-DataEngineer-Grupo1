@@ -1,6 +1,6 @@
 # HRP-70 — Run SQL persistence tests in CI
 
-**Status:** Draft; not yet implemented
+**Status:** Draft; implemented, draft PR [#56](https://github.com/Bootcamp-IA-MAD-P7/Proyecto-DataEngineer-Grupo1/pull/56) open, real CI evidence gathered
 **Owner:** Johans Salas
 **Human reviewer:** Miguel or Gaby
 **Jira:** HRP-70 — Crear tests de persistencia SQL
@@ -32,7 +32,8 @@ or Redis in CI.
 
 ### The gap this task closes
 
-`tests/unit/test_postgres_schema.py`, `tests/integration/test_person_repository.py`,
+`tests/unit/test_postgres_schema.py`, `tests/integration/test_postgres_schema.py`,
+`tests/integration/test_person_repository.py`,
 `tests/integration/test_grouped_data_persistence.py` and
 `tests/integration/test_validation_queries.py` (HRP-54/56/57/58/59/60) already
 exist and already pass locally against the `infra/compose.dev.yml` PostgreSQL
@@ -58,7 +59,7 @@ logic.
   `os.environ.setdefault(...)` synthetic defaults do not override them, so
   the existing `live_connection`-style fixtures connect for real instead of
   skipping.
-- Confirmation (documented, not silently assumed) that all four existing
+- Confirmation (documented, not silently assumed) that all five existing
   persistence test files pass when actually executed inside GitHub Actions
   against this service.
 
@@ -93,7 +94,7 @@ untouched and run exactly as before; only the environment gains the four
 service containers publish their ports back to the runner's own network
 namespace) so that the `pytest` step's persistence-test fixtures can connect.
 
-No application or test code changes: the four existing persistence test files
+No application or test code changes: the five existing persistence test files
 are used exactly as merged. If one of them turns out to fail or be flaky when
 actually executed in the CI environment for the first time (as opposed to a
 local Windows/dev-container run), that is treated as a genuine finding to
@@ -115,8 +116,9 @@ to silently patch by changing test or production logic without recording why.
 - [ ] `ci.yml`'s `quality` job declares a `postgres:16` service with a health
       check, and exports `POSTGRES_*` environment variables before the
       `pytest` step.
-- [ ] All four existing persistence test files
-      (`test_postgres_schema.py`, `test_person_repository.py`,
+- [ ] All five existing persistence test files
+      (`tests/unit/test_postgres_schema.py`,
+      `tests/integration/test_postgres_schema.py`, `test_person_repository.py`,
       `test_grouped_data_persistence.py`, `test_validation_queries.py`) are
       confirmed to actually run (not skip) and pass inside a real GitHub
       Actions job, not only locally.
@@ -150,7 +152,26 @@ to silently patch by changing test or production logic without recording why.
 
 ## Evidencia de cierre
 
-- Rama / PR: pending
-- Commit: pending
-- Comandos ejecutados y resultado: pending
-- Comentario Jira con el resultado: pending
+- Rama: `feature/HRP-70-sql-persistence-tests-ci`; PR (draft, ready-for-review
+  pending final confirmation):
+  [#56](https://github.com/Bootcamp-IA-MAD-P7/Proyecto-DataEngineer-Grupo1/pull/56)
+- Commit: pending (se añade tras el commit final)
+- Comandos ejecutados y resultado:
+  - Local (sanity check antes de push): `pre-commit run --all-files`, `ruff
+    check .`, `ruff format --check .`, `mypy src` → passed;
+    `pytest` completo contra `infra/compose.dev.yml` → `206 passed, 2 skipped
+    in 47.83s`.
+  - **Evidencia real de CI** (no solo local, según pide esta tarea): corrida
+    de GitHub Actions
+    [run 33783733010](https://github.com/Bootcamp-IA-MAD-P7/Proyecto-DataEngineer-Grupo1/actions/runs/33783733010)
+    sobre el PR #56, job `checks` → `pass` en 1m15s. Log confirma que las
+    cinco pruebas de persistencia corrieron de verdad (no hicieron skip)
+    dentro del runner: `tests/integration/test_grouped_data_persistence.py`,
+    `tests/integration/test_person_repository.py`,
+    `tests/integration/test_postgres_schema.py`,
+    `tests/integration/test_validation_queries.py`,
+    `tests/unit/test_postgres_schema.py` — resultado final del job:
+    `206 passed, 2 skipped in 14.74s` (los 2 skips son solo
+    `test_hrp34_mongo.py`, sin relación con esta tarea). Ningún hallazgo de
+    flakiness ni fallo nuevo específico de CI.
+- Comentario Jira con el resultado: pending (se redacta tras aprobación de PR)
