@@ -770,9 +770,12 @@ def test_concurrent_enrichment_of_the_same_reference_does_not_duplicate_a_depend
     adding a lock_timeout to PersonRepository's own connection would be a
     production change, out of scope for this review round. If that ever
     happened, this test fails clearly on the is_alive() check below instead
-    of hanging pytest indefinitely, and cleanup (via setup_connection, which
-    does have a bounded lock_timeout) still runs and fails fast rather than
-    hanging too.
+    of hanging pytest indefinitely -- and, since Python cannot forcibly stop
+    a thread that is still using the seeded employee/reference rows,
+    database cleanup is only attempted once both worker threads and the
+    monitor thread are confirmed terminated; if either is still alive,
+    cleanup is skipped entirely rather than racing a DELETE against an
+    active worker, and this run's rows are left in place for manual cleanup.
     """
     import threading
     import time
@@ -971,16 +974,25 @@ def test_concurrent_enrichment_of_the_same_reference_does_not_duplicate_a_depend
         workers_done.set()
         monitor_thread.join(timeout=6)
 
+    # Computed once, right after the joins above, and never re-evaluated --
+    # this is the single source of truth the finally block below consults to
+    # decide whether database cleanup may run at all. A timed join()
+    # returning does not by itself prove a thread finished, and since Python
+    # cannot forcibly terminate a thread, database cleanup must never race
+    # with a worker that might still be alive and still using the same
+    # employee/reference rows. If either thread is still alive, cleanup is
+    # skipped entirely (this run's rows are left in place rather than risking
+    # a concurrent DELETE against an active worker) and the assertions below
+    # report the failure clearly instead of silently proceeding.
+    workers_terminated = all(not thread.is_alive() for thread in threads)
+    monitor_terminated = not monitor_thread.is_alive()
+
     try:
-        # Termination is verified explicitly for every thread this test
-        # started -- a timed join() returning does not by itself prove a
-        # thread finished; it may still be alive, and since Python cannot
-        # forcibly terminate a thread, that is reported as a clear failure
-        # here rather than silently proceeding as if nothing were wrong.
-        assert all(not thread.is_alive() for thread in threads), (
-            "a worker thread did not terminate within its bounded join timeout"
+        assert workers_terminated, (
+            "a worker thread did not terminate within its bounded join timeout -- "
+            "database cleanup was skipped to avoid racing with a still-active worker"
         )
-        assert not monitor_thread.is_alive(), (
+        assert monitor_terminated, (
             "the monitor thread did not terminate within its bounded join timeout"
         )
         assert not errors, f"concurrent enrichment raised: {errors}"
@@ -1012,11 +1024,12 @@ def test_concurrent_enrichment_of_the_same_reference_does_not_duplicate_a_depend
             location_count = cursor.fetchone()
         assert location_count == (1,)  # not duplicated by the concurrent second attempt
     finally:
-        with setup_connection.cursor() as cleanup_cursor:
-            cleanup_cursor.execute(
-                "DELETE FROM processing_audit WHERE employee_id = %s", (employee_id,)
-            )
-            cleanup_cursor.execute("DELETE FROM employees WHERE id = %s", (employee_id,))
+        if workers_terminated and monitor_terminated:
+            with setup_connection.cursor() as cleanup_cursor:
+                cleanup_cursor.execute(
+                    "DELETE FROM processing_audit WHERE employee_id = %s", (employee_id,)
+                )
+                cleanup_cursor.execute("DELETE FROM employees WHERE id = %s", (employee_id,))
         setup_connection.close()
 
 
