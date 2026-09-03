@@ -8,6 +8,11 @@ SYNTHETIC_TEST_ENV = {
     "MONGODB_DB": "synthetic_db",
     "MONGODB_COLLECTION": "synthetic_raw_events",
     "MONGODB_INVALID_COLLECTION": "synthetic_invalid_events",
+    "POSTGRES_HOST": "synthetic-postgres.invalid",
+    "POSTGRES_PORT": "5432",
+    "POSTGRES_DB": "synthetic_db",
+    "POSTGRES_USER": "synthetic_user",
+    "POSTGRES_PASSWORD": "synthetic_password",
 }
 
 for name, value in SYNTHETIC_TEST_ENV.items():
