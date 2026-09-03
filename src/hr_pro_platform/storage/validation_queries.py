@@ -16,6 +16,7 @@ not by direct code sharing.
 
 from __future__ import annotations
 
+from collections.abc import Sequence
 from typing import Any
 
 import psycopg
@@ -45,33 +46,54 @@ _DEPENDENT_TABLE_COLUMNS: dict[str, tuple[str, ...]] = {
 }
 
 
-def check_foreign_key_constraints_present(cursor: psycopg.Cursor[Any]) -> dict[str, bool]:
-    """Confirm each dependent table still declares its FOREIGN KEY on
-    ``employee_id`` referencing ``employees``.
+def check_foreign_key_constraints_present(
+    cursor: psycopg.Cursor[Any], tables: Sequence[str] = DEPENDENT_TABLES
+) -> dict[str, bool]:
+    """Confirm each of ``tables`` (default: the four dependent tables)
+    declares a single-column FOREIGN KEY on ``employee_id`` referencing
+    ``employees.id``.
 
-    A clean (all-``True``) result proves the schema still enforces
+    Uses ``pg_catalog.pg_constraint`` (keyed by real OIDs: ``conrelid`` for
+    the constrained table, ``confrelid`` for the referenced one) rather
+    than the ``information_schema`` constraint-metadata views. Those views
+    are keyed by ``constraint_catalog``/``constraint_schema``/
+    ``constraint_name`` alone, and constraint *names* are only required to
+    be unique per table in PostgreSQL -- two different tables in the same
+    schema can legitimately share a constraint name (verified empirically
+    against a live database). An earlier version of this function joined
+    ``information_schema.table_constraints``/``key_column_usage``/
+    ``constraint_column_usage`` on name and schema alone, which let a
+    same-named constraint on an unrelated table produce a false positive
+    for a table whose own constraint did not actually satisfy the check.
+    ``pg_catalog``'s OIDs make that collision structurally impossible.
+
+    Restricted to single-column foreign keys (``array_length(conkey, 1) =
+    1``), matching every FK this schema (HRP-54) currently declares; a
+    genuinely composite FK on one of these tables would not be recognized
+    by this check and is out of scope until the schema needs one.
+
+    A clean (all-``True``) result proves the schema still enforces this
     referential integrity at the database level. It does not prove data
     already violating it before the constraint existed -- see
     ``find_orphaned_dependent_rows`` for that.
     """
 
     cursor.execute(
-        "SELECT tc.table_name "
-        "FROM information_schema.table_constraints tc "
-        "JOIN information_schema.key_column_usage kcu "
-        "  ON tc.constraint_name = kcu.constraint_name "
-        " AND tc.table_schema = kcu.table_schema "
-        "JOIN information_schema.constraint_column_usage ccu "
-        "  ON tc.constraint_name = ccu.constraint_name "
-        " AND tc.table_schema = ccu.table_schema "
-        "WHERE tc.constraint_type = 'FOREIGN KEY' "
-        "  AND tc.table_name = ANY(%s) "
-        "  AND kcu.column_name = 'employee_id' "
-        "  AND ccu.table_name = 'employees'",
-        [list(DEPENDENT_TABLES)],
+        "SELECT c.conrelid::regclass::text "
+        "FROM pg_constraint c "
+        "WHERE c.contype = 'f' "
+        "  AND c.conrelid = ANY(%s::regclass[]) "
+        "  AND array_length(c.conkey, 1) = 1 "
+        "  AND array_length(c.confkey, 1) = 1 "
+        "  AND c.confrelid = 'employees'::regclass "
+        "  AND (SELECT attname FROM pg_attribute "
+        "       WHERE attrelid = c.conrelid AND attnum = c.conkey[1]) = 'employee_id' "
+        "  AND (SELECT attname FROM pg_attribute "
+        "       WHERE attrelid = c.confrelid AND attnum = c.confkey[1]) = 'id'",
+        [list(tables)],
     )
     tables_with_fk = {row[0] for row in cursor.fetchall()}
-    return {table: table in tables_with_fk for table in DEPENDENT_TABLES}
+    return {table: table in tables_with_fk for table in tables}
 
 
 def find_orphaned_dependent_rows(cursor: psycopg.Cursor[Any]) -> dict[str, tuple[int, ...]]:

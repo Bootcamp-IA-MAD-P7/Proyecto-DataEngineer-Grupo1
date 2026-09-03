@@ -1,6 +1,6 @@
 # HRP-59 — SQL validation queries for curated data
 
-**Status:** Draft; not yet implemented
+**Status:** Draft; implemented, PR [#55](https://github.com/Bootcamp-IA-MAD-P7/Proyecto-DataEngineer-Grupo1/pull/55) open, addressing review round 1
 **Owner:** Johans Salas
 **Human reviewer:** Miguel or Gaby
 **Jira:** HRP-59 — Crear consultas SQL para validar la información final
@@ -38,8 +38,10 @@ and without asserting a business identity that ADR-0006 has not approved.
 
 - A new, read-only module,
   [`src/hr_pro_platform/storage/validation_queries.py`](../../src/hr_pro_platform/storage/validation_queries.py),
-  exposing one function per validation check, each built with `psycopg`'s
-  `sql.SQL`/`sql.Identifier` (never string interpolation), consistent with
+  exposing one function per validation check. Each query is either built with
+  `psycopg`'s `sql.SQL`/`sql.Identifier` (when a table or column name must be
+  interpolated) or a plain, safely `%s`-parameterized query string (when it
+  needs none) — never raw string interpolation of any value, consistent with
   `person_repository.py` and `postgres.py`.
 - Checks covering: presence of the foreign-key constraints the schema declares;
   dependent-table rows with no matching `employees` row (orphans); employees
@@ -90,7 +92,7 @@ describe (HRP-54), not by direct code sharing.
 
 | Function | What it checks | What a clean result proves | What it does NOT prove |
 |---|---|---|---|
-| `check_foreign_key_constraints_present` | Each dependent table (`locations`, `professional_profiles`, `bank_accounts`, `network_data`) has a `FOREIGN KEY` constraint on `employee_id` referencing `employees` | The schema still enforces referential integrity at the database level | Data already violating it before the constraint existed (impossible under normal operation, but not ruled out by this check alone) |
+| `check_foreign_key_constraints_present` | Each of the given tables (default: the four dependent tables) has a single-column `FOREIGN KEY` on `employee_id` referencing `employees.id` — via `pg_catalog.pg_constraint`'s OIDs, not `information_schema`'s name-keyed views (see "Known limitations") | The schema still enforces referential integrity at the database level | Data already violating it before the constraint existed (impossible under normal operation, but not ruled out by this check alone); a genuinely composite FK (none currently exist) |
 | `find_orphaned_dependent_rows` | Rows in a dependent table whose `employee_id` has no matching row in `employees` | No dependent row is currently orphaned | Nothing about future inserts; relies on the FK constraint from the previous check still being present |
 | `find_incomplete_employees` | Employees with zero rows in one or more dependent tables | Which employees persisted so far are missing which domain(s) | Whether that is expected (a genuinely incomplete HRP-50 component) or a defect — this check is informational, not a pass/fail signal by itself |
 | `find_exact_duplicate_dependent_rows` | Two or more rows in the same dependent table, same `employee_id`, identical on every non-id column | HRP-57's NULL-safe full-column exact-match enrichment check has not been bypassed for the inspected data | Nothing about a `source_reference` that was never reprocessed |
@@ -101,6 +103,28 @@ No check in this module compares, aggregates or infers a real-world person
 identity. Every check that touches correlated data (e.g. incomplete-employee
 detection) is scoped to what is already persisted per an approved ADR-0006 edge,
 never to an identity claim ADR-0006 does not make.
+
+### Known limitations
+
+- **`information_schema` constraint-name ambiguity (fixed via review).** An
+  earlier version of `check_foreign_key_constraints_present` joined
+  `information_schema.table_constraints`/`key_column_usage`/
+  `constraint_column_usage` on constraint name and schema alone.
+  PostgreSQL only requires a constraint name to be unique *per table*, not
+  schema-wide — verified empirically that two different tables can share an
+  identical FK constraint name — so that join could combine rows from two
+  unrelated constraints and report a false positive. Rewritten to use
+  `pg_catalog.pg_constraint`, keyed by the real `conrelid`/`confrelid` OIDs,
+  which makes that collision structurally impossible. A regression test
+  reproduces the exact collision and confirms the fixed query rejects it
+  (`tests/integration/test_validation_queries.py::test_foreign_key_check_rejects_a_wrong_target_even_with_a_colliding_constraint_name`).
+- **Full-table scans.** `find_orphaned_dependent_rows`,
+  `find_incomplete_employees` and `find_exact_duplicate_dependent_rows` each
+  scan their target table(s) in full, with no pagination or row limit. This
+  is an accepted, known operational cost at the current, small synthetic
+  dataset size — not a claim of "no risk" — and would need revisiting
+  (batching, indexed incremental checks, or a row-count guard) before running
+  routinely against a materially larger curated dataset.
 
 ## What stays provisional / unknown / pending
 
@@ -115,8 +139,10 @@ never to an identity claim ADR-0006 does not make.
 
 ## Acceptance criteria
 
-- [ ] `validation_queries.py` exists under `storage/`, is read-only, and uses
-      `psycopg`'s `sql.SQL`/`sql.Identifier` exclusively (no string interpolation).
+- [ ] `validation_queries.py` exists under `storage/`, is read-only, and never
+      uses raw string interpolation of a value — `sql.SQL`/`sql.Identifier`
+      where a table/column name must be interpolated, safe `%s`-parameterized
+      queries otherwise.
 - [ ] Covers, at minimum: FK-constraint presence, orphaned dependent rows,
       incomplete employees, exact-duplicate dependent rows, duplicate
       `processing_audit.raw_event_ref`, and per-table row counts.
@@ -150,19 +176,28 @@ never to an identity claim ADR-0006 does not make.
 
 ## Evidencia de cierre
 
-- Rama: `feature/HRP-59-sql-validation-queries`; PR: pending
-- Commit: pending (se añade tras el commit final de implementación)
+- Rama: `feature/HRP-59-sql-validation-queries`; PR:
+  [#55](https://github.com/Bootcamp-IA-MAD-P7/Proyecto-DataEngineer-Grupo1/pull/55)
+- Commit: pending (se añade tras el commit final de esta ronda de revisión)
 - Comandos ejecutados y resultado:
   - `pre-commit run --all-files` → passed
   - `ruff check .` / `ruff format --check .` → passed
   - `mypy src` → `Success: no issues found in 27 source files`
   - `pytest` (suite completa contra PostgreSQL real,
     `docker compose -f infra/compose.dev.yml up -d postgres`) →
-    `204 passed, 2 skipped in 22.37s` (skips son solo MongoDB, no relacionados)
-  - Prueba de mutación: se cambió temporalmente `count == 0` a `count == 1` en
-    `find_incomplete_employees` y se confirmó que
+    `206 passed, 2 skipped in 19.05s` (skips son solo MongoDB, no relacionados)
+  - Prueba de mutación (ronda inicial): se cambió temporalmente `count == 0` a
+    `count == 1` en `find_incomplete_employees` y se confirmó que
     `test_incomplete_employee_reports_its_missing_domains` falla — evidencia de
     que la aserción es sensible al comportamiento real, no vacía. Restaurado
     tras la verificación (backup manual, sin `git checkout` sobre trabajo no
     commiteado).
+  - Ronda de revisión de Miguel: se reprodujo empíricamente el falso positivo
+    de `check_foreign_key_constraints_present` (dos tablas distintas con una
+    constraint FK del mismo nombre en el mismo schema — confirmado que
+    PostgreSQL lo permite) antes y después del fix, confirmando que la
+    versión anterior (basada en `information_schema`) lo aceptaba
+    incorrectamente y la versión corregida (basada en `pg_catalog`) lo
+    rechaza. Dos nuevos tests de integración cubren esto y el caso de columna
+    incorrecta.
 - Comentario Jira con el resultado: pending (se redacta tras aprobación de PR)
