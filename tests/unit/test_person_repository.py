@@ -209,10 +209,14 @@ def test_insert_failure_logs_only_error_class_and_sqlstate_not_error_text(
         with pytest.raises(FakeDatabaseError):
             repository.insert_mapping(record)
 
-    log_text = "\n".join(record_.message for record_ in caplog.records)
-    assert sensitive_marker not in log_text
-    assert "FakeDatabaseError" in log_text
-    assert "23505" in log_text
+    # caplog.text renders each record the way a real handler would, including
+    # any traceback a future `exc_info=True` might attach -- unlike checking
+    # only `record.message`, which would stay clean even if exc_info leaked
+    # the sensitive marker through the formatted traceback.
+    assert sensitive_marker not in caplog.text
+    assert "FakeDatabaseError" in caplog.text
+    assert "23505" in caplog.text
+    assert all(record_.exc_info is None for record_ in caplog.records)
     mock_connection.rollback.assert_called_once()
     mock_connection.commit.assert_not_called()
 
@@ -250,21 +254,23 @@ def test_employee_id_propagates_correctly_to_all_four_dependent_tables() -> None
     assert outcome.employee_id == 42
     assert mock_cursor.execute.call_count == 5  # employees + 4 dependents
     dependent_calls = mock_cursor.execute.call_args_list[1:]
-    assert len(dependent_calls) == 4
-    for call in dependent_calls:
-        query_text = str(call.args[0])
-        bound_values = call.args[1]
-        assert bound_values[0] == 42
-        if "locations" in query_text:
-            assert "Ada Example" in bound_values
-        elif "professional_profiles" in query_text:
-            assert "Engineer" in bound_values
-        elif "bank_accounts" in query_text:
-            assert "ES00-0000-0000-0000" in bound_values
-        elif "network_data" in query_text:
-            assert "10.0.0.1" in bound_values
-        else:
-            pytest.fail(f"unexpected dependent table in query: {query_text}")
+
+    # Render each composed query to real SQL text (not the object's repr) so
+    # the table name can be matched exactly, and key by that table instead of
+    # substring-matching, so a bug that inserted into the same table twice
+    # (instead of covering all four) would fail this assertion.
+    calls_by_table = {call.args[0].as_string(None).split('"')[1]: call for call in dependent_calls}
+    assert calls_by_table.keys() == {
+        "locations",
+        "professional_profiles",
+        "bank_accounts",
+        "network_data",
+    }
+
+    assert calls_by_table["locations"].args[1] == [42, "Ada Example", "Springfield"]
+    assert calls_by_table["professional_profiles"].args[1] == [42, "Ada Example", "Engineer"]
+    assert calls_by_table["bank_accounts"].args[1] == [42, "ES00-0000-0000-0000"]
+    assert calls_by_table["network_data"].args[1] == [42, "10.0.0.1"]
     mock_connection.commit.assert_called_once()
 
 
