@@ -150,7 +150,18 @@ def test_incomplete_component_becomes_complete_after_valid_evidence_ac03() -> No
     )
 
     assert incomplete.records[0].status == "incomplete"
+    assert len(complete.records) == 1
     assert complete.records[0].status == "complete"
+    assert all(value is not None for value in complete.records[0].domains.values())
+    assert complete.records[0].domains["personal"].groups[0].fragments[0].payload == personal()  # type: ignore[union-attr]
+    assert complete.records[0].domains["bank"].groups[0].fragments[0].payload == bank()  # type: ignore[union-attr]
+    assert complete.records[0].provenance == (
+        "bank-1",
+        "location-1",
+        "net-1",
+        "personal-1",
+        "professional-1",
+    )
 
 
 def test_incomplete_component_becomes_ambiguous_after_conflicting_evidence_ac04_ac08() -> None:
@@ -212,10 +223,11 @@ def test_conflicting_values_do_not_select_a_recency_winner_ac07_ac08() -> None:
 
 
 def test_unresolved_material_remains_explicit_at_consolidation_boundary_ac10() -> None:
+    payload = {"name": "incomplete"}
     unresolved = group_personal_fragments(
         [
             ClassifiedFragment(
-                payload={"name": "incomplete"},
+                payload=payload,
                 classification="Personal",
                 source_reference="unresolved-1",
             )
@@ -232,8 +244,11 @@ def test_unresolved_material_remains_explicit_at_consolidation_boundary_ac10() -
 
     assert isinstance(unresolved.unresolved[0], UnresolvedFragment)
     assert result.records == ()
+    assert len(result.unresolved) == 1
+    assert result.unresolved[0].payload == payload
     assert result.unresolved[0].source_reference == "unresolved-1"
     assert result.unresolved[0].context == "Personal"
+    assert result.unresolved[0].reason == "classification_mismatch"
 
 
 def test_recomputation_does_not_mutate_grouped_or_unresolved_inputs_ac01_ac10() -> None:
