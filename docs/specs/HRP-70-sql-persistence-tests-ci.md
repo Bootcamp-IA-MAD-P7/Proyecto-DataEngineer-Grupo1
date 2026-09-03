@@ -1,6 +1,6 @@
 # HRP-70 — Run SQL persistence tests in CI
 
-**Status:** Draft; implemented, draft PR [#56](https://github.com/Bootcamp-IA-MAD-P7/Proyecto-DataEngineer-Grupo1/pull/56) open, real CI evidence gathered
+**Status:** Draft; implemented, PR [#56](https://github.com/Bootcamp-IA-MAD-P7/Proyecto-DataEngineer-Grupo1/pull/56) open for review, real CI evidence gathered
 **Owner:** Johans Salas
 **Human reviewer:** Miguel or Gaby
 **Jira:** HRP-70 — Crear tests de persistencia SQL
