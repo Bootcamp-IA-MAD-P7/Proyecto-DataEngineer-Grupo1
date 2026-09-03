@@ -161,7 +161,18 @@ same pattern already used by `tests/integration/test_person_repository.py`.
 
 ## Evidencia de cierre
 
-- Rama / PR: pending
-- Commit: pending
-- Comandos ejecutados y resultado: pending
-- Comentario Jira con el resultado: pending
+- Rama: `feature/HRP-60-grouped-data-persistence-verification`; PR: pending
+- Commit: pending (se añade tras el commit final de implementación)
+- Comandos ejecutados y resultado:
+  - `pre-commit run --all-files` → passed
+  - `ruff check .` / `ruff format --check .` → passed
+  - `mypy src` → `Success: no issues found in 26 source files`
+  - `pytest` (suite completa contra PostgreSQL real,
+    `docker compose -f infra/compose.dev.yml up -d postgres`) →
+    `195 passed, 2 skipped in 18.91s` (skips son solo MongoDB, no relacionados)
+  - Sanity check adicional: se confirmó por separado que si el fullname de
+    "near miss" coincidiera exactamente en vez de diferir en mayúscula/espacio,
+    `consolidate_person_records` produce 2 componentes en vez de 3 — prueba de
+    que la aserción de no-cruce del test es sensible al comportamiento real,
+    no vacía.
+- Comentario Jira con el resultado: pending (se redacta tras aprobación de PR)
