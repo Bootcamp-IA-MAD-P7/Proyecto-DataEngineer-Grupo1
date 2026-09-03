@@ -424,3 +424,118 @@ def test_skipping_a_pre_existing_reference_leaves_its_audit_record_untouched(
             )
         live_connection.commit()
         repository.close()
+
+
+def test_reprocessing_with_a_new_dependent_fragment_enriches_the_existing_employee(
+    live_connection: psycopg.Connection[tuple[object, ...]],
+) -> None:
+    """HRP-57: the incomplete -> complete scenario HRP-51 defines at the
+    transformation level. First pass has only the Personal fragment; second
+    pass, same source_reference, adds a location that did not exist before.
+    """
+    from hr_pro_platform.storage.person_mapper import CandidateRow, PersonRecordMapping
+    from hr_pro_platform.storage.person_repository import InsertOutcome, PersonRepository
+    from hr_pro_platform.storage.postgres import PostgresSchemaClient
+
+    schema_client = PostgresSchemaClient()
+    schema_client.connect()
+    try:
+        schema_client.create_schema()
+    finally:
+        schema_client.close()
+
+    source_reference = "integration-test-enrichment-source"
+    passport = "INTEGRATION-TEST-P-ENRICH"
+
+    def build_mapping(*, with_location: bool) -> PersonRecordMapping:
+        return PersonRecordMapping(
+            status="complete" if with_location else "incomplete",
+            correlation_rules=(),
+            provenance=(source_reference,),
+            employees=(
+                CandidateRow(
+                    table="employees",
+                    group_key=passport,
+                    fields={
+                        "first_name": "EnrichTest",
+                        "last_name": "Fixture",
+                        "passport": passport,
+                    },
+                    source_reference=source_reference,
+                ),
+            ),
+            locations=(
+                (
+                    CandidateRow(
+                        table="locations",
+                        group_key="EnrichTest Fixture",
+                        fields={"full_name": "EnrichTest Fixture", "city": "Springfield"},
+                        source_reference=source_reference,
+                    ),
+                )
+                if with_location
+                else ()
+            ),
+            professional_profiles=(),
+            bank_accounts=(),
+            network_data=(),
+        )
+
+    repository = PersonRepository()
+    repository.connect()
+    first_outcome: InsertOutcome | None = None
+    try:
+        first_outcome = repository.insert_mapping(build_mapping(with_location=False))
+        assert first_outcome.inserted is True
+        assert first_outcome.employee_id is not None
+
+        second_outcome = repository.insert_mapping(build_mapping(with_location=True))
+
+        assert second_outcome.inserted is False
+        assert second_outcome.employee_id == first_outcome.employee_id
+        assert second_outcome.skipped_reason is None
+        assert second_outcome.enriched_tables == ("locations",)
+
+        # A third pass with the exact same location adds nothing further.
+        third_outcome = repository.insert_mapping(build_mapping(with_location=True))
+        assert third_outcome.inserted is False
+        assert third_outcome.skipped_reason == "already_processed"
+        assert third_outcome.enriched_tables == ()
+
+        with live_connection.cursor() as cursor:
+            cursor.execute(
+                "SELECT count(*) FROM locations WHERE employee_id = %s",
+                (first_outcome.employee_id,),
+            )
+            location_count = cursor.fetchone()
+            cursor.execute(
+                "SELECT count(*) FROM processing_audit WHERE raw_event_ref = %s",
+                (source_reference,),
+            )
+            audit_count = cursor.fetchone()
+
+        assert location_count == (1,)  # not duplicated by the third pass
+        # HRP-58's unique index on raw_event_ref allows only one audit row
+        # per source reference, so enrichment UPDATEs that row in place
+        # (stage/status) rather than inserting a second one.
+        assert audit_count == (1,)
+
+        with live_connection.cursor() as cursor:
+            cursor.execute(
+                "SELECT stage, status FROM processing_audit WHERE raw_event_ref = %s",
+                (source_reference,),
+            )
+            audit_row = cursor.fetchone()
+        assert audit_row == ("update", "enriched")
+    finally:
+        if first_outcome is not None and first_outcome.employee_id is not None:
+            with live_connection.cursor() as cleanup_cursor:
+                cleanup_cursor.execute(
+                    "DELETE FROM processing_audit WHERE employee_id = %s",
+                    (first_outcome.employee_id,),
+                )
+                cleanup_cursor.execute(
+                    "DELETE FROM employees WHERE id = %s", (first_outcome.employee_id,)
+                )
+            live_connection.commit()
+        repository.close()

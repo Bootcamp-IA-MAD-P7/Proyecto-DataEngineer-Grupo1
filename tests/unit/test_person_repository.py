@@ -83,49 +83,84 @@ def mapping(
     )
 
 
+_DEPENDENT_TABLES = ("locations", "professional_profiles", "bank_accounts", "network_data")
+
+
+def _query_text(query: object) -> str:
+    """Render a query to real SQL text, whether it's a plain string or a
+    ``psycopg.sql.Composed`` object (which needs ``.as_string(None)`` --
+    plain ``str()`` on a Composed object returns its Python repr, not SQL)."""
+
+    as_string = getattr(query, "as_string", None)
+    return as_string(None) if callable(as_string) else str(query)
+
+
 def repository_with_mock_connection(
     *, preseeded_source_references: set[str] | None = None
 ) -> tuple[PersonRepository, MagicMock, MagicMock]:
     """Build a repository over a mocked connection/cursor.
 
-    ``fetchone()`` now serves two different queries per insert (HRP-58's
-    ``processing_audit`` idempotency check, then the ``employees`` insert's
+    ``fetchone()`` now serves several different queries per call (HRP-58's
+    ``processing_audit`` idempotency check, HRP-57's existing-employee_id
+    lookup and dependent-row-exists check, and the ``employees`` insert's
     ``RETURNING id``), so its return value is routed by inspecting the most
-    recently executed query.
+    recently executed query's real SQL text (via ``_query_text``) and its
+    bound parameters.
 
-    Critically, the "already processed" check is backed by a real, mutable
-    set of recorded ``source_reference`` values rather than a single fixed
-    True/False flag: a successful ``processing_audit`` insert adds its
-    ``raw_event_ref`` to that set, and the check looks up the *specific*
-    bound ``source_reference`` against it. This lets a test insert two
-    distinct references and confirm only the replayed one is skipped --
-    a fixed-response mock would pass even if the lookup ignored the bound
-    parameter entirely and matched any recorded row.
+    Critically, this is backed by real, mutable state -- recorded
+    ``source_reference`` values, the ``employee_id`` recorded for each, and
+    the exact dependent rows already "persisted" per ``employee_id`` --
+    rather than a single fixed response. This lets a test insert two
+    distinct references and confirm only the replayed one is skipped, and
+    lets a test confirm that only a genuinely new dependent row is inserted
+    on enrichment. A fixed-response mock would pass even if the lookup
+    ignored the bound parameters entirely.
     """
 
     recorded_refs: set[str] = set(preseeded_source_references or ())
+    employee_id_by_ref: dict[str, int] = {}
+    existing_dependent_keys: set[tuple[str, int, tuple[object, ...]]] = set()
 
     mock_cursor = MagicMock()
     mock_cursor.__enter__.return_value = mock_cursor
 
     def execute_side_effect(query: object, params: list[object] | None = None) -> None:
-        text = str(query)
-        if "processing_audit" in text and "INSERT" in text.upper() and params:
-            raw_event_ref = params[3]  # employee_id, stage, status, raw_event_ref
+        text = _query_text(query)
+        upper = text.upper()
+        if "INSERT INTO PROCESSING_AUDIT" in upper and params:
+            employee_id, _stage, _status, raw_event_ref = params
             recorded_refs.add(str(raw_event_ref))
+            employee_id_by_ref[str(raw_event_ref)] = int(employee_id)
+        elif upper.startswith("INSERT INTO") and "RETURNING" not in upper and params:
+            for table in _DEPENDENT_TABLES:
+                if f'"{table}"' in text:
+                    existing_dependent_keys.add((table, int(params[0]), tuple(params[1:])))
+                    break
 
     mock_cursor.execute.side_effect = execute_side_effect
 
-    def fetchone_side_effect() -> tuple[int] | None:
+    def fetchone_side_effect() -> tuple[object, ...] | None:
         last_call = mock_cursor.execute.call_args
-        query_text = str(last_call.args[0]) if last_call is not None else ""
-        bound_args = (
-            last_call.args[1] if last_call is not None and len(last_call.args) > 1 else None
-        )
-        if "processing_audit" in query_text and "SELECT" in query_text.upper():
-            checked_reference = bound_args[0] if bound_args else None
+        text = _query_text(last_call.args[0]) if last_call is not None else ""
+        upper = text.upper()
+        bound = last_call.args[1] if last_call is not None and len(last_call.args) > 1 else None
+
+        if "SELECT EMPLOYEE_ID FROM PROCESSING_AUDIT" in upper:
+            reference = bound[0] if bound else None
+            employee_id = employee_id_by_ref.get(str(reference)) if reference is not None else None
+            return (employee_id,) if employee_id is not None else None
+
+        if "SELECT 1 FROM PROCESSING_AUDIT" in upper:
+            checked_reference = bound[0] if bound else None
             return (1,) if checked_reference in recorded_refs else None
-        return (42,)
+
+        if upper.startswith("SELECT 1 FROM") and bound:
+            for table in _DEPENDENT_TABLES:
+                if f'"{table}"' in text:
+                    key = (table, int(bound[0]), tuple(bound[1:]))
+                    return (1,) if key in existing_dependent_keys else None
+
+        return (42,)  # employees insert's RETURNING id
 
     mock_cursor.fetchone.side_effect = fetchone_side_effect
     mock_connection = MagicMock()
@@ -358,16 +393,23 @@ def test_insert_mappings_isolates_a_failure_to_its_own_component() -> None:
 
 
 def test_already_processed_component_is_skipped_without_any_write() -> None:
+    """A pure replay (no dependent rows at all, e.g. resubmitting the exact
+    same Personal-only fragment) still behaves exactly as HRP-58 originally
+    defined: a single check, no further lookup or write. HRP-57's
+    enrichment path is only entered when there is dependent data to
+    consider -- see test_enrichment_* below for that behavior."""
+
     repository, mock_connection, mock_cursor = repository_with_mock_connection(
         preseeded_source_references={"p"}
     )
-    record = mapping(employees=(employee_row(),), locations=(location_row(),))
+    record = mapping(employees=(employee_row(),))
 
     outcome = repository.insert_mapping(record)
 
     assert outcome.inserted is False
     assert outcome.employee_id is None
     assert outcome.skipped_reason == "already_processed"
+    assert outcome.enriched_tables == ()
     # Only the check itself ran; no employees/dependent INSERT was attempted.
     assert mock_cursor.execute.call_count == 1
     assert "processing_audit" in str(mock_cursor.execute.call_args_list[0].args[0])
@@ -478,3 +520,115 @@ def test_already_processed_check_never_binds_a_business_identity_value() -> None
     assert check_call.args[1] == ["p"]  # only the opaque source_reference is bound
     assert "SHOULD-NOT-APPEAR-IN-CHECK" not in check_call.args[1]
     assert "passport" not in str(check_call.args[0]).lower()
+
+
+# ---------------------------------------------------------------------------
+# HRP-57: enrich an already-processed component with genuinely new
+# dependent data, without resolving person-identity or updating employees'
+# own columns.
+# ---------------------------------------------------------------------------
+
+
+def test_enrichment_inserts_only_new_dependent_rows_for_existing_employee() -> None:
+    repository, mock_connection, mock_cursor = repository_with_mock_connection()
+
+    # First pass: only the Personal fragment, no dependents yet.
+    first_outcome = repository.insert_mapping(mapping(employees=(employee_row(),)))
+    assert first_outcome.inserted is True
+    assert first_outcome.employee_id == 42
+
+    # Second pass: same source_reference, now with a location that did not
+    # exist before -- this is the incomplete -> complete case HRP-51 defines
+    # at the transformation level.
+    second_outcome = repository.insert_mapping(
+        mapping(employees=(employee_row(),), locations=(location_row(),))
+    )
+
+    assert second_outcome.inserted is False
+    assert second_outcome.employee_id == 42
+    assert second_outcome.skipped_reason is None
+    assert second_outcome.enriched_tables == ("locations",)
+
+    # 1st pass: check + employees insert + audit insert (3 calls).
+    # 2nd pass: check + find-existing-employee-id + dependent-exists check +
+    # locations insert + audit-update insert (5 calls).
+    assert mock_cursor.execute.call_count == 3 + 5
+    # calls[0]=check, calls[1]=find-existing-employee-id, calls[2]=dependent
+    # exists check (SELECT), calls[3]=locations INSERT, calls[4]=audit update.
+    calls = mock_cursor.execute.call_args_list[3:]
+    assert "SELECT employee_id FROM processing_audit" in _query_text(calls[1].args[0])
+    assert '"locations"' in _query_text(calls[3].args[0])
+    assert calls[3].args[1][0] == 42  # linked to the existing employee_id
+    audit_update_call = calls[-1]
+    audit_update_text = _query_text(audit_update_call.args[0])
+    assert "UPDATE processing_audit" in audit_update_text
+    assert "INSERT" not in audit_update_text.upper()  # updates the existing row, never a 2nd insert
+    stage, status, employee_id, raw_event_ref = audit_update_call.args[1]
+    assert stage == "update"
+    assert status == "enriched"
+    assert employee_id == 42
+    assert raw_event_ref == "p"
+    assert mock_connection.commit.call_count == 2
+
+
+def test_reprocessing_with_no_new_dependent_data_writes_nothing() -> None:
+    repository, mock_connection, mock_cursor = repository_with_mock_connection()
+
+    first_outcome = repository.insert_mapping(
+        mapping(employees=(employee_row(),), locations=(location_row(),))
+    )
+    assert first_outcome.inserted is True
+
+    # Same source_reference, same exact location -- nothing new to add.
+    second_outcome = repository.insert_mapping(
+        mapping(employees=(employee_row(),), locations=(location_row(),))
+    )
+
+    assert second_outcome.inserted is False
+    assert second_outcome.employee_id is None
+    assert second_outcome.skipped_reason == "already_processed"
+    assert second_outcome.enriched_tables == ()
+
+    # No new employees/dependent/audit INSERT on the second pass: only the
+    # check, the existing-employee lookup, and the dependent-exists check.
+    calls_after_first_pass = mock_cursor.execute.call_args_list[4:]
+    assert len(calls_after_first_pass) == 3
+    for call in calls_after_first_pass:
+        assert _query_text(call.args[0]).upper().startswith("SELECT")
+    assert mock_connection.commit.call_count == 2  # first pass + second pass's read-only close
+
+
+def test_enrichment_never_binds_a_business_identity_field() -> None:
+    repository, _mock_connection, mock_cursor = repository_with_mock_connection()
+    repository.insert_mapping(mapping(employees=(employee_row(passport="SHOULD-NOT-LEAK"),)))
+    repository.insert_mapping(
+        mapping(
+            employees=(employee_row(passport="SHOULD-NOT-LEAK"),),
+            locations=(location_row(),),
+        )
+    )
+
+    lookup_call = mock_cursor.execute.call_args_list[4]  # 0-2: first pass, 3: check, 4: lookup
+    assert "SELECT employee_id FROM processing_audit" in _query_text(lookup_call.args[0])
+    assert lookup_call.args[1] == ["p"]  # only the opaque source_reference, never passport
+    assert "SHOULD-NOT-LEAK" not in lookup_call.args[1]
+
+
+def test_enrichment_does_not_touch_employees_own_columns() -> None:
+    """No UPDATE statement against employees or any dependent table is ever
+    issued -- the only UPDATE this module performs is HRP-57's own
+    processing_audit bookkeeping row (see the comment on
+    _record_processing_audit_update for why that one is an UPDATE, not a
+    second INSERT: HRP-58's proposed unique index on raw_event_ref forbids
+    it)."""
+    repository, _mock_connection, mock_cursor = repository_with_mock_connection()
+    repository.insert_mapping(mapping(employees=(employee_row(),)))
+    repository.insert_mapping(mapping(employees=(employee_row(),), locations=(location_row(),)))
+
+    update_calls = [
+        call
+        for call in mock_cursor.execute.call_args_list
+        if _query_text(call.args[0]).upper().startswith("UPDATE")
+    ]
+    assert len(update_calls) == 1
+    assert "UPDATE processing_audit" in _query_text(update_calls[0].args[0])
