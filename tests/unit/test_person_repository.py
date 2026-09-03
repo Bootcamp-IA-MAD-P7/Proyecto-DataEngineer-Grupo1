@@ -12,7 +12,9 @@ from hr_pro_platform.storage.person_mapper import CandidateRow, PersonRecordMapp
 from hr_pro_platform.storage.person_repository import PersonRepository
 
 
-def employee_row(passport: str = "P-001", sex: list[str] | None = None) -> CandidateRow:
+def employee_row(
+    passport: str = "P-001", sex: list[str] | None = None, source_reference: str = "p"
+) -> CandidateRow:
     fields: dict[str, object] = {
         "first_name": "Ada",
         "last_name": "Example",
@@ -20,7 +22,9 @@ def employee_row(passport: str = "P-001", sex: list[str] | None = None) -> Candi
     }
     if sex is not None:
         fields["sex"] = sex
-    return CandidateRow(table="employees", group_key=passport, fields=fields, source_reference="p")
+    return CandidateRow(
+        table="employees", group_key=passport, fields=fields, source_reference=source_reference
+    )
 
 
 def location_row(city: str = "Springfield") -> CandidateRow:
@@ -80,24 +84,47 @@ def mapping(
 
 
 def repository_with_mock_connection(
-    *, already_processed: bool = False
+    *, preseeded_source_references: set[str] | None = None
 ) -> tuple[PersonRepository, MagicMock, MagicMock]:
     """Build a repository over a mocked connection/cursor.
 
     ``fetchone()`` now serves two different queries per insert (HRP-58's
     ``processing_audit`` idempotency check, then the ``employees`` insert's
     ``RETURNING id``), so its return value is routed by inspecting the most
-    recently executed query instead of a single fixed return value.
+    recently executed query.
+
+    Critically, the "already processed" check is backed by a real, mutable
+    set of recorded ``source_reference`` values rather than a single fixed
+    True/False flag: a successful ``processing_audit`` insert adds its
+    ``raw_event_ref`` to that set, and the check looks up the *specific*
+    bound ``source_reference`` against it. This lets a test insert two
+    distinct references and confirm only the replayed one is skipped --
+    a fixed-response mock would pass even if the lookup ignored the bound
+    parameter entirely and matched any recorded row.
     """
+
+    recorded_refs: set[str] = set(preseeded_source_references or ())
 
     mock_cursor = MagicMock()
     mock_cursor.__enter__.return_value = mock_cursor
 
+    def execute_side_effect(query: object, params: list[object] | None = None) -> None:
+        text = str(query)
+        if "processing_audit" in text and "INSERT" in text.upper() and params:
+            raw_event_ref = params[3]  # employee_id, stage, status, raw_event_ref
+            recorded_refs.add(str(raw_event_ref))
+
+    mock_cursor.execute.side_effect = execute_side_effect
+
     def fetchone_side_effect() -> tuple[int] | None:
         last_call = mock_cursor.execute.call_args
         query_text = str(last_call.args[0]) if last_call is not None else ""
+        bound_args = (
+            last_call.args[1] if last_call is not None and len(last_call.args) > 1 else None
+        )
         if "processing_audit" in query_text and "SELECT" in query_text.upper():
-            return (1,) if already_processed else None
+            checked_reference = bound_args[0] if bound_args else None
+            return (1,) if checked_reference in recorded_refs else None
         return (42,)
 
     mock_cursor.fetchone.side_effect = fetchone_side_effect
@@ -332,7 +359,7 @@ def test_insert_mappings_isolates_a_failure_to_its_own_component() -> None:
 
 def test_already_processed_component_is_skipped_without_any_write() -> None:
     repository, mock_connection, mock_cursor = repository_with_mock_connection(
-        already_processed=True
+        preseeded_source_references={"p"}
     )
     record = mapping(employees=(employee_row(),), locations=(location_row(),))
 
@@ -366,6 +393,79 @@ def test_new_component_records_a_processing_audit_row_with_the_source_reference(
     assert status == "inserted"
     assert raw_event_ref == employee_row().source_reference == "p"
     mock_connection.commit.assert_called_once()
+
+
+def test_two_distinct_source_references_both_insert_and_only_the_replay_skips() -> None:
+    """Guards against a lookup that ignores the bound source_reference.
+
+    Both fixtures deliberately share identical business fields (same
+    passport, same name) -- only ``source_reference`` differs -- so the
+    behavioral assertions below would fail if the mocked "already processed"
+    lookup incorrectly matched any recorded processing_audit row instead of
+    the specific one requested.
+
+    A mock cannot verify actual SQL filtering correctness -- only a real
+    database can (see the equivalent two-reference scenario in
+    tests/integration/test_person_repository.py, which is what actually
+    proves the WHERE clause filters correctly). This test additionally
+    asserts the check statement's literal SQL text includes the WHERE
+    clause, to catch a regression that drops the filter entirely.
+    """
+
+    repository, _mock_connection, mock_cursor = repository_with_mock_connection()
+    record_a = mapping(employees=(employee_row(source_reference="source-A"),))
+    record_b = mapping(employees=(employee_row(source_reference="source-B"),))
+
+    outcome_a = repository.insert_mapping(record_a)
+    outcome_b = repository.insert_mapping(record_b)
+    replay_a = repository.insert_mapping(record_a)
+    replay_b = repository.insert_mapping(record_b)
+
+    for call in mock_cursor.execute.call_args_list:
+        text = str(call.args[0])
+        if "processing_audit" in text and "SELECT" in text.upper():
+            assert "WHERE raw_event_ref = %s" in text
+
+    assert outcome_a.inserted is True
+    assert outcome_b.inserted is True
+    assert replay_a.inserted is False
+    assert replay_a.skipped_reason == "already_processed"
+    assert replay_b.inserted is False
+    assert replay_b.skipped_reason == "already_processed"
+
+
+def test_processing_audit_insert_failure_rolls_back_and_next_component_still_succeeds() -> None:
+    """Simulates losing a race: the final processing_audit insert violates
+    the proposed unique index after the employees insert already succeeded.
+    """
+    repository, mock_connection, mock_cursor = repository_with_mock_connection()
+    bad_record = mapping(employees=(employee_row(source_reference="source-race"),))
+    good_record = mapping(employees=(employee_row(source_reference="source-ok"),))
+
+    class FakeUniqueViolation(Exception):
+        sqlstate = "23505"
+
+    call_count = 0
+
+    def execute_side_effect(query: object, params: object = None) -> None:
+        nonlocal call_count
+        call_count += 1
+        text = str(query)
+        # 3rd call overall is the bad component's processing_audit INSERT
+        # (1: check, 2: employees insert, 3: audit insert).
+        if call_count == 3 and "processing_audit" in text and "INSERT" in text.upper():
+            raise FakeUniqueViolation("duplicate key value violates unique constraint")
+
+    mock_cursor.execute.side_effect = execute_side_effect
+
+    outcomes = repository.insert_mappings([bad_record, good_record])
+
+    assert outcomes[0].inserted is False
+    assert outcomes[0].skipped_reason == "insert_error"
+    assert outcomes[1].inserted is True
+    assert outcomes[1].employee_id == 42
+    assert mock_connection.rollback.call_count == 1
+    assert mock_connection.commit.call_count == 1  # only the good component commits
 
 
 def test_already_processed_check_never_binds_a_business_identity_value() -> None:

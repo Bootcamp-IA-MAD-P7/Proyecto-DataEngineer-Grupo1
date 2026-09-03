@@ -125,6 +125,29 @@ persistence.
   (`SELECT` before `INSERT`) is not itself race-free without it; this
   asymmetry is documented, not silently resolved by adding transactional
   locking or `ON CONFLICT` handling beyond the index itself.
+- **A component's `source_reference` reappearing with new/enriched
+  dependent fragments is currently skipped entirely, not merged.** If the
+  same Personal fragment is reprocessed alongside a newly-arrived `location`
+  fragment that was not present the first time, this task still skips the
+  whole component once its `source_reference` is recorded — the new
+  dependent data is not captured. Handling that enrichment case is HRP-57's
+  responsibility (updating existing records when new data arrives), not
+  this task's.
+- **A concurrent uniqueness conflict currently surfaces as a rollback and a
+  raised/propagated error, not as `skipped_reason="already_processed"`.**
+  If the proposed index is approved and two writers race past the
+  application-level check, the loser's `processing_audit` insert (or a
+  future `employees`-level conflict) fails with a database uniqueness
+  error; `insert_mapping()` rolls back and re-raises it, and
+  `insert_mappings()` records it as `skipped_reason="insert_error"`, not
+  `"already_processed"`. Distinguishing "lost the race" from "other
+  insert failure" is not implemented by this task.
+- **Reverting this commit does not remove an index already created on a
+  live PostgreSQL database.** `_SCHEMA_STATEMENTS` only ever adds
+  (`CREATE ... IF NOT EXISTS`); there is no down-migration. If the proposed
+  index is approved, deployed, and later needs to be removed, that requires
+  a separate, explicit `DROP INDEX` change — reverting the code change alone
+  leaves the index in place on any database it already ran against.
 
 ## Design
 

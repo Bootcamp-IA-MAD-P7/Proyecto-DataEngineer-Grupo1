@@ -88,8 +88,14 @@ def test_create_schema_declares_no_unique_business_constraint() -> None:
         statement for statement in _SCHEMA_STATEMENTS if "UNIQUE" in statement.upper()
     ]
     assert len(unique_statements) == 1
-    assert "raw_event_ref" in unique_statements[0]
-    assert "processing_audit" in unique_statements[0]
+    statement = unique_statements[0]
+    assert "CREATE UNIQUE INDEX" in statement.upper()
+    assert "ON processing_audit (raw_event_ref)" in statement
+    assert "WHERE raw_event_ref IS NOT NULL" in statement
+    # No other column -- in particular no business-identity field -- appears
+    # inside this specific statement's target column list.
+    for business_field in ("passport", "fullname", "full_name", "address", "iban"):
+        assert business_field not in statement.lower().replace("raw_event_ref", "")
 
 
 @patch("hr_pro_platform.storage.postgres.psycopg.connect")
