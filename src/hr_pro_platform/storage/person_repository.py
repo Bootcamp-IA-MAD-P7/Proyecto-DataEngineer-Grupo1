@@ -36,6 +36,25 @@ logger = get_logger("person_repository")
 # JSONB from a plain Python list, so it must be adapted explicitly.
 _JSONB_COLUMNS: frozenset[str] = frozenset({"sex"})
 
+# Every non-id, non-employee_id column each dependent table declares in
+# storage/postgres.py's _SCHEMA_STATEMENTS (HRP-54). HRP-57's exact-match
+# check (_dependent_row_exists) must compare against this full set, not just
+# whichever fields happen to be present in an incoming CandidateRow -- see
+# that method's docstring for why.
+_DEPENDENT_TABLE_COLUMNS: dict[str, tuple[str, ...]] = {
+    "locations": ("full_name", "city", "address", "ip_v4"),
+    "professional_profiles": (
+        "full_name",
+        "company",
+        "company_address",
+        "company_email",
+        "company_telephone_number",
+        "job",
+    ),
+    "bank_accounts": ("iban", "passport", "salary"),
+    "network_data": ("ip_v4",),
+}
+
 
 def _bind_value(column: str, value: object) -> object:
     return Jsonb(value) if column in _JSONB_COLUMNS else value
@@ -264,15 +283,25 @@ class PersonRepository:
     def _find_existing_employee_id(
         cursor: psycopg.Cursor[Any], source_reference: str
     ) -> int | None:
-        """Resolve the employee_id already recorded for this source_reference.
+        """Resolve the employee_id already recorded for this source_reference,
+        locking that processing_audit row for the rest of this transaction.
 
-        Reads processing_audit only -- never a business-identity field.
+        Reads processing_audit only -- never a business-identity field. The
+        ``FOR UPDATE`` lock is required, not optional: HRP-58's unique index
+        on raw_event_ref only serialises the first insert, not a second
+        concurrent enrichment attempt for the same reference. Without this
+        lock, two concurrent transactions could both see "not yet present"
+        from `_dependent_row_exists` and both insert the same dependent row,
+        since dependent tables have no uniqueness constraint of their own.
+        Locking here, before any dependent-row check, forces a second
+        concurrent attempt to wait until the first commits -- at which point
+        it will correctly see the first attempt's inserted rows.
         """
 
         cursor.execute(
             "SELECT employee_id FROM processing_audit "
             "WHERE raw_event_ref = %s AND employee_id IS NOT NULL "
-            "ORDER BY occurred_at LIMIT 1",
+            "ORDER BY occurred_at LIMIT 1 FOR UPDATE",
             [source_reference],
         )
         result = cursor.fetchone()
@@ -283,21 +312,38 @@ class PersonRepository:
         cursor: psycopg.Cursor[Any], table: str, employee_id: int, row: CandidateRow
     ) -> bool:
         """Exact-match check: does an identical row already exist for this
-        employee_id in this table? No fuzzy or partial comparison."""
+        employee_id in this table? No fuzzy or partial comparison.
 
-        columns = list(row.fields.keys())
+        Compares every column the table defines (per _DEPENDENT_TABLE_COLUMNS),
+        not only the columns present in the incoming CandidateRow: comparing
+        just the incoming keys is subset matching, not true row equality, and
+        would report a false "already exists" for a persisted row that has
+        additional populated columns the incoming candidate doesn't mention,
+        or vice versa. A column absent from the incoming row is treated as
+        NULL, matching what _insert_dependent would actually persist for it.
+
+        Uses ``IS NOT DISTINCT FROM`` rather than ``=`` for every column:
+        plain ``=`` is never true when either side is NULL (SQL's three-valued
+        logic), so two rows that are identical except for a shared NULL field
+        would incorrectly compare as not-equal and cause a duplicate insert
+        on replay.
+        """
+
+        table_columns = _DEPENDENT_TABLE_COLUMNS[table]
         conditions = [sql.SQL("employee_id = {}").format(sql.Placeholder())]
         conditions += [
-            sql.SQL("{column} = {placeholder}").format(
+            sql.SQL("{column} IS NOT DISTINCT FROM {placeholder}").format(
                 column=sql.Identifier(column), placeholder=sql.Placeholder()
             )
-            for column in columns
+            for column in table_columns
         ]
         query = sql.SQL("SELECT 1 FROM {table} WHERE {conditions} LIMIT 1").format(
             table=sql.Identifier(table),
             conditions=sql.SQL(" AND ").join(conditions),
         )
-        values = [employee_id, *(_bind_value(column, row.fields[column]) for column in columns)]
+        values = [employee_id] + [
+            _bind_value(column, row.fields.get(column)) for column in table_columns
+        ]
         cursor.execute(query, values)
         return cursor.fetchone() is not None
 

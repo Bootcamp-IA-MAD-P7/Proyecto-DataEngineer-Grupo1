@@ -3,13 +3,14 @@
 from __future__ import annotations
 
 import logging
+import re
 from unittest.mock import MagicMock
 
 import pytest
 from psycopg.types.json import Jsonb
 
 from hr_pro_platform.storage.person_mapper import CandidateRow, PersonRecordMapping
-from hr_pro_platform.storage.person_repository import PersonRepository
+from hr_pro_platform.storage.person_repository import _DEPENDENT_TABLE_COLUMNS, PersonRepository
 
 
 def employee_row(
@@ -95,6 +96,16 @@ def _query_text(query: object) -> str:
     return as_string(None) if callable(as_string) else str(query)
 
 
+def _parse_insert_columns(text: str) -> list[str]:
+    """Extract the quoted column names from an ``INSERT INTO "t" (...) VALUES``
+    statement's real SQL text, in the order they were bound."""
+
+    match = re.search(r"\(([^)]*)\)\s*VALUES", text)
+    if not match:
+        return []
+    return [name.strip().strip('"') for name in match.group(1).split(",")]
+
+
 def repository_with_mock_connection(
     *, preseeded_source_references: set[str] | None = None
 ) -> tuple[PersonRepository, MagicMock, MagicMock]:
@@ -134,7 +145,17 @@ def repository_with_mock_connection(
         elif upper.startswith("INSERT INTO") and "RETURNING" not in upper and params:
             for table in _DEPENDENT_TABLES:
                 if f'"{table}"' in text:
-                    existing_dependent_keys.add((table, int(params[0]), tuple(params[1:])))
+                    # Reconstruct the full persisted row shape (all of that
+                    # table's columns, absent ones as None) from the actual
+                    # column list in the rendered SQL, not just the bound
+                    # values in isolation -- this must match the same shape
+                    # _dependent_row_exists() queries against (see there).
+                    provided = dict(zip(_parse_insert_columns(text), params, strict=True))
+                    employee_id = int(provided.pop("employee_id"))
+                    full_row = tuple(
+                        provided.get(column) for column in _DEPENDENT_TABLE_COLUMNS[table]
+                    )
+                    existing_dependent_keys.add((table, employee_id, full_row))
                     break
 
     mock_cursor.execute.side_effect = execute_side_effect
@@ -632,3 +653,68 @@ def test_enrichment_does_not_touch_employees_own_columns() -> None:
     ]
     assert len(update_calls) == 1
     assert "UPDATE processing_audit" in _query_text(update_calls[0].args[0])
+
+
+# ---------------------------------------------------------------------------
+# HRP-57 review fixes: NULL-safe/full-column dependent equality, a locked
+# existing-employee lookup to guard concurrent enrichment, and audit-update
+# failure handling. The SQL-semantics claims themselves (NULL-safety, full
+# equality across partial/complete inputs, actual concurrent blocking) are
+# NOT provable by a Python-state mock -- see the real-database counterparts
+# in tests/integration/test_person_repository.py, which is what actually
+# proves them.
+# ---------------------------------------------------------------------------
+
+
+def test_existing_employee_lookup_locks_the_audit_row_for_update() -> None:
+    """FOR UPDATE must be present in the SQL text: this is what prevents two
+    concurrent enrichment attempts for the same source_reference from both
+    seeing "not yet inserted" and duplicating a dependent row -- HRP-58's
+    unique index on raw_event_ref does not protect this path."""
+    repository, _mock_connection, mock_cursor = repository_with_mock_connection()
+    repository.insert_mapping(mapping(employees=(employee_row(),)))
+    repository.insert_mapping(mapping(employees=(employee_row(),), locations=(location_row(),)))
+
+    lookup_calls = [
+        call
+        for call in mock_cursor.execute.call_args_list
+        if "SELECT employee_id FROM processing_audit" in _query_text(call.args[0])
+    ]
+    assert len(lookup_calls) == 1
+    assert "FOR UPDATE" in _query_text(lookup_calls[0].args[0]).upper()
+
+
+def test_audit_update_failure_after_dependent_insert_rolls_back_and_batch_continues() -> None:
+    """Simulates the audit UPDATE itself failing after a new dependent row
+    was already inserted in the same transaction: the whole enrichment must
+    roll back, and a following component in the same batch must still
+    succeed."""
+    repository, mock_connection, mock_cursor = repository_with_mock_connection()
+
+    repository.insert_mapping(mapping(employees=(employee_row(source_reference="ref-a"),)))
+    good_record = mapping(employees=(employee_row(source_reference="ref-b"),))
+    enrich_record = mapping(
+        employees=(employee_row(source_reference="ref-a"),),
+        locations=(location_row(),),
+    )
+
+    call_count = 0
+    original_side_effect = mock_cursor.execute.side_effect
+
+    def execute_side_effect(query: object, params: object = None) -> None:
+        nonlocal call_count
+        call_count += 1
+        text = _query_text(query).upper()
+        if text.startswith("UPDATE PROCESSING_AUDIT") and call_count >= 4:
+            raise Exception("audit update failed")
+        original_side_effect(query, params)  # type: ignore[misc]
+
+    mock_cursor.execute.side_effect = execute_side_effect
+
+    outcomes = repository.insert_mappings([enrich_record, good_record])
+
+    assert outcomes[0].inserted is False
+    assert outcomes[0].skipped_reason == "insert_error"
+    assert outcomes[1].inserted is True
+    assert mock_connection.rollback.call_count == 1
+    assert mock_connection.commit.call_count == 2  # ref-a's initial insert + good_record

@@ -63,9 +63,19 @@ PostgreSQL.
   component whose `employees` candidate row's `source_reference` is already
   recorded in `processing_audit`, a dependent `CandidateRow` (in
   `locations`, `professional_profiles`, `bank_accounts` or `network_data`)
-  counts as new if no existing row for that `employee_id` in that table has
-  the exact same field values. Exact match only — no fuzzy comparison, no
-  precedence rule (see "What stays open").
+  counts as new if no existing row for that `employee_id` in that table
+  matches on **every** column that table declares — not only the columns
+  present in the incoming `CandidateRow`. Comparing only the incoming keys
+  is subset matching, not true row equality, and would misreport a match
+  against a persisted row that has additional populated columns the
+  candidate doesn't mention (or vice versa); a column absent from the
+  incoming row is treated as NULL, matching what would actually be
+  persisted for it. The comparison itself must be NULL-safe (SQL's
+  three-valued logic means plain `=` is never true when either side is
+  NULL, so two otherwise-identical rows sharing a NULL field would
+  otherwise be wrongly treated as different and duplicated on replay).
+  Exact match only — no fuzzy comparison, no precedence rule (see "What
+  stays open").
 - Extending `PersonRepository.insert_mapping()`'s control flow (not
   `_already_processed()` or `_record_processing_audit()` themselves, which
   stay exactly as HRP-58 left them) so that when the check finds a match:
@@ -147,10 +157,21 @@ PostgreSQL.
   `source_reference` reappears with a different `email`, that change is
   silently not reflected in `employees` — this is an explicit limitation
   (see "What stays open"), not an oversight.
-- **Additional `processing_audit` rows accumulate per enrichment event.**
-  This grows the audit table proportionally to reprocessing frequency; no
-  retention/cleanup policy is defined here (out of scope, consistent with
-  `processing_audit` having no such policy today either).
+- **Enrichment does not append `processing_audit` history; it updates one
+  marker in place.** HRP-58's proposed unique index on `raw_event_ref`
+  allows at most one `processing_audit` row per source reference, so an
+  enrichment event `UPDATE`s that row's `stage`/`status`/`occurred_at`
+  rather than inserting a second row — there is no unbounded audit-table
+  growth from reprocessing, and no prior enrichment history is retained,
+  only the most recent marker.
+- **The `_find_existing_employee_id` lookup takes a row-level lock
+  (`FOR UPDATE`) on the `processing_audit` row for the rest of the
+  transaction.** This is required, not incidental: HRP-58's unique index
+  only serialises the very first insert for a reference, not two
+  concurrent enrichment attempts for an already-processed one. Without this
+  lock, two concurrent transactions could both see a dependent row as "not
+  yet present" and both insert it, since dependent tables have no
+  uniqueness constraint of their own.
 
 ## Design
 
@@ -240,13 +261,18 @@ This only ever inserts new dependent rows; it never issues `UPDATE` or
 
 | Level | Case | Expected evidence |
 |---|---|---|
-| Unit | A component with an already-recorded `source_reference` and one genuinely new dependent row inserts only that row, linked to the existing `employee_id` | Mocked cursor asserts one dependent `INSERT` with the existing `employee_id` bound, and an additional `processing_audit` insert |
-| Unit | A component with an already-recorded `source_reference` and no new dependent data performs no write at all | Mocked cursor receives no `INSERT` calls |
+| Unit | A component with an already-recorded `source_reference` and one genuinely new dependent row inserts only that row, linked to the existing `employee_id`, and the audit row is UPDATEd (not a 2nd INSERT) | Mocked cursor asserts one dependent `INSERT` with the existing `employee_id` bound, and one `UPDATE processing_audit` call |
+| Unit | A component with an already-recorded `source_reference` and no new dependent data performs no write at all | Mocked cursor receives no `INSERT`/`UPDATE` calls |
+| Unit | The existing-employee lookup takes a `FOR UPDATE` lock | Assert the lookup query's SQL text contains `FOR UPDATE` |
+| Unit | An audit-`UPDATE` failure after a successful dependent insert rolls back, and a following component in the same batch still succeeds | Mocked connection asserts `rollback()` for the failed component and `commit()` for the next one |
 | Unit | The existing-employee lookup and the "does this row already exist" check never bind a business-identity field | Assert bound values only ever include `source_reference`/`employee_id`/dependent-table fields already approved by HRP-25 |
 | Unit | `_already_processed()`/`_record_processing_audit()` call sites and behaviour are unchanged from HRP-58 | Existing HRP-58 tests continue to pass unmodified |
 | Integration | Insert a component, reprocess it with one additional dependent fragment, confirm exactly one new row appears and the original is untouched | Real HRP-53 container, skipped automatically if unreachable; cleanup scoped to the `employee_id`s created |
+| Integration | A dependent row with NULL fields is recognized as identical on replay, not duplicated | Real HRP-53 container — a mock's Python `None == None` cannot prove SQL's NULL-unsafe `=` semantics |
+| Integration | A partial dependent row and a later complete one for the same employee are treated as genuinely distinct rows (both directions) | Real HRP-53 container |
+| Integration | Two concurrent enrichment attempts for the same `source_reference`/new dependent row do not both insert it | Real HRP-53 container, two threads/connections; proves the `FOR UPDATE` lock actually serialises them — not provable with a mock |
 | Quality | `pre-commit run --all-files`, `ruff check .`, `ruff format --check .`, `mypy src`, `pytest`, `python scripts/validate_specs.py` | Commands pass |
-| Human review | Miguel reviews that no business-identity resolution, `UPDATE` policy, or recency rule was smuggled in | Approval recorded in the PR before any next step |
+| Human review | Miguel reviews that no business-identity resolution, `UPDATE` policy for `employees`, or recency rule was smuggled in | Approval recorded in the PR before any next step |
 
 ## Closing evidence
 
