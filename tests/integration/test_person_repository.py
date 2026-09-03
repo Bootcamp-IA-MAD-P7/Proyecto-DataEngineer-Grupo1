@@ -753,8 +753,30 @@ def test_concurrent_enrichment_of_the_same_reference_does_not_duplicate_a_depend
     insert the same new dependent row. Uses two separate connections and
     threads against the live database -- this cannot be demonstrated with a
     mock.
+
+    Robustness of the test itself: every wait this test controls is bounded
+    (both thread joins, the monitor's own polling window, and
+    setup_connection's lock_timeout/statement_timeout). Termination of every
+    thread this test started -- both workers and the monitor -- is verified
+    explicitly rather than assumed from a timed join() returning, and errors
+    from every thread (including the monitor) are captured and asserted on
+    rather than silently swallowed. Contention is verified as specifically
+    one worker blocked *by the other worker's own backend PID* via
+    pg_blocking_pids(), not merely "some lock wait exists somewhere in the
+    database", which could false-positive on unrelated concurrent activity.
+    The one thing that cannot be bounded from this test alone is a worker's
+    own database call hanging forever with no server-side timeout on that
+    specific connection: Python cannot forcibly terminate a thread, and
+    adding a lock_timeout to PersonRepository's own connection would be a
+    production change, out of scope for this review round. If that ever
+    happened, this test fails clearly on the is_alive() check below instead
+    of hanging pytest indefinitely, and cleanup (via setup_connection, which
+    does have a bounded lock_timeout) still runs and fails fast rather than
+    hanging too.
     """
     import threading
+    import time
+    from unittest.mock import patch
 
     import psycopg
 
@@ -774,6 +796,10 @@ def test_concurrent_enrichment_of_the_same_reference_does_not_duplicate_a_depend
         pytest.skip("PostgreSQL environment variables are not configured (.env missing?).")
 
     try:
+        # lock_timeout/statement_timeout bound every query this test issues
+        # directly (monitor polling, cleanup): if anything goes wrong here,
+        # a query fails fast with a clear Postgres error instead of hanging
+        # the whole pytest run.
         setup_connection = psycopg.connect(
             host=POSTGRES_HOST,
             port=POSTGRES_PORT,
@@ -781,6 +807,7 @@ def test_concurrent_enrichment_of_the_same_reference_does_not_duplicate_a_depend
             user=POSTGRES_USER,
             password=POSTGRES_PASSWORD,
             connect_timeout=2,
+            options="-c lock_timeout=5000 -c statement_timeout=8000",
         )
     except psycopg.OperationalError:
         pytest.skip(
@@ -864,11 +891,9 @@ def test_concurrent_enrichment_of_the_same_reference_does_not_duplicate_a_depend
     assert seed_outcome.inserted is True
     employee_id = seed_outcome.employee_id
 
-    import time
-    from unittest.mock import patch
-
     barrier = threading.Barrier(2)
     results: list[object] = [None, None]
+    worker_pids: list[int | None] = [None, None]
     errors: list[BaseException] = []
     workers_done = threading.Event()
 
@@ -877,6 +902,9 @@ def test_concurrent_enrichment_of_the_same_reference_does_not_duplicate_a_depend
             repository = PersonRepository()
             try:
                 repository.connect()
+                connection = repository._connection  # noqa: SLF001
+                assert connection is not None
+                worker_pids[index] = connection.info.backend_pid
                 barrier.wait(timeout=5)
                 results[index] = repository.insert_mapping(build_mapping())
             finally:
@@ -884,27 +912,35 @@ def test_concurrent_enrichment_of_the_same_reference_does_not_duplicate_a_depend
         except BaseException as error:  # noqa: BLE001
             errors.append(error)
 
-    # Bounded-wait proof of actual lock contention, not just an attempt at
-    # it: poll pg_stat_activity from a third connection while both workers
-    # run, looking for a backend genuinely blocked waiting on a lock (not
-    # merely "both threads started around the same time", which a barrier
-    # alone does not guarantee produces real contention).
+    # Bounded-wait proof of contention specifically between these two
+    # workers -- not merely "some backend somewhere is waiting on some
+    # lock", which could false-positive on unrelated concurrent activity in
+    # a shared database. pg_blocking_pids() confirms one worker's own
+    # backend PID is blocked *by the other worker's own backend PID*.
     contention_observed = threading.Event()
+    monitor_errors: list[BaseException] = []
 
     def monitor() -> None:
-        deadline = time.monotonic() + 5.0
-        while not workers_done.is_set() and time.monotonic() < deadline:
-            with setup_connection.cursor() as cursor:
-                cursor.execute(
-                    "SELECT count(*) FROM pg_stat_activity "
-                    "WHERE wait_event_type = 'Lock' AND pid != pg_backend_pid() "
-                    "AND datname = current_database()"
-                )
-                waiting = cursor.fetchone()
-            if waiting is not None and waiting[0] > 0:
-                contention_observed.set()
-                return
-            time.sleep(0.01)
+        try:
+            deadline = time.monotonic() + 5.0
+            while not workers_done.is_set() and time.monotonic() < deadline:
+                pids = [pid for pid in worker_pids if pid is not None]
+                if len(pids) == 2:
+                    with setup_connection.cursor() as cursor:
+                        cursor.execute(
+                            "SELECT pid, pg_blocking_pids(pid) FROM pg_stat_activity "
+                            "WHERE pid = ANY(%s) AND wait_event_type = 'Lock'",
+                            (pids,),
+                        )
+                        rows = cursor.fetchall()
+                    for blocked_pid, blocking_pids in rows:
+                        other_pid = next(pid for pid in pids if pid != blocked_pid)
+                        if other_pid in (blocking_pids or []):
+                            contention_observed.set()
+                            return
+                time.sleep(0.01)
+        except BaseException as error:  # noqa: BLE001
+            monitor_errors.append(error)
 
     # Whichever worker acquires the FOR UPDATE lock first deliberately holds
     # it for a bounded, deterministic window before its transaction can
@@ -936,11 +972,23 @@ def test_concurrent_enrichment_of_the_same_reference_does_not_duplicate_a_depend
         monitor_thread.join(timeout=6)
 
     try:
+        # Termination is verified explicitly for every thread this test
+        # started -- a timed join() returning does not by itself prove a
+        # thread finished; it may still be alive, and since Python cannot
+        # forcibly terminate a thread, that is reported as a clear failure
+        # here rather than silently proceeding as if nothing were wrong.
+        assert all(
+            not thread.is_alive() for thread in threads
+        ), "a worker thread did not terminate within its bounded join timeout"
+        assert (
+            not monitor_thread.is_alive()
+        ), "the monitor thread did not terminate within its bounded join timeout"
         assert not errors, f"concurrent enrichment raised: {errors}"
-        assert all(not thread.is_alive() for thread in threads), "a worker thread did not finish"
+        assert not monitor_errors, f"the contention monitor raised: {monitor_errors}"
         assert contention_observed.is_set(), (
-            "monitor never observed a backend waiting on a lock -- the test did not "
-            "actually exercise concurrent contention on this run"
+            "monitor never observed one worker specifically blocked by the other "
+            "worker's own backend PID -- the test did not actually exercise "
+            "concurrent contention between these two workers on this run"
         )
 
         outcome_x, outcome_y = results
@@ -969,7 +1017,6 @@ def test_concurrent_enrichment_of_the_same_reference_does_not_duplicate_a_depend
                 "DELETE FROM processing_audit WHERE employee_id = %s", (employee_id,)
             )
             cleanup_cursor.execute("DELETE FROM employees WHERE id = %s", (employee_id,))
-        setup_connection.commit()
         setup_connection.close()
 
 
@@ -978,8 +1025,11 @@ def test_enrichment_covers_all_four_dependent_tables_and_isolates_two_employees(
 ) -> None:
     """Real-database proof that enrichment works across all four dependent
     tables (not just locations, which every other test above happens to
-    use) and that two distinct, concurrently-enriched employees never
-    cross-contaminate each other's rows. Uses two real, database-generated
+    use) and that two distinct, sequentially-enriched employees never
+    cross-contaminate each other's rows or each other's processing_audit
+    marker. Both employees use IDENTICAL dependent-field values, so
+    isolation is proven purely by employee_id scoping rather than
+    incidentally by differing content. Uses two real, database-generated
     employee_id values -- a mock returning a single fixed id cannot
     demonstrate isolation between distinct ids.
     """
@@ -993,6 +1043,8 @@ def test_enrichment_covers_all_four_dependent_tables_and_isolates_two_employees(
         schema_client.create_schema()
     finally:
         schema_client.close()
+
+    shared_marker = "shared-marker"
 
     def bare_mapping(source_reference: str, passport: str, name: str) -> PersonRecordMapping:
         return PersonRecordMapping(
@@ -1065,6 +1117,34 @@ def test_enrichment_covers_all_four_dependent_tables_and_isolates_two_employees(
     ref_a, passport_a = "integration-test-isolation-source-A", "INTEGRATION-TEST-P-ISOLATION-A"
     ref_b, passport_b = "integration-test-isolation-source-B", "INTEGRATION-TEST-P-ISOLATION-B"
 
+    all_tables = ("locations", "professional_profiles", "bank_accounts", "network_data")
+    marker_column_by_table = {
+        "locations": "city",
+        "professional_profiles": "job",
+        "bank_accounts": "iban",
+        "network_data": "ip_v4",
+    }
+
+    def rows_for(employee_id: int, table: str) -> list[tuple[object, ...]]:
+        marker_column = marker_column_by_table[table]
+        with live_connection.cursor() as cursor:
+            cursor.execute(
+                f'SELECT employee_id, "{marker_column}" FROM {table} WHERE employee_id = %s',
+                (employee_id,),
+            )
+            return list(cursor.fetchall())
+
+    def audit_snapshot(employee_id: int) -> tuple[object, ...]:
+        with live_connection.cursor() as cursor:
+            cursor.execute(
+                "SELECT stage, status, occurred_at FROM processing_audit "
+                "WHERE employee_id = %s AND raw_event_ref IS NOT NULL",
+                (employee_id,),
+            )
+            row = cursor.fetchone()
+        assert row is not None
+        return row
+
     repository = PersonRepository()
     repository.connect()
     outcome_a1 = outcome_b1 = None
@@ -1073,43 +1153,59 @@ def test_enrichment_covers_all_four_dependent_tables_and_isolates_two_employees(
         outcome_b1 = repository.insert_mapping(bare_mapping(ref_b, passport_b, "IsolationB"))
         assert outcome_a1.inserted and outcome_b1.inserted
         assert outcome_a1.employee_id != outcome_b1.employee_id
+        employee_id_a = outcome_a1.employee_id
+        employee_id_b = outcome_b1.employee_id
+        assert employee_id_a is not None and employee_id_b is not None
+
+        # Snapshot B's audit marker before touching A at all, so the check
+        # below proves enriching A leaves B's own marker completely alone.
+        audit_before_a_enrichment = audit_snapshot(employee_id_b)
 
         outcome_a2 = repository.insert_mapping(
-            enriched_mapping(ref_a, passport_a, "IsolationA", "marker-A")
+            enriched_mapping(ref_a, passport_a, "IsolationA", shared_marker)
         )
-        outcome_b2 = repository.insert_mapping(
-            enriched_mapping(ref_b, passport_b, "IsolationB", "marker-B")
-        )
-        assert set(outcome_a2.enriched_tables) == {
-            "locations",
-            "professional_profiles",
-            "bank_accounts",
-            "network_data",
-        }
-        assert set(outcome_b2.enriched_tables) == {
-            "locations",
-            "professional_profiles",
-            "bank_accounts",
-            "network_data",
-        }
+        assert set(outcome_a2.enriched_tables) == set(all_tables)
 
-        with live_connection.cursor() as cursor:
-            for table, marker_column in (
-                ("locations", "city"),
-                ("professional_profiles", "job"),
-                ("bank_accounts", "iban"),
-                ("network_data", "ip_v4"),
-            ):
-                cursor.execute(
-                    f'SELECT employee_id, "{marker_column}" FROM {table} '
-                    "WHERE employee_id IN (%s, %s)",
-                    (outcome_a1.employee_id, outcome_b1.employee_id),
-                )
-                rows = {row[0]: row[1] for row in cursor.fetchall()}
-                assert rows == {
-                    outcome_a1.employee_id: "marker-A",
-                    outcome_b1.employee_id: "marker-B",
-                }, f"cross-contamination detected in {table}"
+        assert (
+            audit_snapshot(employee_id_b) == audit_before_a_enrichment
+        ), "enriching employee A modified employee B's processing_audit marker"
+
+        outcome_b2 = repository.insert_mapping(
+            enriched_mapping(ref_b, passport_b, "IsolationB", shared_marker)
+        )
+        assert set(outcome_b2.enriched_tables) == set(all_tables)
+
+        for table in all_tables:
+            rows_a = rows_for(employee_id_a, table)
+            rows_b = rows_for(employee_id_b, table)
+            assert rows_a == [
+                (employee_id_a, shared_marker)
+            ], f"unexpected rows for employee A in {table}: {rows_a}"
+            assert rows_b == [
+                (employee_id_b, shared_marker)
+            ], f"unexpected rows for employee B in {table}: {rows_b}"
+
+        # Replay both enrichments with identical input: since both were
+        # already fully enriched, no further rows should be inserted (a
+        # dict-collapsed row fetch could hide a duplicate under the same
+        # employee_id key, which is exactly why exact row lists are
+        # asserted above and again here) and neither outcome should report
+        # any newly-enriched table.
+        replay_a = repository.insert_mapping(
+            enriched_mapping(ref_a, passport_a, "IsolationA", shared_marker)
+        )
+        replay_b = repository.insert_mapping(
+            enriched_mapping(ref_b, passport_b, "IsolationB", shared_marker)
+        )
+        assert replay_a.enriched_tables == ()
+        assert replay_b.enriched_tables == ()
+        for table in all_tables:
+            assert rows_for(employee_id_a, table) == [
+                (employee_id_a, shared_marker)
+            ], f"replay duplicated a row for employee A in {table}"
+            assert rows_for(employee_id_b, table) == [
+                (employee_id_b, shared_marker)
+            ], f"replay duplicated a row for employee B in {table}"
     finally:
         with live_connection.cursor() as cleanup_cursor:
             for outcome in (outcome_a1, outcome_b1):
