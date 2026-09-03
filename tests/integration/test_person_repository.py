@@ -637,14 +637,20 @@ def test_replaying_a_dependent_row_with_null_fields_does_not_duplicate_it(
         repository.close()
 
 
-def test_partial_then_complete_dependent_data_is_not_treated_as_the_same_row(
+@pytest.mark.parametrize(
+    "first_is_complete", [False, True], ids=["partial-then-complete", "complete-then-partial"]
+)
+def test_partial_and_complete_dependent_data_are_distinct_rows_in_both_orders(
     live_connection: psycopg.Connection[tuple[object, ...]],
+    first_is_complete: bool,
 ) -> None:
-    """Real-database proof of full-column (not subset) equality: a partial
-    row (only full_name) and a later complete row (full_name + city +
-    address) for the same employee are genuinely different persisted rows
-    once every column is compared, not just the columns the incoming
-    candidate happens to mention.
+    """Real-database proof of full-column (not subset) equality, in both
+    possible arrival orders: a partial row (only full_name) and a complete
+    row (full_name + city + address) for the same employee are genuinely
+    different persisted rows once every column is compared -- regardless of
+    which one arrives first. Also confirms replaying either exact input
+    again does not grow the row count further, i.e. each of the two
+    persisted rows is individually recognized on its own replay.
     """
     from hr_pro_platform.storage.person_mapper import CandidateRow, PersonRecordMapping
     from hr_pro_platform.storage.person_repository import PersonRepository
@@ -657,8 +663,8 @@ def test_partial_then_complete_dependent_data_is_not_treated_as_the_same_row(
     finally:
         schema_client.close()
 
-    source_reference = "integration-test-partial-complete-source"
-    passport = "INTEGRATION-TEST-P-PARTIALCOMPLETE"
+    source_reference = f"integration-test-partial-complete-{first_is_complete}"
+    passport = f"INTEGRATION-TEST-P-PARTIALCOMPLETE-{first_is_complete}"
 
     def build_mapping(*, complete: bool) -> PersonRecordMapping:
         fields: dict[str, object] = {"full_name": "PartialComplete Fixture"}
@@ -694,23 +700,38 @@ def test_partial_then_complete_dependent_data_is_not_treated_as_the_same_row(
             network_data=(),
         )
 
+    partial_mapping = build_mapping(complete=False)
+    complete_mapping = build_mapping(complete=True)
+    first_mapping = complete_mapping if first_is_complete else partial_mapping
+    second_mapping = partial_mapping if first_is_complete else complete_mapping
+
     repository = PersonRepository()
     repository.connect()
     first_outcome = None
     try:
-        first_outcome = repository.insert_mapping(build_mapping(complete=False))
+        first_outcome = repository.insert_mapping(first_mapping)
         assert first_outcome.inserted is True
 
-        second_outcome = repository.insert_mapping(build_mapping(complete=True))
+        second_outcome = repository.insert_mapping(second_mapping)
         assert second_outcome.enriched_tables == ("locations",)
+
+        # Replaying either exact input again must not grow the row count
+        # further -- both the partial and the complete row must each be
+        # individually recognized on their own replay.
+        replay_first = repository.insert_mapping(first_mapping)
+        replay_second = repository.insert_mapping(second_mapping)
+        assert replay_first.enriched_tables == ()
+        assert replay_second.enriched_tables == ()
 
         with live_connection.cursor() as cursor:
             cursor.execute(
-                "SELECT count(*) FROM locations WHERE employee_id = %s",
+                "SELECT city, address FROM locations "
+                "WHERE employee_id = %s ORDER BY city NULLS FIRST",
                 (first_outcome.employee_id,),
             )
-            location_count = cursor.fetchone()
-        assert location_count == (2,)  # partial and complete are distinct rows
+            rows = cursor.fetchall()
+
+        assert rows == [(None, None), ("Springfield", "123 Main St")]
     finally:
         if first_outcome is not None and first_outcome.employee_id is not None:
             with live_connection.cursor() as cleanup_cursor:
@@ -766,6 +787,13 @@ def test_concurrent_enrichment_of_the_same_reference_does_not_duplicate_a_depend
             "PostgreSQL is not reachable; "
             "start it with `docker compose -f infra/compose.dev.yml up -d postgres`."
         )
+    # Autocommit is required for the monitor loop below: pg_stat_activity
+    # reports live backend/wait-event state, but polling it repeatedly from
+    # inside one long-held, never-committed transaction was empirically
+    # observed to make every *other* backend's row disappear entirely from
+    # the result -- confirmed by comparing otherwise-identical runs with and
+    # without autocommit against a live database.
+    setup_connection.autocommit = True
 
     schema_client = PostgresSchemaClient()
     schema_client.connect()
@@ -836,29 +864,98 @@ def test_concurrent_enrichment_of_the_same_reference_does_not_duplicate_a_depend
     assert seed_outcome.inserted is True
     employee_id = seed_outcome.employee_id
 
+    import time
+    from unittest.mock import patch
+
     barrier = threading.Barrier(2)
     results: list[object] = [None, None]
     errors: list[BaseException] = []
+    workers_done = threading.Event()
 
     def enrich(index: int) -> None:
-        repository = PersonRepository()
-        repository.connect()
         try:
-            barrier.wait(timeout=5)
-            results[index] = repository.insert_mapping(build_mapping())
+            repository = PersonRepository()
+            try:
+                repository.connect()
+                barrier.wait(timeout=5)
+                results[index] = repository.insert_mapping(build_mapping())
+            finally:
+                repository.close()
         except BaseException as error:  # noqa: BLE001
             errors.append(error)
-        finally:
-            repository.close()
+
+    # Bounded-wait proof of actual lock contention, not just an attempt at
+    # it: poll pg_stat_activity from a third connection while both workers
+    # run, looking for a backend genuinely blocked waiting on a lock (not
+    # merely "both threads started around the same time", which a barrier
+    # alone does not guarantee produces real contention).
+    contention_observed = threading.Event()
+
+    def monitor() -> None:
+        deadline = time.monotonic() + 5.0
+        while not workers_done.is_set() and time.monotonic() < deadline:
+            with setup_connection.cursor() as cursor:
+                cursor.execute(
+                    "SELECT count(*) FROM pg_stat_activity "
+                    "WHERE wait_event_type = 'Lock' AND pid != pg_backend_pid() "
+                    "AND datname = current_database()"
+                )
+                waiting = cursor.fetchone()
+            if waiting is not None and waiting[0] > 0:
+                contention_observed.set()
+                return
+            time.sleep(0.01)
+
+    # Whichever worker acquires the FOR UPDATE lock first deliberately holds
+    # it for a bounded, deterministic window before its transaction can
+    # commit -- this is what makes the monitor's contention observation
+    # reliable rather than dependent on both threads happening to race
+    # within a few milliseconds of each other. This still exercises the
+    # real, unmodified locking/enrichment logic; it only adds a delay after
+    # the real lock has already been acquired.
+    original_find_existing_employee_id = PersonRepository._find_existing_employee_id
+
+    def held_find_existing_employee_id(cursor: object, source_reference: str) -> object:
+        result = original_find_existing_employee_id(cursor, source_reference)
+        time.sleep(1.0)
+        return result
 
     threads = [threading.Thread(target=enrich, args=(i,)) for i in range(2)]
-    for thread in threads:
-        thread.start()
-    for thread in threads:
-        thread.join(timeout=15)
+    monitor_thread = threading.Thread(target=monitor)
+    with patch.object(
+        PersonRepository,
+        "_find_existing_employee_id",
+        staticmethod(held_find_existing_employee_id),
+    ):
+        monitor_thread.start()
+        for thread in threads:
+            thread.start()
+        for thread in threads:
+            thread.join(timeout=15)
+        workers_done.set()
+        monitor_thread.join(timeout=6)
 
     try:
         assert not errors, f"concurrent enrichment raised: {errors}"
+        assert all(not thread.is_alive() for thread in threads), "a worker thread did not finish"
+        assert contention_observed.is_set(), (
+            "monitor never observed a backend waiting on a lock -- the test did not "
+            "actually exercise concurrent contention on this run"
+        )
+
+        outcome_x, outcome_y = results
+        assert outcome_x is not None and outcome_y is not None
+        enriched = [outcome for outcome in (outcome_x, outcome_y) if outcome.enriched_tables]
+        skipped = [
+            outcome
+            for outcome in (outcome_x, outcome_y)
+            if outcome.skipped_reason == "already_processed"
+        ]
+        assert len(enriched) == 1, f"expected exactly one winner, got: {results}"
+        assert enriched[0].enriched_tables == ("locations",)
+        assert len(skipped) == 1, f"expected exactly one loser, got: {results}"
+        assert skipped[0].enriched_tables == ()
+
         with setup_connection.cursor() as cursor:
             cursor.execute(
                 "SELECT count(*) FROM locations WHERE employee_id = %s AND city = %s",
@@ -874,3 +971,155 @@ def test_concurrent_enrichment_of_the_same_reference_does_not_duplicate_a_depend
             cleanup_cursor.execute("DELETE FROM employees WHERE id = %s", (employee_id,))
         setup_connection.commit()
         setup_connection.close()
+
+
+def test_enrichment_covers_all_four_dependent_tables_and_isolates_two_employees(
+    live_connection: psycopg.Connection[tuple[object, ...]],
+) -> None:
+    """Real-database proof that enrichment works across all four dependent
+    tables (not just locations, which every other test above happens to
+    use) and that two distinct, concurrently-enriched employees never
+    cross-contaminate each other's rows. Uses two real, database-generated
+    employee_id values -- a mock returning a single fixed id cannot
+    demonstrate isolation between distinct ids.
+    """
+    from hr_pro_platform.storage.person_mapper import CandidateRow, PersonRecordMapping
+    from hr_pro_platform.storage.person_repository import PersonRepository
+    from hr_pro_platform.storage.postgres import PostgresSchemaClient
+
+    schema_client = PostgresSchemaClient()
+    schema_client.connect()
+    try:
+        schema_client.create_schema()
+    finally:
+        schema_client.close()
+
+    def bare_mapping(source_reference: str, passport: str, name: str) -> PersonRecordMapping:
+        return PersonRecordMapping(
+            status="incomplete",
+            correlation_rules=(),
+            provenance=(source_reference,),
+            employees=(
+                CandidateRow(
+                    table="employees",
+                    group_key=passport,
+                    fields={"first_name": name, "last_name": "Fixture", "passport": passport},
+                    source_reference=source_reference,
+                ),
+            ),
+            locations=(),
+            professional_profiles=(),
+            bank_accounts=(),
+            network_data=(),
+        )
+
+    def enriched_mapping(
+        source_reference: str, passport: str, name: str, marker: str
+    ) -> PersonRecordMapping:
+        return PersonRecordMapping(
+            status="complete",
+            correlation_rules=(),
+            provenance=(source_reference,),
+            employees=(
+                CandidateRow(
+                    table="employees",
+                    group_key=passport,
+                    fields={"first_name": name, "last_name": "Fixture", "passport": passport},
+                    source_reference=source_reference,
+                ),
+            ),
+            locations=(
+                CandidateRow(
+                    table="locations",
+                    group_key=f"{name} Fixture",
+                    fields={"full_name": f"{name} Fixture", "city": marker},
+                    source_reference=source_reference,
+                ),
+            ),
+            professional_profiles=(
+                CandidateRow(
+                    table="professional_profiles",
+                    group_key=f"{name} Fixture",
+                    fields={"full_name": f"{name} Fixture", "job": marker},
+                    source_reference=source_reference,
+                ),
+            ),
+            bank_accounts=(
+                CandidateRow(
+                    table="bank_accounts",
+                    group_key=passport,
+                    fields={"iban": marker},
+                    source_reference=source_reference,
+                ),
+            ),
+            network_data=(
+                CandidateRow(
+                    table="network_data",
+                    group_key=marker,
+                    fields={"ip_v4": marker},
+                    source_reference=source_reference,
+                ),
+            ),
+        )
+
+    ref_a, passport_a = "integration-test-isolation-source-A", "INTEGRATION-TEST-P-ISOLATION-A"
+    ref_b, passport_b = "integration-test-isolation-source-B", "INTEGRATION-TEST-P-ISOLATION-B"
+
+    repository = PersonRepository()
+    repository.connect()
+    outcome_a1 = outcome_b1 = None
+    try:
+        outcome_a1 = repository.insert_mapping(bare_mapping(ref_a, passport_a, "IsolationA"))
+        outcome_b1 = repository.insert_mapping(bare_mapping(ref_b, passport_b, "IsolationB"))
+        assert outcome_a1.inserted and outcome_b1.inserted
+        assert outcome_a1.employee_id != outcome_b1.employee_id
+
+        outcome_a2 = repository.insert_mapping(
+            enriched_mapping(ref_a, passport_a, "IsolationA", "marker-A")
+        )
+        outcome_b2 = repository.insert_mapping(
+            enriched_mapping(ref_b, passport_b, "IsolationB", "marker-B")
+        )
+        assert set(outcome_a2.enriched_tables) == {
+            "locations",
+            "professional_profiles",
+            "bank_accounts",
+            "network_data",
+        }
+        assert set(outcome_b2.enriched_tables) == {
+            "locations",
+            "professional_profiles",
+            "bank_accounts",
+            "network_data",
+        }
+
+        with live_connection.cursor() as cursor:
+            for table, marker_column in (
+                ("locations", "city"),
+                ("professional_profiles", "job"),
+                ("bank_accounts", "iban"),
+                ("network_data", "ip_v4"),
+            ):
+                cursor.execute(
+                    f'SELECT employee_id, "{marker_column}" FROM {table} '
+                    "WHERE employee_id IN (%s, %s)",
+                    (outcome_a1.employee_id, outcome_b1.employee_id),
+                )
+                rows = {row[0]: row[1] for row in cursor.fetchall()}
+                assert rows == {
+                    outcome_a1.employee_id: "marker-A",
+                    outcome_b1.employee_id: "marker-B",
+                }, f"cross-contamination detected in {table}"
+    finally:
+        with live_connection.cursor() as cleanup_cursor:
+            for outcome in (outcome_a1, outcome_b1):
+                if outcome is not None and outcome.employee_id is not None:
+                    cleanup_cursor.execute(
+                        "DELETE FROM processing_audit WHERE employee_id = %s",
+                        (outcome.employee_id,),
+                    )
+                    cleanup_cursor.execute(
+                        "DELETE FROM employees WHERE id = %s", (outcome.employee_id,)
+                    )
+        live_connection.commit()
+        repository.close()
