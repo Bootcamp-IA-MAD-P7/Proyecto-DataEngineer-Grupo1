@@ -50,7 +50,7 @@ def test_insert_mapping_round_trips_through_a_real_database(
     live_connection: psycopg.Connection[tuple[object, ...]],
 ) -> None:
     from hr_pro_platform.storage.person_mapper import CandidateRow, PersonRecordMapping
-    from hr_pro_platform.storage.person_repository import PersonRepository
+    from hr_pro_platform.storage.person_repository import InsertOutcome, PersonRepository
     from hr_pro_platform.storage.postgres import PostgresSchemaClient
 
     schema_client = PostgresSchemaClient()
@@ -71,6 +71,7 @@ def test_insert_mapping_round_trips_through_a_real_database(
                 fields={
                     "first_name": "IntegrationTest",
                     "last_name": "Fixture",
+                    "sex": ["X"],
                     "passport": "INTEGRATION-TEST-P-001",
                 },
                 source_reference="integration-test-source",
@@ -91,6 +92,7 @@ def test_insert_mapping_round_trips_through_a_real_database(
 
     repository = PersonRepository()
     repository.connect()
+    outcome: InsertOutcome | None = None
     try:
         outcome = repository.insert_mapping(mapping)
 
@@ -99,7 +101,7 @@ def test_insert_mapping_round_trips_through_a_real_database(
 
         with live_connection.cursor() as cursor:
             cursor.execute(
-                "SELECT first_name, passport FROM employees WHERE id = %s",
+                "SELECT first_name, passport, sex FROM employees WHERE id = %s",
                 (outcome.employee_id,),
             )
             employee_row = cursor.fetchone()
@@ -109,12 +111,17 @@ def test_insert_mapping_round_trips_through_a_real_database(
             )
             location_row = cursor.fetchone()
 
-        assert employee_row == ("IntegrationTest", "INTEGRATION-TEST-P-001")
+        assert employee_row == ("IntegrationTest", "INTEGRATION-TEST-P-001", ["X"])
         assert location_row == ("IntegrationTest Fixture", outcome.employee_id)
     finally:
-        with live_connection.cursor() as cleanup_cursor:
-            cleanup_cursor.execute(
-                "DELETE FROM employees WHERE passport = %s", ("INTEGRATION-TEST-P-001",)
-            )
-        live_connection.commit()
-        repository.close()
+        try:
+            if outcome is not None and outcome.employee_id is not None:
+                # Scoped to exactly the employee row this test created, not a
+                # fixed predicate that could match unrelated data.
+                with live_connection.cursor() as cleanup_cursor:
+                    cleanup_cursor.execute(
+                        "DELETE FROM employees WHERE id = %s", (outcome.employee_id,)
+                    )
+                live_connection.commit()
+        finally:
+            repository.close()

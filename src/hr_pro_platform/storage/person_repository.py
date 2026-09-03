@@ -16,12 +16,22 @@ from typing import Any
 
 import psycopg
 from psycopg import sql
+from psycopg.types.json import Jsonb
 
 from ..ingestion.error_handler import get_logger
 from .config import POSTGRES_DB, POSTGRES_HOST, POSTGRES_PASSWORD, POSTGRES_PORT, POSTGRES_USER
 from .person_mapper import CandidateRow, PersonRecordMapping
 
 logger = get_logger("person_repository")
+
+# employees.sex is the only JSONB column any CandidateRow can populate
+# (see storage/postgres.py's _SCHEMA_STATEMENTS); psycopg does not infer
+# JSONB from a plain Python list, so it must be adapted explicitly.
+_JSONB_COLUMNS: frozenset[str] = frozenset({"sex"})
+
+
+def _bind_value(column: str, value: object) -> object:
+    return Jsonb(value) if column in _JSONB_COLUMNS else value
 
 
 @dataclass(frozen=True)
@@ -91,9 +101,17 @@ class PersonRepository:
                 for table, row in dependent_rows:
                     self._insert_dependent(cursor, table, row, employee_id)
             self._connection.commit()
-        except Exception:
+        except Exception as error:
             self._connection.rollback()
-            logger.exception("Component insert failed; transaction rolled back")
+            # Log only allowlisted, non-sensitive metadata: a database error's
+            # message/DETAIL can echo rejected values, per docs/backend-standards.md
+            # ("Must not: Log sensitive payloads").
+            sqlstate = getattr(error, "sqlstate", None)
+            logger.error(
+                "Component insert failed; transaction rolled back | error_class=%s sqlstate=%s",
+                type(error).__name__,
+                sqlstate,
+            )
             raise
 
         logger.info(
@@ -125,7 +143,7 @@ class PersonRepository:
             fields=sql.SQL(", ").join(sql.Identifier(column) for column in columns),
             values=sql.SQL(", ").join(sql.Placeholder() for _ in columns),
         )
-        cursor.execute(query, [row.fields[column] for column in columns])
+        cursor.execute(query, [_bind_value(column, row.fields[column]) for column in columns])
         result = cursor.fetchone()
         assert result is not None
         return int(result[0])
@@ -140,4 +158,5 @@ class PersonRepository:
             fields=sql.SQL(", ").join(sql.Identifier(column) for column in columns),
             values=sql.SQL(", ").join(sql.Placeholder() for _ in columns),
         )
-        cursor.execute(query, [employee_id, *row.fields.values()])
+        values = [employee_id, *(_bind_value(column, row.fields[column]) for column in row.fields)]
+        cursor.execute(query, values)
