@@ -1,10 +1,11 @@
 # HRP-51 — Handle incomplete, duplicate and out-of-order information
 
-**Status:** In Progress; specification aligned; implementation and executable acceptance tests pending
+**Status:** Implemented and merged; documentation evidence update pending before Jira closure
 **Owner:** Gabriela Granja
 **Human reviewer:** Miguel
 **Jira:** HRP-51
 **Planned branch:** `feature/HRP-51-handle-incomplete-duplicate-order`
+**Implementation branch:** `feature/HRP-51-reconciliation-tests`
 **Dependencies:** HRP-50 consolidated person record; HRP-96 consolidation contract hardening (merged via [PR #44](https://github.com/Bootcamp-IA-MAD-P7/Proyecto-DataEngineer-Grupo1/pull/44)); HRP-46, HRP-47, HRP-48, HRP-49 and HRP-61 domain groupers; approved source-provenance contract
 **Related ADR:** [`docs/adr/0006-person-correlation-key.md`](../adr/0006-person-correlation-key.md)
 
@@ -282,6 +283,45 @@ blocked until the open contract questions below are decided.
 Tests use minimized synthetic fixtures only. No educational-generator artifact,
 complete raw payload or new RAW/Kafka observation may be used.
 
+## Implementation evidence
+
+HRP-51 reuses the existing deterministic transformation path and introduces no new
+reconciliation layer. The implementation uses:
+
+- the Personal, Location, Professional, Bank and Net groupers;
+- `GroupedFragment` and the shared `UnresolvedFragment` contract;
+- `DomainGroupContribution` boundaries in `ConsolidatedPersonRecord`; and
+- `consolidate_person_records(...)` as the production entry point.
+
+No production-code change was required because the existing groupers and consolidator
+already satisfy the approved HRP-51 behavior.
+
+Implementation and executable acceptance evidence were delivered in PR #47. The
+acceptance-evidence strengthening was recorded in commit `2cd5d43`. PR #47 was merged
+into `develop` by merge commit `f175fd9`.
+
+The delivered evidence records:
+
+- focused HRP-51 tests: 9 passed;
+- full suite: 147 passed, 5 skipped;
+- total coverage: 87.57%, above the required 75% minimum;
+- GitHub CI: 3/3 checks passed;
+- Ruff: passed;
+- Ruff format: passed;
+- mypy: passed;
+- pre-commit: passed; and
+- specification validation: passed for 30 files.
+
+AC-03 explicitly verifies one complete consolidated record, all five non-null domain
+contributions, preservation of the original Personal and Bank evidence, and the five
+expected source references. AC-10 explicitly verifies one unresolved contribution,
+the original synthetic payload, source reference, context and the exact
+`classification_mismatch` reason.
+
+The business interpretation of equal payloads with different `SourceReference` values
+remains intentionally open; the transformation behavior remains the defined
+AC-06 behavior and is not changed by this evidence record.
+
 ## Observability and traceability
 
 Transformation metrics/logs may count recomputations, unresolved outcomes,
@@ -333,22 +373,23 @@ correlation state. This task does not create such an ADR.
 ## Definition of Done
 
 - Open decisions are resolved or explicitly accepted by human review.
-- Implementation and tests match this specification without expanding into
-  persistence, ingestion, API or frontend scope.
+- Implemented behavior and executable acceptance evidence match this specification
+  without expanding into persistence, ingestion, API or frontend scope.
 - Focused duplicate, order, incomplete, conflict, unresolved and provenance tests
   pass using synthetic fixtures.
 - Relevant lint, formatting, typing and specification validation checks pass.
 - `git diff --check` passes.
 - No educational-generator inspection or new RAW/Kafka discovery occurs.
-- Documentation and traceability are updated in the implementation change.
-- Human review and merge are complete before HRP-51 is closed in Jira.
+- Implementation documentation and traceability are updated after the merged work.
+- This evidence update is merged before HRP-51 is closed in Jira; Jira closure must
+  reference the merged implementation and documentation evidence.
 
-## Expected implementation impact
+## Implemented impact
 
-The smallest expected future change is one transformation module plus focused unit
-tests. HRP-50, domain groupers, PostgreSQL, Kafka ingestion, APIs and infrastructure
-should remain unchanged unless an approved open decision demonstrates a necessary
-contract-boundary change.
+The implementation changed no production code. Existing HRP-50, domain groupers,
+PostgreSQL, Kafka ingestion, APIs and infrastructure boundaries remain unchanged.
+No additional production implementation artifact was required; executable HRP-51
+acceptance evidence is provided by the focused test suite delivered through PR #47.
 
 ## Traceability
 
@@ -359,6 +400,9 @@ Jira HRP-51
   -> HRP-46/47/48/49/61 domain grouping contracts
   -> ADR-0006 operational correlation boundary
   -> focused behavior tests
-  -> human-reviewed implementation PR
-  -> Jira closure after merge and evidence
+  -> PR #47 implementation/evidence delivery
+  -> acceptance-evidence commit `2cd5d43`
+  -> merge commit `f175fd9`
+  -> this final specification evidence update
+  -> Jira closure after merged documentation and evidence
 ```
