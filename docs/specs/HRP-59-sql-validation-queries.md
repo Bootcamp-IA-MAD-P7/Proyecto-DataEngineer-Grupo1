@@ -150,7 +150,19 @@ never to an identity claim ADR-0006 does not make.
 
 ## Evidencia de cierre
 
-- Rama / PR: pending
-- Commit: pending
-- Comandos ejecutados y resultado: pending
-- Comentario Jira con el resultado: pending
+- Rama: `feature/HRP-59-sql-validation-queries`; PR: pending
+- Commit: pending (se añade tras el commit final de implementación)
+- Comandos ejecutados y resultado:
+  - `pre-commit run --all-files` → passed
+  - `ruff check .` / `ruff format --check .` → passed
+  - `mypy src` → `Success: no issues found in 27 source files`
+  - `pytest` (suite completa contra PostgreSQL real,
+    `docker compose -f infra/compose.dev.yml up -d postgres`) →
+    `204 passed, 2 skipped in 22.37s` (skips son solo MongoDB, no relacionados)
+  - Prueba de mutación: se cambió temporalmente `count == 0` a `count == 1` en
+    `find_incomplete_employees` y se confirmó que
+    `test_incomplete_employee_reports_its_missing_domains` falla — evidencia de
+    que la aserción es sensible al comportamiento real, no vacía. Restaurado
+    tras la verificación (backup manual, sin `git checkout` sobre trabajo no
+    commiteado).
+- Comentario Jira con el resultado: pending (se redacta tras aprobación de PR)
