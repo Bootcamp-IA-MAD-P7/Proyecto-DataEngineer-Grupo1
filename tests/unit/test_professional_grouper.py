@@ -83,6 +83,20 @@ def test_unsupported_professional_input_is_explicit_ac06() -> None:
     assert all(item.status == "unsupported" for item in result.unresolved)
 
 
+def test_valid_non_professional_fragment_is_explicitly_unsupported_ac02() -> None:
+    fragment = ClassifiedFragment(
+        payload={"fullname": "Ada Example", "city": "synthetic", "address": "synthetic"},
+        classification="Location",
+        source_reference="location-source",
+    )
+
+    result = group_professional_fragments([fragment])
+
+    assert result.groups == ()
+    assert result.unresolved[0].status == "unsupported"
+    assert result.unresolved[0].reason == "not_professional_fragment"
+
+
 def test_professional_grouping_preserves_boundaries_ac07_ac08() -> None:
     payload = professional("  Ada Example  ")
     original = deepcopy(payload)

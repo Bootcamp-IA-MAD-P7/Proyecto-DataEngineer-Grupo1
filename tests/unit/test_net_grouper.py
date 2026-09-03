@@ -77,6 +77,20 @@ def test_unsupported_net_input_is_explicit_ac06() -> None:
     assert all(item.status == "unsupported" for item in result.unresolved)
 
 
+def test_valid_non_net_fragment_is_explicitly_unsupported_ac02() -> None:
+    fragment = ClassifiedFragment(
+        payload={"fullname": "Ada Example", "city": "synthetic", "address": "synthetic"},
+        classification="Location",
+        source_reference="location-source",
+    )
+
+    result = group_net_fragments([fragment])
+
+    assert result.groups == ()
+    assert result.unresolved[0].status == "unsupported"
+    assert result.unresolved[0].reason == "not_net_fragment"
+
+
 def test_net_grouping_preserves_payload_and_context_ac07() -> None:
     payload = net("  A  ")
     original = deepcopy(payload)
