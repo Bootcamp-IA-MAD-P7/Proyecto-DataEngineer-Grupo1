@@ -105,25 +105,38 @@ def test_foreign_key_check_rejects_a_wrong_target_even_with_a_colliding_constrai
     reuses ``decoy_good``'s exact constraint name. A pre-fix version of
     ``check_foreign_key_constraints_present`` (joining
     ``information_schema`` views on constraint name and schema alone)
-    reported ``decoy_bad`` as ``True`` here -- it isn't."""
+    reported ``decoy_bad`` as ``True`` here -- it isn't.
+
+    Everything here is a ``TEMPORARY`` table: session-scoped, invisible to
+    any other connection, and dropped automatically when this test's
+    connection closes -- nothing here creates, drops or alters a shared,
+    permanent object, and no explicit cleanup can be skipped by a failure
+    since there is none to run. PostgreSQL forbids a temporary table's
+    foreign key from referencing a permanent one, so ``decoy_good``
+    references a session-local ``employees`` shadow table rather than the
+    real, shared one -- the same shadowing technique
+    ``test_foreign_key_check_rejects_a_correct_target_table_on_the_wrong_column``
+    uses, verified empirically before writing either test.
+    """
 
     from hr_pro_platform.storage.validation_queries import check_foreign_key_constraints_present
 
-    with live_connection.cursor() as cursor:
-        cursor.execute("DROP TABLE IF EXISTS hrp59_probe_decoy_bad, hrp59_probe_decoy_good CASCADE")
-        cursor.execute(
-            "CREATE TABLE hrp59_probe_decoy_good (id serial primary key, employee_id bigint, "
-            "CONSTRAINT fk_hrp59_probe_shared FOREIGN KEY (employee_id) REFERENCES employees(id))"
-        )
-        cursor.execute(
-            "CREATE TABLE hrp59_probe_decoy_bad (id serial primary key, employee_id bigint, "
-            "CONSTRAINT fk_hrp59_probe_shared FOREIGN KEY (employee_id) "
-            "REFERENCES hrp59_probe_decoy_good(id))"
-        )
-    live_connection.commit()
-
     try:
         with live_connection.cursor() as cursor:
+            cursor.execute("CREATE TEMPORARY TABLE employees (id serial primary key)")
+            cursor.execute(
+                "CREATE TEMPORARY TABLE hrp59_probe_decoy_good "
+                "(id serial primary key, employee_id bigint, "
+                "CONSTRAINT fk_hrp59_probe_shared FOREIGN KEY (employee_id) "
+                "REFERENCES employees(id))"
+            )
+            cursor.execute(
+                "CREATE TEMPORARY TABLE hrp59_probe_decoy_bad "
+                "(id serial primary key, employee_id bigint, "
+                "CONSTRAINT fk_hrp59_probe_shared FOREIGN KEY (employee_id) "
+                "REFERENCES hrp59_probe_decoy_good(id))"
+            )
+
             result = check_foreign_key_constraints_present(
                 cursor, tables=("hrp59_probe_decoy_bad", "hrp59_probe_decoy_good")
             )
@@ -133,49 +146,49 @@ def test_foreign_key_check_rejects_a_wrong_target_even_with_a_colliding_constrai
             "hrp59_probe_decoy_good": True,
         }
     finally:
-        with live_connection.cursor() as cursor:
-            cursor.execute(
-                "DROP TABLE IF EXISTS hrp59_probe_decoy_bad, hrp59_probe_decoy_good CASCADE"
-            )
-        live_connection.commit()
+        # Never committed: only temporary objects were touched, and this
+        # connection's temp tables are dropped automatically on close
+        # regardless, but rolling back here is the explicit, defensive end
+        # to this test's transaction rather than leaving it open.
+        live_connection.rollback()
 
 
 def test_foreign_key_check_rejects_a_correct_target_table_on_the_wrong_column(
     live_connection: psycopg.Connection[tuple[object, ...]],
 ) -> None:
     """An ``employee_id`` FK that references ``employees`` but not its
-    ``id`` column must not be accepted -- HRP-54 never declares such a
-    column as unique besides the primary key, so this adds one
-    temporarily to construct the case."""
+    ``id`` column must not be accepted. The real, shared ``employees``
+    table is never touched: a session-local ``TEMPORARY TABLE`` literally
+    named ``employees`` shadows it for the remainder of this connection
+    (PostgreSQL resolves unqualified names against ``pg_temp`` first),
+    so ``'employees'::regclass`` inside this test -- and inside the
+    production query under test, which also resolves that name -- means
+    the temporary decoy, never the real curated table. Verified
+    empirically before writing this test that the real table's own
+    constraints are unaffected by this.
+    """
 
     from hr_pro_platform.storage.validation_queries import check_foreign_key_constraints_present
 
-    with live_connection.cursor() as cursor:
-        cursor.execute("DROP TABLE IF EXISTS hrp59_probe_wrong_column CASCADE")
-        cursor.execute(
-            "ALTER TABLE employees ADD CONSTRAINT hrp59_probe_passport_unique UNIQUE (passport)"
-        )
-        cursor.execute(
-            "CREATE TABLE hrp59_probe_wrong_column (id serial primary key, employee_id text, "
-            "CONSTRAINT fk_hrp59_probe_wrong_column FOREIGN KEY (employee_id) "
-            "REFERENCES employees(passport))"
-        )
-    live_connection.commit()
-
     try:
         with live_connection.cursor() as cursor:
+            cursor.execute(
+                "CREATE TEMPORARY TABLE employees (id serial primary key, passport text unique)"
+            )
+            cursor.execute(
+                "CREATE TEMPORARY TABLE hrp59_probe_wrong_column "
+                "(id serial primary key, employee_id text, "
+                "CONSTRAINT fk_hrp59_probe_wrong_column FOREIGN KEY (employee_id) "
+                "REFERENCES employees(passport))"
+            )
+
             result = check_foreign_key_constraints_present(
                 cursor, tables=("hrp59_probe_wrong_column",)
             )
 
         assert result == {"hrp59_probe_wrong_column": False}
     finally:
-        with live_connection.cursor() as cursor:
-            cursor.execute("DROP TABLE IF EXISTS hrp59_probe_wrong_column CASCADE")
-            cursor.execute(
-                "ALTER TABLE employees DROP CONSTRAINT IF EXISTS hrp59_probe_passport_unique"
-            )
-        live_connection.commit()
+        live_connection.rollback()
 
 
 def test_no_dependent_rows_are_orphaned_after_a_normal_insert(

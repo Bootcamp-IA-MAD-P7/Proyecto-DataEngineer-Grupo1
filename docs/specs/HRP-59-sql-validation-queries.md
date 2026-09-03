@@ -192,12 +192,20 @@ never to an identity claim ADR-0006 does not make.
     que la aserción es sensible al comportamiento real, no vacía. Restaurado
     tras la verificación (backup manual, sin `git checkout` sobre trabajo no
     commiteado).
-  - Ronda de revisión de Miguel: se reprodujo empíricamente el falso positivo
-    de `check_foreign_key_constraints_present` (dos tablas distintas con una
-    constraint FK del mismo nombre en el mismo schema — confirmado que
-    PostgreSQL lo permite) antes y después del fix, confirmando que la
+  - Ronda de revisión de Miguel (1/2): se reprodujo empíricamente el falso
+    positivo de `check_foreign_key_constraints_present` (dos tablas distintas
+    con una constraint FK del mismo nombre en el mismo schema — confirmado
+    que PostgreSQL lo permite) antes y después del fix, confirmando que la
     versión anterior (basada en `information_schema`) lo aceptaba
     incorrectamente y la versión corregida (basada en `pg_catalog`) lo
     rechaza. Dos nuevos tests de integración cubren esto y el caso de columna
     incorrecta.
+  - Ronda de revisión de Miguel (2/2): los dos tests negativos nuevos
+    alteraban/creaban objetos en el esquema compartido (`ALTER TABLE
+    employees ADD CONSTRAINT ...`, `DROP TABLE IF EXISTS ... CASCADE` antes
+    de establecer propiedad, setup fuera del `try`). Corregido: ambos usan
+    exclusivamente `TEMPORARY TABLE`s de alcance de sesión, incluyendo una
+    tabla `employees` sintética y local a la sesión que sombrea a la real
+    (verificado empíricamente que esto no toca ni una sola constraint de la
+    tabla `employees` real), y todo el setup ahora vive dentro del `try`.
 - Comentario Jira con el resultado: pending (se redacta tras aprobación de PR)
