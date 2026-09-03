@@ -15,39 +15,44 @@ from hr_pro_platform.transformation.professional_grouper import (
     ProfessionalGroupingResult,
 )
 
+# Every field below uses a distinguishable synthetic value (not a repeated
+# "synthetic" placeholder) so a misrouted mapping (e.g. city swapped with
+# address, or one row's fields attached to another row's group_key/source
+# reference) fails an exact-equality assertion instead of passing by luck.
+
 
 def personal(passport: str = "P-001", name: str = "Ada") -> dict[str, object]:
     return {
         "name": name,
         "last_name": "Example",
         "sex": ["X"],
-        "telfnumber": "synthetic",
+        "telfnumber": "+34-600-000-001",
         "passport": passport,
-        "email": "synthetic@example.test",
+        "email": "ada.example@example.test",
     }
 
 
 def location(fullname: str = "Ada Example", address: str = "A-1") -> dict[str, object]:
-    return {"fullname": fullname, "city": "synthetic", "address": address}
+    return {"fullname": fullname, "city": "Springfield", "address": address}
 
 
 def professional(fullname: str = "Ada Example") -> dict[str, object]:
     return {
         "fullname": fullname,
-        "company": "synthetic",
-        "company address": "synthetic",
-        "company_telfnumber": "synthetic",
-        "company_email": "synthetic@example.test",
-        "job": "synthetic",
+        "company": "Acme Corp",
+        "company address": "123 Acme Avenue",
+        "company_telfnumber": "+34-900-000-002",
+        "company_email": "ada.example@acme.test",
+        "job": "Engineer",
     }
 
 
 def bank(passport: str = "P-001") -> dict[str, object]:
-    return {"passport": passport, "IBAN": "synthetic", "salary": "synthetic"}
+    return {"passport": passport, "IBAN": "ES00-0000-0000-0000", "salary": "50000"}
 
 
 def net(address: str = "A-1") -> dict[str, object]:
-    return {"address": address, "IPv4": "synthetic"}
+    return {"address": address, "IPv4": "10.0.0.1"}
 
 
 def grouped(payload: dict[str, object], source: str) -> GroupedFragment:
@@ -72,7 +77,7 @@ def complete_inputs() -> dict[str, object]:
     }
 
 
-def test_complete_record_maps_every_domain_to_one_candidate_row() -> None:
+def test_complete_record_maps_every_domain_to_one_full_candidate_row() -> None:
     values = complete_inputs()
     result = consolidate_person_records(
         values["personal_result"],
@@ -85,22 +90,58 @@ def test_complete_record_maps_every_domain_to_one_candidate_row() -> None:
     mapping = map_person_record(result.records[0])
 
     assert mapping.status == "complete"
+
     assert len(mapping.employees) == 1
     assert mapping.employees[0].table == "employees"
+    assert mapping.employees[0].group_key == "P-001"
+    assert mapping.employees[0].source_reference == "p"
     assert mapping.employees[0].fields == {
         "first_name": "Ada",
         "last_name": "Example",
         "sex": ["X"],
-        "telephone_number": "synthetic",
-        "email": "synthetic@example.test",
+        "telephone_number": "+34-600-000-001",
+        "email": "ada.example@example.test",
         "passport": "P-001",
     }
-    assert mapping.locations[0].fields["full_name"] == "Ada Example"
-    # location() fixture has no IPv4 key; a missing observed field must not be fabricated.
-    assert "ip_v4" not in mapping.locations[0].fields
-    assert mapping.professional_profiles[0].fields["company_address"] == "synthetic"
-    assert mapping.bank_accounts[0].fields["iban"] == "synthetic"
-    assert mapping.network_data[0].fields["ip_v4"] == "synthetic"
+
+    assert len(mapping.locations) == 1
+    assert mapping.locations[0].table == "locations"
+    assert mapping.locations[0].group_key == "Ada Example"
+    assert mapping.locations[0].source_reference == "l"
+    assert mapping.locations[0].fields == {
+        "full_name": "Ada Example",
+        "city": "Springfield",
+        "address": "A-1",
+    }  # location() fixture has no IPv4 key; ip_v4 must not be fabricated.
+
+    assert len(mapping.professional_profiles) == 1
+    assert mapping.professional_profiles[0].table == "professional_profiles"
+    assert mapping.professional_profiles[0].group_key == "Ada Example"
+    assert mapping.professional_profiles[0].source_reference == "w"
+    assert mapping.professional_profiles[0].fields == {
+        "full_name": "Ada Example",
+        "company": "Acme Corp",
+        "company_address": "123 Acme Avenue",
+        "company_telephone_number": "+34-900-000-002",
+        "company_email": "ada.example@acme.test",
+        "job": "Engineer",
+    }
+
+    assert len(mapping.bank_accounts) == 1
+    assert mapping.bank_accounts[0].table == "bank_accounts"
+    assert mapping.bank_accounts[0].group_key == "P-001"
+    assert mapping.bank_accounts[0].source_reference == "b"
+    assert mapping.bank_accounts[0].fields == {
+        "iban": "ES00-0000-0000-0000",
+        "passport": "P-001",
+        "salary": "50000",
+    }
+
+    assert len(mapping.network_data) == 1
+    assert mapping.network_data[0].table == "network_data"
+    assert mapping.network_data[0].group_key == "A-1"
+    assert mapping.network_data[0].source_reference == "n"
+    assert mapping.network_data[0].fields == {"ip_v4": "10.0.0.1"}
 
 
 def test_incomplete_record_missing_domain_produces_no_candidate_rows_for_it() -> None:
@@ -125,7 +166,18 @@ def test_incomplete_record_missing_domain_produces_no_candidate_rows_for_it() ->
     assert len(mapping.bank_accounts) == 1
 
 
-def test_cross_group_ambiguity_produces_one_row_per_group_not_a_merged_row() -> None:
+def test_cross_group_ambiguity_keeps_each_groups_fields_correctly_paired() -> None:
+    """Two distinct PersonalGroups joined transitively via Location (HRP-96 shape).
+
+    Both personal fragments must keep the same `name`/`last_name` (default
+    "Ada Example") because that is what makes them both match the Location
+    group's `fullname` key via the `personal_location_fullname` edge and
+    therefore land in one ambiguous component — only `passport` (the
+    Personal group's own local key) and the source reference distinguish the
+    two groups. Builds a mapping keyed by group_key from the mapper's actual
+    output and compares it to the exact expected pairing, so a bug that swaps
+    one row's fields/source_reference with another row's group_key would fail.
+    """
     personal_result = PersonalGroupingResult(
         (
             PersonalGroup("P-001", "grouped", (grouped(personal("P-001"), "p1"),)),
@@ -148,11 +200,22 @@ def test_cross_group_ambiguity_produces_one_row_per_group_not_a_merged_row() -> 
 
     assert mapping.status == "ambiguous"
     assert len(mapping.employees) == 2
-    assert {row.group_key for row in mapping.employees} == {"P-001", "P-002"}
-    assert {row.fields["passport"] for row in mapping.employees} == {"P-001", "P-002"}
+
+    by_group_key = {row.group_key: row for row in mapping.employees}
+    assert by_group_key.keys() == {"P-001", "P-002"}
+    assert by_group_key["P-001"].source_reference == "p1"
+    assert by_group_key["P-001"].fields["passport"] == "P-001"
+    assert by_group_key["P-002"].source_reference == "p2"
+    assert by_group_key["P-002"].fields["passport"] == "P-002"
 
 
-def test_intra_group_ambiguity_produces_one_row_per_fragment_sharing_group_key() -> None:
+def test_intra_group_ambiguity_keeps_each_fragments_fields_correctly_paired() -> None:
+    """One PersonalGroup already ambiguous (two conflicting fragments under one key).
+
+    Builds a mapping keyed by source_reference and compares it to the exact
+    expected pairing, so a bug that swaps one fragment's name with the
+    other's source_reference would fail.
+    """
     personal_result = PersonalGroupingResult(
         (
             PersonalGroup(
@@ -177,8 +240,11 @@ def test_intra_group_ambiguity_produces_one_row_per_fragment_sharing_group_key()
     assert mapping.status == "ambiguous"
     assert len(mapping.employees) == 2
     assert {row.group_key for row in mapping.employees} == {"P-001"}
-    assert {row.fields["first_name"] for row in mapping.employees} == {"Ada", "Grace"}
-    assert {row.source_reference for row in mapping.employees} == {"p1", "p2"}
+
+    by_source_reference = {row.source_reference: row for row in mapping.employees}
+    assert by_source_reference.keys() == {"p1", "p2"}
+    assert by_source_reference["p1"].fields["first_name"] == "Ada"
+    assert by_source_reference["p2"].fields["first_name"] == "Grace"
 
 
 def test_correlation_rules_and_provenance_are_preserved_unchanged() -> None:
@@ -219,26 +285,3 @@ def test_no_candidate_row_carries_a_primary_key_or_employee_id() -> None:
     for row in all_rows:
         assert "id" not in row.fields
         assert "employee_id" not in row.fields
-
-
-def test_observed_field_names_translate_to_hrp25_approved_columns() -> None:
-    values = complete_inputs()
-    result = consolidate_person_records(
-        values["personal_result"],
-        values["location_result"],
-        values["professional_result"],
-        values["bank_result"],
-        values["net_result"],
-    )
-    mapping = map_person_record(result.records[0])
-
-    # telfnumber -> telephone_number, IBAN -> iban, "company address" -> company_address,
-    # IPv4 -> ip_v4 (per docs/specs/HRP-25-modelo-datos.md).
-    assert mapping.employees[0].fields["telephone_number"] == "synthetic"
-    assert "telfnumber" not in mapping.employees[0].fields
-    assert mapping.bank_accounts[0].fields["iban"] == "synthetic"
-    assert "IBAN" not in mapping.bank_accounts[0].fields
-    assert mapping.professional_profiles[0].fields["company_address"] == "synthetic"
-    assert "company address" not in mapping.professional_profiles[0].fields
-    assert mapping.network_data[0].fields["ip_v4"] == "synthetic"
-    assert "IPv4" not in mapping.network_data[0].fields

@@ -14,10 +14,12 @@ merged); ADR-0006 (`Accepted in principle`)
 
 Define a repository/mapping layer that translates a `ConsolidatedPersonRecord`
 (the output of `transformation.person_consolidator.consolidate_person_records`,
-HRP-50/HRP-96/HRP-51) into candidate rows for the six curated PostgreSQL tables
-already created by HRP-54, without executing any write against the database and
-without deciding any persistence-identity, uniqueness or conflict-resolution
-policy that no prior spec or ADR has approved.
+HRP-50/HRP-96/HRP-51) into candidate rows for the five domain tables (`employees`,
+`locations`, `professional_profiles`, `bank_accounts`, `network_data`) already
+created by HRP-54 — `processing_audit` row construction is explicitly deferred,
+see "Excludes" — without executing any write against the database and without
+deciding any persistence-identity, uniqueness or conflict-resolution policy
+that no prior spec or ADR has approved.
 
 This specification does not implement `INSERT`, `UPDATE` or `ON CONFLICT`
 behaviour. It prepares the input those future tasks (HRP-56, HRP-57, HRP-58)
@@ -44,9 +46,11 @@ will consume.
 - A pure mapping function/module (proposed location:
   `src/hr_pro_platform/storage/person_mapper.py`) that:
   - accepts one `ConsolidatedPersonRecord`;
-  - returns a candidate-row representation for each of the six curated tables,
-    using only the columns already declared in `postgres.py`'s
-    `_SCHEMA_STATEMENTS` (no new column is introduced);
+  - returns a candidate-row representation for each of the five domain tables
+    (`employees`, `locations`, `professional_profiles`, `bank_accounts`,
+    `network_data`), using only the columns already declared in `postgres.py`'s
+    `_SCHEMA_STATEMENTS` (no new column is introduced) — `processing_audit`
+    rows are not produced by this task;
   - does not assign a primary-key value (`id` is `BIGSERIAL`, database-assigned
     at insert time — out of this task's control) and does not decide how
     `employee_id` foreign keys resolve to a concrete `employees.id`;
@@ -68,6 +72,11 @@ will consume.
 
 ### Excludes
 
+- Constructing `processing_audit` candidate rows. `correlation_rules` and
+  `provenance`/`source_reference` are preserved at the mapping-result and
+  row level so a later task can build audit rows from them, but this task
+  does not itself decide `processing_audit`'s `stage`/`status` values or
+  produce rows for that table.
 - Executing `INSERT`, `UPDATE` or `UPSERT` against PostgreSQL — HRP-56 and
   HRP-57.
 - Deduplication or `ON CONFLICT` behaviour — HRP-58.
@@ -132,13 +141,26 @@ rule.
 | `net` | `network_data` | `ip_v4` ← `IPv4` |
 
 Each candidate row also carries the originating `DomainGroupContribution.key`
-and every contributing `GroupedFragment.source_reference`, so downstream tasks
-can populate `processing_audit.raw_event_ref` without re-deriving provenance.
+(as `group_key`) and its own contributing `GroupedFragment.source_reference`,
+so downstream tasks can populate `processing_audit.raw_event_ref` without
+re-deriving provenance.
 
-A record with multiple `DomainGroupContribution` entries in one domain (the
-`ambiguous` case, HRP-96) produces one candidate row **per group**, not a
-merged row — matching HRP-96's rule that group boundaries must not be
-flattened.
+**Row cardinality:** the mapper produces one candidate row **per retained
+`GroupedFragment`**, not one row per group and not one row per domain. This
+matters for two distinct ambiguity shapes, both of which must remain
+evidence-preserving rather than merged:
+
+- *Cross-group ambiguity* (HRP-96): a domain holds more than one
+  `DomainGroupContribution` in the same component (e.g. two distinct
+  `PersonalGroup`s joined transitively). Each group's fragment(s) become
+  their own row(s), distinguishable by `group_key`.
+- *Intra-group ambiguity*: a single group already holds more than one
+  conflicting fragment (the grouper itself marked it `ambiguous`). Those
+  fragments become separate rows that **share the same `group_key`**,
+  distinguishable only by their `source_reference` and field content.
+
+A row is never fabricated by merging two fragments' field values together —
+matching HRP-96's rule that evidence boundaries must not be flattened.
 
 ### What stays open (provisional / unknown / pending)
 
@@ -158,14 +180,16 @@ flattened.
 ## Acceptance criteria
 
 - [ ] A pure mapping function/module translates `ConsolidatedPersonRecord`
-      into candidate rows for all six curated tables, using only columns
-      already defined by HRP-54.
+      into candidate rows for the five domain tables, using only columns
+      already defined by HRP-54. `processing_audit` rows are not produced.
 - [ ] The mapping for each domain matches the observed-field-to-column
       correspondence already approved in `docs/specs/HRP-25-modelo-datos.md`.
 - [ ] `complete`, `incomplete` and `ambiguous` records are all mapped
       structurally, with no decision about whether to persist them.
-- [ ] A record with multiple `DomainGroupContribution` entries in one domain
-      produces one candidate row per group (no flattening).
+- [ ] A record with multiple groups and/or multiple fragments within a group
+      in one domain produces one candidate row per retained fragment (no
+      flattening or fabricated merge), with `group_key` correctly
+      distinguishing cross-group from intra-group ambiguity.
 - [ ] `correlation_rules` and `provenance`/`source_reference` are preserved
       alongside the candidate rows.
 - [ ] No `employees.id` or other primary-key value is assigned by this task.
