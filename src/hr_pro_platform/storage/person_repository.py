@@ -1,15 +1,18 @@
 """Insert HRP-55 ``PersonRecordMapping`` output into PostgreSQL.
 
-See docs/specs/HRP-56-insert-processed-person-records.md and
-docs/specs/HRP-58-avoid-duplicate-records.md. Only components whose
+See docs/specs/HRP-56-insert-processed-person-records.md,
+docs/specs/HRP-58-avoid-duplicate-records.md and
+docs/specs/HRP-57-update-records-on-new-data.md. Only components whose
 ``employees`` tuple has exactly one candidate row are inserted; a component
 with zero or more than one candidate ``employees`` row is skipped explicitly
 rather than guessing an association (see HRP-56's "Design" section). A
 component whose employee candidate row's ``source_reference`` was already
-recorded in ``processing_audit`` is skipped as an already-processed
-reinsertion (HRP-58) — this is source-reprocessing idempotency, not
-person-identity deduplication; no business-identity field is used. No
-``UPDATE`` behaviour is introduced here — that is HRP-57.
+recorded in ``processing_audit`` (HRP-58) no longer skips unconditionally:
+any dependent-table candidate row not already present for that existing
+``employee_id`` is inserted as an enrichment (HRP-57) — an exact-match
+technical check, not person-identity deduplication or resolution; no
+business-identity field is used. ``employees``' own columns are never
+updated by this module.
 """
 
 from __future__ import annotations
@@ -33,6 +36,25 @@ logger = get_logger("person_repository")
 # JSONB from a plain Python list, so it must be adapted explicitly.
 _JSONB_COLUMNS: frozenset[str] = frozenset({"sex"})
 
+# Every non-id, non-employee_id column each dependent table declares in
+# storage/postgres.py's _SCHEMA_STATEMENTS (HRP-54). HRP-57's exact-match
+# check (_dependent_row_exists) must compare against this full set, not just
+# whichever fields happen to be present in an incoming CandidateRow -- see
+# that method's docstring for why.
+_DEPENDENT_TABLE_COLUMNS: dict[str, tuple[str, ...]] = {
+    "locations": ("full_name", "city", "address", "ip_v4"),
+    "professional_profiles": (
+        "full_name",
+        "company",
+        "company_address",
+        "company_email",
+        "company_telephone_number",
+        "job",
+    ),
+    "bank_accounts": ("iban", "passport", "salary"),
+    "network_data": ("ip_v4",),
+}
+
 
 def _bind_value(column: str, value: object) -> object:
     return Jsonb(value) if column in _JSONB_COLUMNS else value
@@ -40,11 +62,20 @@ def _bind_value(column: str, value: object) -> object:
 
 @dataclass(frozen=True)
 class InsertOutcome:
-    """Result of attempting to insert one ``PersonRecordMapping``."""
+    """Result of attempting to insert one ``PersonRecordMapping``.
+
+    ``enriched_tables`` (HRP-57) lists the dependent tables that received a
+    genuinely new row for an already-existing ``employee_id`` on this call.
+    Empty for a fresh ``employees`` insert (``inserted=True``) and for a
+    component with nothing new to add (``skipped_reason="already_processed"``,
+    unchanged from HRP-58). Non-empty only when ``inserted=False`` and
+    ``skipped_reason=None`` -- HRP-57's enrichment outcome.
+    """
 
     inserted: bool
     employee_id: int | None
     skipped_reason: str | None
+    enriched_tables: tuple[str, ...] = ()
 
 
 class PersonRepository:
@@ -105,11 +136,48 @@ class PersonRepository:
                 # HRP-58: check-then-insert within the same transaction as the
                 # write it guards. This narrows, but does not eliminate, the
                 # race between two concurrent writers reinserting the same
-                # already-processed fragment -- see the spec's "Risks" for
+                # already-processed fragment -- see that spec's "Risks" for
                 # why a database-level unique index remains a separate,
                 # explicitly pending proposal rather than being assumed here.
                 if self._already_processed(cursor, source_reference):
+                    # HRP-57: an already-recorded source_reference no longer
+                    # skips unconditionally -- genuinely new dependent rows
+                    # for the existing employee_id are still inserted. This
+                    # never touches employees' own columns and never queries
+                    # or compares a business-identity field. When there are
+                    # no dependent rows to consider, this is a pure replay
+                    # and behaves exactly as HRP-58 originally did (a single
+                    # check, no further lookup).
+                    enriched_tables: tuple[str, ...] = ()
+                    existing_employee_id: int | None = None
+                    if dependent_rows:
+                        existing_employee_id = self._find_existing_employee_id(
+                            cursor, source_reference
+                        )
+                        assert existing_employee_id is not None
+                        enriched_tables = self._enrich_existing_employee(
+                            cursor, existing_employee_id, dependent_rows
+                        )
+                    if enriched_tables:
+                        assert existing_employee_id is not None
+                        self._record_processing_audit_update(
+                            cursor, existing_employee_id, source_reference
+                        )
                     self._connection.commit()
+                    if enriched_tables:
+                        logger.info(
+                            "Enriched existing component | employee_id=%s "
+                            "source_reference=%s enriched_tables=%s",
+                            existing_employee_id,
+                            source_reference,
+                            ",".join(enriched_tables),
+                        )
+                        return InsertOutcome(
+                            inserted=False,
+                            employee_id=existing_employee_id,
+                            skipped_reason=None,
+                            enriched_tables=enriched_tables,
+                        )
                     logger.info(
                         "Skipping component | reason=already_processed source_reference=%s",
                         source_reference,
@@ -206,3 +274,115 @@ class PersonRepository:
         )
         values = [employee_id, *(_bind_value(column, row.fields[column]) for column in row.fields)]
         cursor.execute(query, values)
+
+    # -- HRP-57: enrichment of an already-processed component -----------------
+    # These four helpers are additive to HRP-58's approved _already_processed()
+    # and _record_processing_audit(), which are left completely unchanged.
+
+    @staticmethod
+    def _find_existing_employee_id(
+        cursor: psycopg.Cursor[Any], source_reference: str
+    ) -> int | None:
+        """Resolve the employee_id already recorded for this source_reference,
+        locking that processing_audit row for the rest of this transaction.
+
+        Reads processing_audit only -- never a business-identity field. The
+        ``FOR UPDATE`` lock is required, not optional: HRP-58's unique index
+        on raw_event_ref only serialises the first insert, not a second
+        concurrent enrichment attempt for the same reference. Without this
+        lock, two concurrent transactions could both see "not yet present"
+        from `_dependent_row_exists` and both insert the same dependent row,
+        since dependent tables have no uniqueness constraint of their own.
+        Locking here, before any dependent-row check, forces a second
+        concurrent attempt to wait until the first commits -- at which point
+        it will correctly see the first attempt's inserted rows.
+        """
+
+        cursor.execute(
+            "SELECT employee_id FROM processing_audit "
+            "WHERE raw_event_ref = %s AND employee_id IS NOT NULL "
+            "ORDER BY occurred_at LIMIT 1 FOR UPDATE",
+            [source_reference],
+        )
+        result = cursor.fetchone()
+        return int(result[0]) if result is not None else None
+
+    @staticmethod
+    def _dependent_row_exists(
+        cursor: psycopg.Cursor[Any], table: str, employee_id: int, row: CandidateRow
+    ) -> bool:
+        """Exact-match check: does an identical row already exist for this
+        employee_id in this table? No fuzzy or partial comparison.
+
+        Compares every column the table defines (per _DEPENDENT_TABLE_COLUMNS),
+        not only the columns present in the incoming CandidateRow: comparing
+        just the incoming keys is subset matching, not true row equality, and
+        would report a false "already exists" for a persisted row that has
+        additional populated columns the incoming candidate doesn't mention,
+        or vice versa. A column absent from the incoming row is treated as
+        NULL, matching what _insert_dependent would actually persist for it.
+
+        Uses ``IS NOT DISTINCT FROM`` rather than ``=`` for every column:
+        plain ``=`` is never true when either side is NULL (SQL's three-valued
+        logic), so two rows that are identical except for a shared NULL field
+        would incorrectly compare as not-equal and cause a duplicate insert
+        on replay.
+        """
+
+        table_columns = _DEPENDENT_TABLE_COLUMNS[table]
+        conditions = [sql.SQL("employee_id = {}").format(sql.Placeholder())]
+        conditions += [
+            sql.SQL("{column} IS NOT DISTINCT FROM {placeholder}").format(
+                column=sql.Identifier(column), placeholder=sql.Placeholder()
+            )
+            for column in table_columns
+        ]
+        query = sql.SQL("SELECT 1 FROM {table} WHERE {conditions} LIMIT 1").format(
+            table=sql.Identifier(table),
+            conditions=sql.SQL(" AND ").join(conditions),
+        )
+        values = [employee_id] + [
+            _bind_value(column, row.fields.get(column)) for column in table_columns
+        ]
+        cursor.execute(query, values)
+        return cursor.fetchone() is not None
+
+    def _enrich_existing_employee(
+        self,
+        cursor: psycopg.Cursor[Any],
+        employee_id: int,
+        dependent_rows: tuple[tuple[str, CandidateRow], ...],
+    ) -> tuple[str, ...]:
+        """Insert only the dependent rows not already present for employee_id.
+
+        Never updates or deletes an existing row; never touches employees'
+        own columns.
+        """
+
+        enriched_tables: list[str] = []
+        for table, row in dependent_rows:
+            if self._dependent_row_exists(cursor, table, employee_id, row):
+                continue
+            self._insert_dependent(cursor, table, row, employee_id)
+            enriched_tables.append(table)
+        return tuple(enriched_tables)
+
+    @staticmethod
+    def _record_processing_audit_update(
+        cursor: psycopg.Cursor[Any], employee_id: int, source_reference: str
+    ) -> None:
+        """Mark the existing processing_audit row as enriched.
+
+        HRP-58's proposed unique index (ix_processing_audit_raw_event_ref)
+        allows at most one row per raw_event_ref, so this cannot INSERT a
+        second row for the same source_reference -- it UPDATEs stage/status
+        on the row HRP-58's _record_processing_audit() already wrote. This
+        is bookkeeping on the audit table itself, not a business decision:
+        it never touches employees or any dependent table's columns.
+        """
+
+        cursor.execute(
+            "UPDATE processing_audit SET stage = %s, status = %s, occurred_at = now() "
+            "WHERE employee_id = %s AND raw_event_ref = %s",
+            ["update", "enriched", employee_id, source_reference],
+        )
