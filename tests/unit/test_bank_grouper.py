@@ -72,6 +72,20 @@ def test_unsupported_bank_input_is_explicit_ac06() -> None:
     assert all(item.status == "unsupported" for item in result.unresolved)
 
 
+def test_valid_non_bank_fragment_is_explicitly_unsupported_ac02() -> None:
+    fragment = ClassifiedFragment(
+        payload={"fullname": "Ada Example", "city": "synthetic", "address": "synthetic"},
+        classification="Location",
+        source_reference="location-source",
+    )
+
+    result = group_bank_fragments([fragment])
+
+    assert result.groups == ()
+    assert result.unresolved[0].status == "unsupported"
+    assert result.unresolved[0].reason == "not_bank_fragment"
+
+
 def test_bank_grouping_preserves_payload_and_context_ac07() -> None:
     payload = bank("  P-001  ")
     original = deepcopy(payload)

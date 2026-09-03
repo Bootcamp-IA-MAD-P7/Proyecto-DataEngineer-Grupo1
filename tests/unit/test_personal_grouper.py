@@ -111,6 +111,20 @@ def test_non_personal_and_malformed_input_are_unsupported_ac08() -> None:
     assert all(item.status == "unsupported" for item in result.unresolved)
 
 
+def test_valid_non_personal_fragment_is_explicitly_unsupported_ac02() -> None:
+    fragment = ClassifiedFragment(
+        payload={"passport": "P-001", "IBAN": "ES00", "salary": "synthetic"},
+        classification="Bank",
+        source_reference="bank-source",
+    )
+
+    result = group_personal_fragments([fragment])
+
+    assert result.groups == ()
+    assert result.unresolved[0].status == "unsupported"
+    assert result.unresolved[0].reason == "not_personal_fragment"
+
+
 def test_passport_is_not_trimmed_or_case_folded_ac03_ac10() -> None:
     result = group_personal_fragments(
         [personal_fragment("P-001"), personal_fragment(" P-001 "), personal_fragment("p-001")]
