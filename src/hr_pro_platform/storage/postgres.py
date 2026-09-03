@@ -96,6 +96,14 @@ _SCHEMA_STATEMENTS: tuple[str, ...] = (
     """,
     "CREATE INDEX IF NOT EXISTS ix_processing_audit_employee_id ON processing_audit (employee_id)",
     "CREATE INDEX IF NOT EXISTS ix_processing_audit_occurred_at ON processing_audit (occurred_at)",
+    # HRP-58 proposal (docs/specs/HRP-58-avoid-duplicate-records.md), pending
+    # Miguel's explicit review: a *technical* uniqueness constraint on an
+    # opaque, non-PII source reference, not a business-identity constraint.
+    # It does not fall under ADR-0006's exclusion of business uniqueness
+    # (passport/fullname/address/iban); it only prevents a race between two
+    # concurrent writers reinserting the same already-processed fragment.
+    "CREATE UNIQUE INDEX IF NOT EXISTS ix_processing_audit_raw_event_ref "
+    "ON processing_audit (raw_event_ref) WHERE raw_event_ref IS NOT NULL",
 )
 
 

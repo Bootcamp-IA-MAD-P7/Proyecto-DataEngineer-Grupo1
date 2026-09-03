@@ -122,6 +122,89 @@ def test_insert_mapping_round_trips_through_a_real_database(
                     cleanup_cursor.execute(
                         "DELETE FROM employees WHERE id = %s", (outcome.employee_id,)
                     )
+                    cleanup_cursor.execute(
+                        "DELETE FROM processing_audit WHERE raw_event_ref = %s",
+                        (mapping.employees[0].source_reference,),
+                    )
+                live_connection.commit()
+        finally:
+            repository.close()
+
+
+def test_reprocessing_the_same_source_reference_inserts_once_and_skips_the_second_time(
+    live_connection: psycopg.Connection[tuple[object, ...]],
+) -> None:
+    from hr_pro_platform.storage.person_mapper import CandidateRow, PersonRecordMapping
+    from hr_pro_platform.storage.person_repository import InsertOutcome, PersonRepository
+    from hr_pro_platform.storage.postgres import PostgresSchemaClient
+
+    schema_client = PostgresSchemaClient()
+    schema_client.connect()
+    try:
+        schema_client.create_schema()
+    finally:
+        schema_client.close()
+
+    mapping = PersonRecordMapping(
+        status="complete",
+        correlation_rules=(),
+        provenance=("integration-test-dedup-source",),
+        employees=(
+            CandidateRow(
+                table="employees",
+                group_key="INTEGRATION-TEST-P-DEDUP",
+                fields={
+                    "first_name": "DedupTest",
+                    "last_name": "Fixture",
+                    "passport": "INTEGRATION-TEST-P-DEDUP",
+                },
+                source_reference="integration-test-dedup-source",
+            ),
+        ),
+        locations=(),
+        professional_profiles=(),
+        bank_accounts=(),
+        network_data=(),
+    )
+
+    repository = PersonRepository()
+    repository.connect()
+    first_outcome: InsertOutcome | None = None
+    second_outcome: InsertOutcome | None = None
+    try:
+        first_outcome = repository.insert_mapping(mapping)
+        second_outcome = repository.insert_mapping(mapping)
+
+        assert first_outcome.inserted is True
+        assert second_outcome.inserted is False
+        assert second_outcome.skipped_reason == "already_processed"
+        assert second_outcome.employee_id is None
+
+        with live_connection.cursor() as cursor:
+            cursor.execute(
+                "SELECT count(*) FROM employees WHERE passport = %s",
+                ("INTEGRATION-TEST-P-DEDUP",),
+            )
+            employee_count = cursor.fetchone()
+            cursor.execute(
+                "SELECT count(*) FROM processing_audit WHERE raw_event_ref = %s",
+                ("integration-test-dedup-source",),
+            )
+            audit_count = cursor.fetchone()
+
+        assert employee_count == (1,)  # not duplicated by the second attempt
+        assert audit_count == (1,)  # not duplicated either
+    finally:
+        try:
+            if first_outcome is not None and first_outcome.employee_id is not None:
+                with live_connection.cursor() as cleanup_cursor:
+                    cleanup_cursor.execute(
+                        "DELETE FROM employees WHERE id = %s", (first_outcome.employee_id,)
+                    )
+                    cleanup_cursor.execute(
+                        "DELETE FROM processing_audit WHERE raw_event_ref = %s",
+                        ("integration-test-dedup-source",),
+                    )
                 live_connection.commit()
         finally:
             repository.close()

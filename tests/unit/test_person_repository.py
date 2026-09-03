@@ -79,10 +79,28 @@ def mapping(
     )
 
 
-def repository_with_mock_connection() -> tuple[PersonRepository, MagicMock, MagicMock]:
+def repository_with_mock_connection(
+    *, already_processed: bool = False
+) -> tuple[PersonRepository, MagicMock, MagicMock]:
+    """Build a repository over a mocked connection/cursor.
+
+    ``fetchone()`` now serves two different queries per insert (HRP-58's
+    ``processing_audit`` idempotency check, then the ``employees`` insert's
+    ``RETURNING id``), so its return value is routed by inspecting the most
+    recently executed query instead of a single fixed return value.
+    """
+
     mock_cursor = MagicMock()
     mock_cursor.__enter__.return_value = mock_cursor
-    mock_cursor.fetchone.return_value = (42,)
+
+    def fetchone_side_effect() -> tuple[int] | None:
+        last_call = mock_cursor.execute.call_args
+        query_text = str(last_call.args[0]) if last_call is not None else ""
+        if "processing_audit" in query_text and "SELECT" in query_text.upper():
+            return (1,) if already_processed else None
+        return (42,)
+
+    mock_cursor.fetchone.side_effect = fetchone_side_effect
     mock_connection = MagicMock()
     mock_connection.cursor.return_value = mock_cursor
 
@@ -99,8 +117,11 @@ def test_single_employee_row_is_inserted_and_id_propagated_to_dependents() -> No
 
     assert outcome.inserted is True
     assert outcome.employee_id == 42
-    assert mock_cursor.execute.call_count == 2  # one employees insert, one locations insert
-    employees_call, locations_call = mock_cursor.execute.call_args_list
+    # HRP-58 check + employees insert + one locations insert + audit insert
+    assert mock_cursor.execute.call_count == 4
+    check_call, employees_call, locations_call, audit_call = mock_cursor.execute.call_args_list
+    assert "processing_audit" in str(check_call.args[0])
+    assert "processing_audit" in str(audit_call.args[0])
     assert "employees" in str(employees_call.args[0])
     assert "RETURNING id" in str(employees_call.args[0])
     assert "locations" in str(locations_call.args[0])
@@ -119,8 +140,9 @@ def test_multiple_dependent_rows_in_one_table_share_the_same_employee_id() -> No
     outcome = repository.insert_mapping(record)
 
     assert outcome.inserted is True
-    assert mock_cursor.execute.call_count == 3  # employees + 2 locations
-    for call in mock_cursor.execute.call_args_list[1:]:
+    # HRP-58 check + employees insert + 2 locations + audit insert
+    assert mock_cursor.execute.call_count == 5
+    for call in mock_cursor.execute.call_args_list[2:4]:  # the 2 locations inserts only
         assert call.args[1][0] == 42
     mock_connection.commit.assert_called_once()
 
@@ -166,7 +188,7 @@ def test_employees_sex_is_bound_as_jsonb() -> None:
 
     repository.insert_mapping(record)
 
-    employees_call = mock_cursor.execute.call_args_list[0]
+    employees_call = mock_cursor.execute.call_args_list[1]  # index 0 is the HRP-58 check
     bound_values = employees_call.args[1]
     sex_index = list(employee_row(sex=["X"]).fields.keys()).index("sex")
     sex_value = bound_values[sex_index]
@@ -181,7 +203,7 @@ def test_non_jsonb_fields_are_bound_unwrapped() -> None:
 
     repository.insert_mapping(record)
 
-    bound_values = mock_cursor.execute.call_args_list[0].args[1]
+    bound_values = mock_cursor.execute.call_args_list[1].args[1]  # index 0 is the HRP-58 check
     assert "P-001" in bound_values
     assert not any(isinstance(value, Jsonb) for value in bound_values)
 
@@ -229,7 +251,9 @@ def test_insert_failure_logs_only_error_class_and_sqlstate_not_error_text(
 
 def test_dependent_insert_failure_after_employee_insert_rolls_back_without_commit() -> None:
     repository, mock_connection, mock_cursor = repository_with_mock_connection()
-    mock_cursor.execute.side_effect = [None, Exception("dependent insert failed")]
+    # 1st call: HRP-58 check succeeds. 2nd call: employees insert succeeds.
+    # 3rd call: the dependent (locations) insert fails.
+    mock_cursor.execute.side_effect = [None, None, Exception("dependent insert failed")]
     record = mapping(employees=(employee_row(),), locations=(location_row(),))
 
     with pytest.raises(Exception, match="dependent insert failed"):
@@ -252,8 +276,9 @@ def test_employee_id_propagates_correctly_to_all_four_dependent_tables() -> None
     outcome = repository.insert_mapping(record)
 
     assert outcome.employee_id == 42
-    assert mock_cursor.execute.call_count == 5  # employees + 4 dependents
-    dependent_calls = mock_cursor.execute.call_args_list[1:]
+    # HRP-58 check + employees insert + 4 dependents + audit insert
+    assert mock_cursor.execute.call_count == 7
+    dependent_calls = mock_cursor.execute.call_args_list[2:-1]  # exclude check/employees/audit
 
     # Render each composed query to real SQL text (not the object's repr) so
     # the table name can be matched exactly, and key by that table instead of
@@ -297,3 +322,59 @@ def test_insert_mappings_isolates_a_failure_to_its_own_component() -> None:
     assert outcomes[1].employee_id == 42
     assert mock_connection.rollback.call_count == 1
     assert mock_connection.commit.call_count == 1
+
+
+# ---------------------------------------------------------------------------
+# HRP-58: skip already-processed components by source_reference, without any
+# person-identity field involved.
+# ---------------------------------------------------------------------------
+
+
+def test_already_processed_component_is_skipped_without_any_write() -> None:
+    repository, mock_connection, mock_cursor = repository_with_mock_connection(
+        already_processed=True
+    )
+    record = mapping(employees=(employee_row(),), locations=(location_row(),))
+
+    outcome = repository.insert_mapping(record)
+
+    assert outcome.inserted is False
+    assert outcome.employee_id is None
+    assert outcome.skipped_reason == "already_processed"
+    # Only the check itself ran; no employees/dependent INSERT was attempted.
+    assert mock_cursor.execute.call_count == 1
+    assert "processing_audit" in str(mock_cursor.execute.call_args_list[0].args[0])
+    mock_connection.commit.assert_called_once()  # closes the read-only check
+    mock_connection.rollback.assert_not_called()
+
+
+def test_new_component_records_a_processing_audit_row_with_the_source_reference() -> None:
+    repository, mock_connection, mock_cursor = repository_with_mock_connection()
+    record = mapping(employees=(employee_row(),))
+
+    outcome = repository.insert_mapping(record)
+
+    assert outcome.inserted is True
+    # HRP-58 check + employees insert + processing_audit insert
+    assert mock_cursor.execute.call_count == 3
+    audit_call = mock_cursor.execute.call_args_list[2]
+    assert "processing_audit" in str(audit_call.args[0])
+    assert "INSERT" in str(audit_call.args[0]).upper()
+    employee_id, stage, status, raw_event_ref = audit_call.args[1]
+    assert employee_id == 42
+    assert stage == "insert"
+    assert status == "inserted"
+    assert raw_event_ref == employee_row().source_reference == "p"
+    mock_connection.commit.assert_called_once()
+
+
+def test_already_processed_check_never_binds_a_business_identity_value() -> None:
+    repository, _mock_connection, mock_cursor = repository_with_mock_connection()
+    record = mapping(employees=(employee_row(passport="SHOULD-NOT-APPEAR-IN-CHECK"),))
+
+    repository.insert_mapping(record)
+
+    check_call = mock_cursor.execute.call_args_list[0]
+    assert check_call.args[1] == ["p"]  # only the opaque source_reference is bound
+    assert "SHOULD-NOT-APPEAR-IN-CHECK" not in check_call.args[1]
+    assert "passport" not in str(check_call.args[0]).lower()

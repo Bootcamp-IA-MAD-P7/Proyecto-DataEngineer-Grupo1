@@ -1,11 +1,15 @@
 """Insert HRP-55 ``PersonRecordMapping`` output into PostgreSQL.
 
-See docs/specs/HRP-56-insert-processed-person-records.md. Only components
-whose ``employees`` tuple has exactly one candidate row are inserted; a
-component with zero or more than one candidate ``employees`` row is skipped
-explicitly rather than guessing an association (see the spec's "Design"
-section). No ``UPDATE``, deduplication or ``ON CONFLICT`` behaviour is
-introduced here — that is HRP-57/HRP-58.
+See docs/specs/HRP-56-insert-processed-person-records.md and
+docs/specs/HRP-58-avoid-duplicate-records.md. Only components whose
+``employees`` tuple has exactly one candidate row are inserted; a component
+with zero or more than one candidate ``employees`` row is skipped explicitly
+rather than guessing an association (see HRP-56's "Design" section). A
+component whose employee candidate row's ``source_reference`` was already
+recorded in ``processing_audit`` is skipped as an already-processed
+reinsertion (HRP-58) — this is source-reprocessing idempotency, not
+person-identity deduplication; no business-identity field is used. No
+``UPDATE`` behaviour is introduced here — that is HRP-57.
 """
 
 from __future__ import annotations
@@ -94,12 +98,29 @@ class PersonRepository:
             )
             for row in rows
         )
+        source_reference = mapping.employees[0].source_reference
 
         try:
             with self._connection.cursor() as cursor:
+                # HRP-58: check-then-insert within the same transaction as the
+                # write it guards. This narrows, but does not eliminate, the
+                # race between two concurrent writers reinserting the same
+                # already-processed fragment -- see the spec's "Risks" for
+                # why a database-level unique index remains a separate,
+                # explicitly pending proposal rather than being assumed here.
+                if self._already_processed(cursor, source_reference):
+                    self._connection.commit()
+                    logger.info(
+                        "Skipping component | reason=already_processed source_reference=%s",
+                        source_reference,
+                    )
+                    return InsertOutcome(
+                        inserted=False, employee_id=None, skipped_reason="already_processed"
+                    )
                 employee_id = self._insert_employee(cursor, mapping.employees[0])
                 for table, row in dependent_rows:
                     self._insert_dependent(cursor, table, row, employee_id)
+                self._record_processing_audit(cursor, employee_id, source_reference)
             self._connection.commit()
         except Exception as error:
             self._connection.rollback()
@@ -135,6 +156,31 @@ class PersonRepository:
                     InsertOutcome(inserted=False, employee_id=None, skipped_reason="insert_error")
                 )
         return outcomes
+
+    @staticmethod
+    def _already_processed(cursor: psycopg.Cursor[Any], source_reference: str) -> bool:
+        """Check processing_audit for a prior insert of this exact source event.
+
+        This is source-reprocessing idempotency (HRP-58), not person-identity
+        deduplication: it only asks "have I already inserted this fragment?",
+        never "is this the same real person as an existing row?".
+        """
+
+        cursor.execute(
+            "SELECT 1 FROM processing_audit WHERE raw_event_ref = %s LIMIT 1",
+            [source_reference],
+        )
+        return cursor.fetchone() is not None
+
+    @staticmethod
+    def _record_processing_audit(
+        cursor: psycopg.Cursor[Any], employee_id: int, source_reference: str
+    ) -> None:
+        cursor.execute(
+            "INSERT INTO processing_audit (employee_id, stage, status, raw_event_ref) "
+            "VALUES (%s, %s, %s, %s)",
+            [employee_id, "insert", "inserted", source_reference],
+        )
 
     @staticmethod
     def _insert_employee(cursor: psycopg.Cursor[Any], row: CandidateRow) -> int:
