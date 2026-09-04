@@ -1,6 +1,7 @@
 """Read-only person search over curated PostgreSQL data.
 
-See docs/specs/HRP-84-search-person-endpoint.md. Every query here uses
+See docs/specs/HRP-84-search-person-endpoint.md and
+docs/specs/HRP-85-search-by-location-profession.md. Every query here uses
 ``psycopg``'s ``sql.SQL``/``sql.Identifier``/``sql.Placeholder``, never
 raw string interpolation, matching ``person_repository.py`` and
 ``validation_queries.py``'s existing convention.
@@ -19,7 +20,7 @@ technical fields, nothing more.
 
 from __future__ import annotations
 
-from collections.abc import Mapping
+from collections.abc import Mapping, Sequence
 from typing import Any
 
 import psycopg
@@ -30,6 +31,13 @@ from pydantic import BaseModel
 # column name -- used only as a fixed, code-controlled allowlist for
 # sql.Identifier(), never built from caller-supplied key names.
 ALLOWED_FILTERS: frozenset[str] = frozenset({"id", "passport", "first_name", "last_name"})
+
+# HRP-85: filterable columns on locations/professional_profiles. Kept
+# separate from ALLOWED_FILTERS because these live on a different table
+# than `employees` -- see docs/specs/HRP-85-search-by-location-profession.md
+# ("Decisions confirmed", item 1).
+LOCATION_FILTERS: frozenset[str] = frozenset({"city", "address"})
+PROFESSIONAL_FILTERS: frozenset[str] = frozenset({"job", "company"})
 
 _EMPLOYEE_COLUMNS: tuple[str, ...] = (
     "id",
@@ -111,7 +119,79 @@ def search_employees(
         offset=sql.Placeholder(),
     )
     cursor.execute(query, [*filters.values(), limit, offset])
-    employee_rows = cursor.fetchall()
+    return _assemble_results(cursor, cursor.fetchall())
+
+
+def search_employees_by_location_or_profession(
+    cursor: psycopg.Cursor[Any],
+    *,
+    location_filters: Mapping[str, object],
+    professional_filters: Mapping[str, object],
+    limit: int,
+    offset: int,
+) -> list[PersonSearchResult]:
+    """Search employees by an exact-match ``locations``/``professional_profiles``
+    filter (HRP-85).
+
+    ``location_filters``/``professional_filters`` keys must already be
+    validated by the caller against ``LOCATION_FILTERS``/
+    ``PROFESSIONAL_FILTERS``; at least one of the two mappings must be
+    non-empty. When both are supplied, a matching employee must satisfy
+    both (AND) -- see docs/specs/HRP-85-search-by-location-profession.md
+    ("Decisions confirmed", item 3).
+    """
+
+    id_sets: list[set[int]] = []
+    if location_filters:
+        id_sets.append(_matching_employee_ids(cursor, "locations", location_filters))
+    if professional_filters:
+        id_sets.append(
+            _matching_employee_ids(cursor, "professional_profiles", professional_filters)
+        )
+    employee_ids = set.intersection(*id_sets)
+    if not employee_ids:
+        return []
+
+    query = sql.SQL(
+        "SELECT {columns} FROM employees WHERE id = ANY({ids}) "
+        "ORDER BY id LIMIT {limit} OFFSET {offset}"
+    ).format(
+        columns=sql.SQL(", ").join(sql.Identifier(column) for column in _EMPLOYEE_COLUMNS),
+        ids=sql.Placeholder(),
+        limit=sql.Placeholder(),
+        offset=sql.Placeholder(),
+    )
+    cursor.execute(query, [list(employee_ids), limit, offset])
+    return _assemble_results(cursor, cursor.fetchall())
+
+
+def _matching_employee_ids(
+    cursor: psycopg.Cursor[Any], table: str, filters: Mapping[str, object]
+) -> set[int]:
+    """Return the distinct ``employee_id``s whose row in ``table`` matches
+    every supplied filter (AND)."""
+
+    conditions = [
+        sql.SQL("{column} = {placeholder}").format(
+            column=sql.Identifier(name), placeholder=sql.Placeholder()
+        )
+        for name in filters
+    ]
+    query = sql.SQL("SELECT DISTINCT employee_id FROM {table} WHERE {conditions}").format(
+        table=sql.Identifier(table),
+        conditions=sql.SQL(" AND ").join(conditions),
+    )
+    cursor.execute(query, list(filters.values()))
+    return {row[0] for row in cursor.fetchall()}
+
+
+def _assemble_results(
+    cursor: psycopg.Cursor[Any], employee_rows: Sequence[Any]
+) -> list[PersonSearchResult]:
+    """Build one ``PersonSearchResult`` per matched ``employees`` row,
+    attaching its ``locations``/``professional_profiles`` rows. Shared by
+    every search entry point so every response has the same shape
+    regardless of which filter found the employee."""
 
     results: list[PersonSearchResult] = []
     for row in employee_rows:
