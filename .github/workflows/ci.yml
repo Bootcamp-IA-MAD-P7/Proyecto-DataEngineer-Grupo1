@@ -36,12 +36,25 @@ jobs:
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
+              mongo:
+        image: mongo:7.0
+        ports:
+          - 27017:27017
+        options: >-
+          --health-cmd "mongosh --quiet --eval 'db.adminCommand(\"ping\").ok'"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
     env:
       POSTGRES_HOST: localhost
       POSTGRES_PORT: 5432
       POSTGRES_DB: hr_pro
       POSTGRES_USER: hr_pro
       POSTGRES_PASSWORD: hr-pro-ci-ephemeral
+      MONGODB_URI: mongodb://localhost:27017/hr_pro
+      MONGODB_DB: hr_pro
+      MONGODB_COLLECTION: raw_events
+      MONGODB_INVALID_COLLECTION: invalid_events
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
