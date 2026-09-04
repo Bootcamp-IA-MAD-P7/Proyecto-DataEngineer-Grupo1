@@ -54,29 +54,11 @@ def mongo_raw_client(monkeypatch: pytest.MonkeyPatch) -> Iterator[Any]:
 
 
 @pytest.fixture
-def postgres_connection(
-    monkeypatch: pytest.MonkeyPatch,
-) -> Iterator[psycopg.Connection[tuple[object, ...]]]:
-    postgres_defaults = {
-        "POSTGRES_HOST": "127.0.0.1",
-        "POSTGRES_PORT": "5432",
-        "POSTGRES_DB": "hr_pro",
-        "POSTGRES_USER": "hr_pro",
-        "POSTGRES_PASSWORD": "change-me-locally",
-    }
-    for name, value in postgres_defaults.items():
-        monkeypatch.setenv(name, value)
-
+def postgres_connection() -> Iterator[psycopg.Connection[tuple[object, ...]]]:
     try:
         import hr_pro_platform.storage.config as storage_config
     except OSError:
         pytest.skip("PostgreSQL environment variables are not configured.")
-
-    monkeypatch.setattr(storage_config, "POSTGRES_HOST", postgres_defaults["POSTGRES_HOST"])
-    monkeypatch.setattr(storage_config, "POSTGRES_PORT", postgres_defaults["POSTGRES_PORT"])
-    monkeypatch.setattr(storage_config, "POSTGRES_DB", postgres_defaults["POSTGRES_DB"])
-    monkeypatch.setattr(storage_config, "POSTGRES_USER", postgres_defaults["POSTGRES_USER"])
-    monkeypatch.setattr(storage_config, "POSTGRES_PASSWORD", postgres_defaults["POSTGRES_PASSWORD"])
 
     try:
         connection = psycopg.connect(
