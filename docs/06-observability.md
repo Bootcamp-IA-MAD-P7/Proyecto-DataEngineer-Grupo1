@@ -15,6 +15,11 @@ de correlación. Un filtro común de redacción actuará como defensa adicional,
 autoriza a registrar PII. Los servicios emitirán JSON por `stdout` para que Docker y
 la futura capa de monitorización puedan recogerlo sin acoplamiento.
 
+HRP-66 añade un helper reutilizable para logs técnicos de ETL. Este helper solo acepta
+metadatos acotados de procesamiento: etapa, estado, dominio, contadores, tipo de error
+y duración. Los metadatos textuales usan valores técnicos controlados. No acepta
+payloads, claves de correlación, secretos ni valores personales.
+
 ## Métricas
 
 - Eventos consumidos por segundo.
