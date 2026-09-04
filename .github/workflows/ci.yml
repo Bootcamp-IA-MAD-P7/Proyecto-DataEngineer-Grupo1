@@ -16,6 +16,32 @@ permissions:
 jobs:
   checks:
     runs-on: ubuntu-latest
+    # HRP-70: ephemeral, CI-only service container -- ports are published only
+    # to this job's own runner (never exposed publicly). The password below
+    # is not a secret: it is a plain, visible job-environment value (as any
+    # GitHub Actions log reader could see), scoped to this throwaway
+    # container only, distinct from infra/compose.dev.yml's development
+    # password, and discarded when the job ends.
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: hr_pro
+          POSTGRES_PASSWORD: hr-pro-ci-ephemeral
+          POSTGRES_DB: hr_pro
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U hr_pro -d hr_pro"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      POSTGRES_HOST: localhost
+      POSTGRES_PORT: 5432
+      POSTGRES_DB: hr_pro
+      POSTGRES_USER: hr_pro
+      POSTGRES_PASSWORD: hr-pro-ci-ephemeral
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
