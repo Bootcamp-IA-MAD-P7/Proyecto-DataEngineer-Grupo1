@@ -137,7 +137,7 @@ def test_statistics_reflects_inserted_employees_and_missing_domains(
         }
         # No individual name or column value ever appears in the response
         # (the response schema itself has no employee_id field either --
-        # see test_statistics_response_never_includes_individual_record_fields).
+        # see test_response_models_only_expose_allowed_aggregate_fields).
         assert "HRP86-P-A" not in str(after)
         assert "HRP86-City" not in str(after)
     finally:

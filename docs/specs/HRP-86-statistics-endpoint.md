@@ -50,16 +50,16 @@ individual employee, location, professional, bank or network record.
 - One new route, `GET /statistics`, added inside `create_app()` alongside the
   existing routes. No query parameters, no pagination — a single aggregate
   snapshot.
-- Two aggregate metrics, computed by directly reusing HRP-59's existing
-  functions rather than writing new SQL:
+- Two aggregate metrics, each computed entirely as a PostgreSQL aggregate
+  query (no per-employee row ever materialized in Python):
   - `rows_per_table`: a row count for every curated table (`employees`,
     `locations`, `professional_profiles`, `bank_accounts`, `network_data`,
-    `processing_audit`), from `count_rows_per_table()`.
+    `processing_audit`), from HRP-59's existing `count_rows_per_table()`.
   - `employees_missing_domain`: for each dependent table, how many employees
-    currently have zero rows there, aggregated from
-    `find_incomplete_employees()`'s per-employee result into a per-domain
-    count. No `employee_id` is ever included in the response — only the
-    aggregate count.
+    currently have zero rows there, from `count_employees_missing_each_domain()`
+    (new in this task — see "Design"), which returns a single row of four
+    counts directly from PostgreSQL. No `employee_id` is ever included in
+    the response — only the aggregate count.
 - Reuse of `main.py`'s existing `psycopg.Error` handler for database failures.
 - Unit tests (dependency override, no real database) and one integration test
   against a real PostgreSQL container using delta assertions (see "Test
@@ -85,10 +85,11 @@ individual employee, location, professional, bank or network record.
 
 **Exact metrics list.** Neither HRP-86 nor HRP-91 define this in Jira (both
 tickets have no description). Two aggregate metrics are proposed and
-**confirmed as the minimal default** for this task: `rows_per_table` and
-`employees_missing_domain`, both derived from already-reviewed,
-already-tested `validation_queries.py` functions rather than new,
-unevidenced business metrics. Including `bank_accounts` in `rows_per_table`
+**confirmed as the minimal default** for this task: `rows_per_table`
+(reusing HRP-59's already-reviewed, already-tested `count_rows_per_table()`
+as-is) and `employees_missing_domain` (a new, dedicated PostgreSQL aggregate
+function introduced by this task — see "Design" — rather than a new,
+unevidenced business metric). Including `bank_accounts` in `rows_per_table`
 and `employees_missing_domain` is a deliberate, confirmed choice: only an
 aggregate *count* is exposed, never an individual `iban`/`salary` value —
 this is a different exposure than HRP-84/85's exclusion of the
@@ -150,10 +151,12 @@ scope. A future task may add further metrics with its own spec.
    latency specific to this local Docker setup, not with the cost of the
    query under test. As direct evidence for this specific case: the runtime
    of `test_statistics_reflects_inserted_employees_and_missing_domains`
-   after replacing the O(employees) Python-side reduction with a single
-   O(1) aggregate query is recorded in "Closing evidence" below — if it did
-   not meaningfully drop, that confirms the bottleneck is environmental, not
-   the query.
+   after replacing the O(employees) Python-side reduction with a
+   constant-size PostgreSQL aggregate query (no per-employee result ever
+   materialized — the query's own execution cost is not claimed to be O(1)
+   with respect to data volume, only its result size) is recorded in
+   "Closing evidence" below — if it did not meaningfully drop, that confirms
+   the bottleneck is environmental, not the query.
 5. **Spec state — CONFIRMED updated**, this revision.
 
 ## What stays provisional / unknown / pending
@@ -233,7 +236,7 @@ scope. A future task may add further metrics with its own spec.
   traceability): `pytest tests/unit` → `237 passed` in 7.19s; real-PostgreSQL
   integration → `1 passed in 151.44s`.
 
-### Revision addressing the review (commit pending)
+### Revision addressing the review (commit `03a4ecb`)
 
 - Rebased onto `origin/develop` at `a0929b6` (post PR #67, HRP-75/Redis
   retrieval) — no conflicts, no file overlap.
@@ -251,8 +254,8 @@ scope. A future task may add further metrics with its own spec.
     -v --no-cov` against a real PostgreSQL container (already running) →
     both **passed** (`2 passed in 281.64s`, ≈140s each). This is the same
     order of magnitude as the original single test's 151.44s — switching
-    from an O(employees) Python-side reduction to a single O(1) PostgreSQL
-    aggregate query did not meaningfully change the per-test runtime,
+    from an O(employees) Python-side reduction to a constant-size PostgreSQL
+    aggregate result did not meaningfully change the per-test runtime,
     confirming the earlier concern's runtime is environmental
     (connection/schema-creation latency specific to this local Windows +
     Docker Desktop setup, observed consistently across every HRP-84/85/86
