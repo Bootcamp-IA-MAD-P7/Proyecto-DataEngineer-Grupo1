@@ -1,4 +1,26 @@
 services:
+  app:
+    build:
+      context: ..
+      dockerfile: Dockerfile
+    image: hr-pro-data-platform:dev
+    container_name: hr-pro-app-dev
+    profiles:
+      - app
+    restart: unless-stopped
+    env_file:
+      - path: ../.env.example
+        required: true
+      - path: ../.env
+        required: false
+    environment:
+      MONGODB_URI: mongodb://mongo:27017/hr_pro
+    depends_on:
+      mongo:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+
   mongo:
     image: mongo:7.0
     container_name: hr-pro-mongo-dev
@@ -19,6 +41,8 @@ services:
     container_name: hr-pro-postgres-dev
     restart: unless-stopped
     env_file:
+      - path: ../.env.example
+        required: true
       - path: ../.env
         required: false
     ports:
