@@ -18,6 +18,7 @@ class FakeRedis:
     values: dict[str, set[str]] = field(default_factory=dict)
     fail: Exception | None = None
     closed: bool = False
+    expiration_calls: list[tuple[str, ...]] = field(default_factory=list)
 
     def sadd(self, name: str, value: str) -> int:
         if self.fail is not None:
@@ -29,6 +30,15 @@ class FakeRedis:
 
     def close(self) -> None:
         self.closed = True
+
+    def expire(self, *args: Any) -> None:
+        self.expiration_calls.append(("expire", *(str(arg) for arg in args)))
+
+    def pexpire(self, *args: Any) -> None:
+        self.expiration_calls.append(("pexpire", *(str(arg) for arg in args)))
+
+    def setex(self, *args: Any) -> None:
+        self.expiration_calls.append(("setex", *(str(arg) for arg in args)))
 
 
 def fragment(payload: dict[str, Any], source_reference: str = "source-1") -> ClassifiedFragment:
@@ -101,5 +111,7 @@ def test_store_does_not_assign_ttl_or_expose_retrieval_api() -> None:
     store = RedisPartialStateStore(client=client)
     store.connect()
 
-    assert not hasattr(client, "expire")
+    store.store_fragment("component-a", fragment({"name": "Ada"}))
+
+    assert client.expiration_calls == []
     assert not hasattr(store, "retrieve_fragments")

@@ -1,8 +1,10 @@
 # HRP-74 — Store partial person data in Redis
 
-**Status:** Draft for implementation review
+**Status:** Implemented — pending merge
 **Jira:** HRP-74
 **Owner:** Gabriela Granja
+**Pull request:** [#66](https://github.com/Bootcamp-IA-MAD-P7/Proyecto-DataEngineer-Grupo1/pull/66)
+**Implementation commit:** `c1140fb`
 **Dependencies:** HRP-73, HRP-50, HRP-51, ADR-0005 and ADR-0006
 **Related ADRs:** [ADR-0005](../adr/0005-kafka-acknowledgement-after-raw-persistence.md), [ADR-0006](../adr/0006-person-correlation-key.md)
 
@@ -89,17 +91,17 @@ remains the durable Kafka acknowledgement boundary under ADR-0005.
 
 ## Acceptance criteria
 
-- [ ] A classified fragment is stored under the supplied provisional component key.
-- [ ] Classification, payload and source reference are preserved.
-- [ ] A second fragment for the same component is accumulated.
-- [ ] Repeating the exact same fragment does not add a second Set entry.
-- [ ] Conflicting fragments remain separately visible in the Set.
-- [ ] Incomplete but valid fragments are preserved.
-- [ ] Serialization is deterministic.
-- [ ] Redis failures are surfaced without exposing payloads or keys in adapter logs.
-- [ ] No TTL command is issued.
-- [ ] No consolidated record or retrieval API is implemented.
-- [ ] Kafka acknowledgement semantics remain unchanged.
+- [x] A classified fragment is stored under the supplied provisional component key.
+- [x] Classification, payload and source reference are preserved.
+- [x] A second fragment for the same component is accumulated.
+- [x] Repeating the exact same fragment does not add a second Set entry.
+- [x] Conflicting fragments remain separately visible in the Set.
+- [x] Incomplete but valid fragments are preserved.
+- [x] Serialization is deterministic.
+- [x] Redis failures are surfaced without exposing payloads or keys in adapter logs.
+- [x] No TTL command is issued.
+- [x] No consolidated record or retrieval API is implemented.
+- [x] Kafka acknowledgement semantics remain unchanged.
 
 ## Testing
 
@@ -117,7 +119,10 @@ Redis directly from the test only; they do not introduce production retrieval.
 
 ## Evidence and rollback
 
-Expected evidence is the focused unit suite, the Redis-backed integration suite,
-Compose validation, lint, format, type checks and the full test suite. Rollback is
-removal of the HRP-74 adapter and dependency; MongoDB RAW remains independently
-recoverable.
+Validation evidence for PR #66 includes the focused unit suite, the Redis-backed
+integration suite against real Redis, Compose validation, lint, format, type checks
+and the full test suite. Current CI check results are maintained by PR #66 and are
+the source of truth at review time; transient local test counts are not duplicated
+here. The focused Redis run's repository-wide coverage warning is expected when
+only one test is selected. Rollback is removal of the HRP-74 adapter and dependency;
+MongoDB RAW remains independently recoverable.
