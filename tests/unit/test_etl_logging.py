@@ -2,6 +2,7 @@
 
 import json
 import logging
+import math
 
 import pytest
 
@@ -115,7 +116,19 @@ def test_hrp66_rejects_sensitive_or_arbitrary_textual_metadata(
         ),
         (
             {"stage": "validation", "status": "failed", "processing_time_ms": -0.1},
-            "processing_time_ms must be greater than or equal to 0",
+            "processing_time_ms must be finite and greater than or equal to 0",
+        ),
+        (
+            {"stage": "validation", "status": "failed", "processing_time_ms": math.nan},
+            "processing_time_ms must be finite and greater than or equal to 0",
+        ),
+        (
+            {"stage": "validation", "status": "failed", "processing_time_ms": math.inf},
+            "processing_time_ms must be finite and greater than or equal to 0",
+        ),
+        (
+            {"stage": "validation", "status": "failed", "processing_time_ms": -math.inf},
+            "processing_time_ms must be finite and greater than or equal to 0",
         ),
     ],
 )
