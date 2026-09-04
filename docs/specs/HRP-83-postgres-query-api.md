@@ -137,4 +137,10 @@ at all, keeping the skeleton itself uncontroversial with respect to that boundar
     `python -m uvicorn hr_pro_platform.api.main:app --host 127.0.0.1 --port 8123`
     + `curl http://127.0.0.1:8123/health` → `{"status":"ok"}` — confirma que el
     esqueleto arranca de verdad, no solo vía `TestClient`.
+  - Rebase sobre `develop` actualizado (incorpora PR #59, "HRP-66 fix: reject
+    non finite log durations", sin solapamiento con los archivos de esta
+    tarea) → sin conflictos. Re-validado tras el rebase:
+    `pre-commit run --all-files` passed, `mypy src` →
+    `Success: no issues found in 31 source files`, `pytest` completo →
+    `224 passed, 2 skipped in 25.79s`.
 - Comentario Jira con el resultado: pending (se redacta tras aprobación de PR)
