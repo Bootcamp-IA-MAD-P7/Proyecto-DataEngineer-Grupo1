@@ -79,7 +79,14 @@ exception details.
 ## Completion evidence
 
 - Branch / PR: `feature/HRP-67-database-logging` / pending human review
-- Commit: pending
-- Commands and result: pending local and GitHub Actions execution
+- Commit: `3361d77`
+- Commands and result: `python scripts/validate_specs.py`,
+  `ruff check src/hr_pro_platform/ingestion/mongo.py tests/unit/test_kafka_consumer.py
+  docs/specs/HRP-67-database-logging.md`, `ruff format --check
+  src/hr_pro_platform/ingestion/mongo.py tests/unit/test_kafka_consumer.py`,
+  `mypy src`, `pytest tests/unit/test_kafka_consumer.py -k hrp67 --no-cov` and
+  `pytest tests/unit/test_person_repository.py --no-cov` passed locally.
+  The broader local `tests/unit/test_kafka_consumer.py` run is limited by Windows
+  Application Control blocking the Confluent Kafka DLL in existing consumer tests;
+  GitHub Actions must provide authoritative full-suite evidence.
 - Jira closing comment: pending merge and human verification
-
