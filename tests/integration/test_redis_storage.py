@@ -72,10 +72,10 @@ def test_real_redis_retrieval_preserves_multiple_conflicting_fragments(
     component = f"integration-{uuid.uuid4()}"
     key = f"hrp:partial:{component}"
     store = RedisPartialStateStore(client=live_redis)
-    fragments = {
+    fragments = [
         ClassifiedFragment({"name": "Ada"}, "Personal", "source-1"),
         ClassifiedFragment({"name": "Different"}, "Personal", "source-2"),
-    }
+    ]
 
     try:
         for item in fragments:
