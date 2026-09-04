@@ -1,10 +1,12 @@
 """FastAPI application for the PostgreSQL query API.
 
 See docs/specs/HRP-83-postgres-query-api.md (skeleton: application
-factory, shared database-error handler, ``/health``) and
+factory, shared database-error handler, ``/health``),
 docs/specs/HRP-84-search-person-endpoint.md (``GET /people/search``,
-the first business endpoint). HRP-85/86 add their own business
-endpoints on top of this skeleton in their own tasks; HRP-89 is the
+the first business endpoint) and
+docs/specs/HRP-85-search-by-location-profession.md (``GET
+/people/search/by-location-profession``). HRP-86 adds its own business
+endpoint on top of this skeleton in its own task; HRP-89 is the
 Streamlit frontend that will consume them.
 """
 
@@ -18,7 +20,14 @@ from fastapi.responses import JSONResponse
 
 from ..ingestion.error_handler import get_logger
 from .db import get_connection
-from .people import ALLOWED_FILTERS, PersonSearchResult, search_employees
+from .people import (
+    ALLOWED_FILTERS,
+    LOCATION_FILTERS,
+    PROFESSIONAL_FILTERS,
+    PersonSearchResult,
+    search_employees,
+    search_employees_by_location_or_profession,
+)
 
 logger = get_logger("api")
 
@@ -92,6 +101,52 @@ def create_app() -> FastAPI:
 
         with connection.cursor() as cursor:
             return search_employees(cursor, filters=filters, limit=limit, offset=offset)
+
+    @app.get("/people/search/by-location-profession")
+    def search_people_by_location_or_profession(
+        connection: Annotated[psycopg.Connection[tuple[Any, ...]], Depends(get_connection)],
+        city: str | None = None,
+        address: str | None = None,
+        job: str | None = None,
+        company: str | None = None,
+        limit: int = 20,
+        offset: int = 0,
+    ) -> list[PersonSearchResult]:
+        location_filters: dict[str, object] = {
+            name: value
+            for name, value in {"city": city, "address": address}.items()
+            if value is not None
+        }
+        professional_filters: dict[str, object] = {
+            name: value
+            for name, value in {"job": job, "company": company}.items()
+            if value is not None
+        }
+        # Both dicts' keys always come from these fixed, code-controlled
+        # literals -- never from arbitrary caller-supplied names -- so
+        # these assertions document the invariant
+        # search_employees_by_location_or_profession() relies on rather
+        # than guarding against untrusted input.
+        assert set(location_filters).issubset(LOCATION_FILTERS)
+        assert set(professional_filters).issubset(PROFESSIONAL_FILTERS)
+        if not location_filters and not professional_filters:
+            raise HTTPException(
+                status_code=400,
+                detail="At least one of city, address, job or company is required",
+            )
+        if not 1 <= limit <= 100:
+            raise HTTPException(status_code=400, detail="limit must be between 1 and 100")
+        if offset < 0:
+            raise HTTPException(status_code=400, detail="offset must be non-negative")
+
+        with connection.cursor() as cursor:
+            return search_employees_by_location_or_profession(
+                cursor,
+                location_filters=location_filters,
+                professional_filters=professional_filters,
+                limit=limit,
+                offset=offset,
+            )
 
     return app
 
