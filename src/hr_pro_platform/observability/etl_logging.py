@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import json
 import logging
+import math
 from typing import Final, Literal, TypeAlias
 
 _EVENT_TYPE: Final = "etl_processing"
@@ -107,7 +108,15 @@ def log_etl_event(
         error_type=error_type,
         processing_time_ms=processing_time_ms,
     )
-    logger.info(json.dumps(event, ensure_ascii=True, sort_keys=True, separators=(",", ":")))
+    logger.info(
+        json.dumps(
+            event,
+            allow_nan=False,
+            ensure_ascii=True,
+            sort_keys=True,
+            separators=(",", ":"),
+        )
+    )
 
 
 def _require_allowed(field: str, value: str, allowed_values: frozenset[str]) -> None:
@@ -149,8 +158,8 @@ def _add_optional_duration(
     value: float | None,
 ) -> None:
     if value is not None:
-        if value < 0:
-            raise ValueError("processing_time_ms must be greater than or equal to 0")
+        if value < 0 or not math.isfinite(value):
+            raise ValueError("processing_time_ms must be finite and greater than or equal to 0")
         event["processing_time_ms"] = round(value, 3)
 
 

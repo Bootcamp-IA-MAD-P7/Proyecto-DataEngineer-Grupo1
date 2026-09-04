@@ -58,6 +58,8 @@ The textual metadata is bounded by controlled technical values:
 - [x] Logs are emitted as structured JSON through `stdout`-compatible Python logging.
 - [x] Invalid technical metadata, such as uncontrolled textual metadata or negative
   counts, is rejected before logging.
+- [x] Non-finite `processing_time_ms` values are rejected before logging and JSON
+  serialisation disallows `NaN` and infinity as a defensive safeguard.
 - [x] Unit tests prove the event shape and absence of payload/PII fields.
 - [x] No Kafka, MongoDB, PostgreSQL, Redis, API, frontend or generator scope is changed.
 
@@ -76,13 +78,13 @@ The textual metadata is bounded by controlled technical values:
 |---|---|---|
 | Unit | Build an ETL log event | Deterministic technical metadata shape |
 | Unit | Emit an ETL log event | JSON log excludes payload and PII field names |
-| Unit | Invalid metadata | Uncontrolled text values and negative numeric values fail fast |
+| Unit | Invalid metadata | Uncontrolled text values, negative numeric values and non-finite durations fail fast |
 | CI | Repository quality harness | Ruff, format, mypy, pytest and spec validation pass |
 
 ## Completion evidence
 
 - Branch / PR: `feature/HRP-66-etl-processing-logs` / PR #58
-- Commits: `2ffb83a`, `0817c72`, `b428962` and `0ecb540`
+- Commits: `2ffb83a`, `0817c72`, `b428962`, `0ecb540`; finite-duration fix pending
 - Commands and result: `python scripts/validate_specs.py`, `ruff check .`,
   `ruff format --check .`, `mypy src` and `pytest tests/unit/test_etl_logging.py
   --no-cov` passed locally. Full local `pytest` is limited by Windows Application
