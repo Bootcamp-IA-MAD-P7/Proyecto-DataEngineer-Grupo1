@@ -73,7 +73,7 @@ the pure transformation modules to Docker, Kafka, MongoDB or PostgreSQL.
 ## Completion evidence
 
 - Branch / PR: `feature/HRP-66-etl-processing-logs` / PR #58
-- Commit: `2ffb83a`
+- Commits: `2ffb83a` and `0817c72`
 - Commands and result: `python scripts/validate_specs.py`, `ruff check .`,
   `ruff format --check .`, `mypy src` and `pytest tests/unit/test_etl_logging.py
   --no-cov` passed locally. Full local `pytest` is limited by Windows Application
