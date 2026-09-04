@@ -177,9 +177,16 @@ class MongoIngestionClient:
                 logger.info("Duplicate documents skipped: %d", len(code_11000))
             non_duplicate = [e for e in bwe.details.get("writeErrors", []) if e["code"] != 11000]
             if non_duplicate:
-                logger.error("Non-duplicate write errors: %s", non_duplicate)
+                logger.error(
+                    "MongoDB bulk insert failed | operation=insert_many status=failed "
+                    "error_type=non_duplicate_bulk_write_error error_count=%d",
+                    len(non_duplicate),
+                )
                 return False
             return True
-        except Exception:
-            logger.error("Unrecoverable insert failure", exc_info=True)
+        except Exception as error:
+            logger.error(
+                "MongoDB insert failed | operation=insert_many status=failed error_type=%s",
+                type(error).__name__,
+            )
             return False

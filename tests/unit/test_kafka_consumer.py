@@ -277,6 +277,76 @@ def test_insert_many_returns_false_on_unrecoverable_error(mock_cls: MagicMock) -
     assert result is False
 
 
+@patch("hr_pro_platform.ingestion.mongo.MongoClient")
+def test_hrp67_bulk_write_error_log_excludes_raw_details_and_payload(
+    mock_cls: MagicMock,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    from hr_pro_platform.ingestion.mongo import MongoIngestionClient
+
+    sensitive_marker = "SYNTHETIC_SECRET_EMAIL_PASSPORT_IBAN"
+    mock_collection = MagicMock()
+    mock_collection.insert_many.side_effect = BulkWriteError(
+        {
+            "writeErrors": [
+                {
+                    "code": 99999,
+                    "errmsg": f"storage failed for {sensitive_marker}",
+                    "op": {"payload": {"email": sensitive_marker}},
+                }
+            ],
+            "nInserted": 0,
+        }
+    )
+
+    client = MongoIngestionClient()
+    client._collection = mock_collection
+
+    with caplog.at_level("ERROR"):
+        result = client.insert_many_fragments(
+            [("personal-data", {"email": sensitive_marker}, _make_msg())]
+        )
+
+    assert result is False
+    assert "operation=insert_many" in caplog.text
+    assert "status=failed" in caplog.text
+    assert "error_type=non_duplicate_bulk_write_error" in caplog.text
+    assert "error_count=1" in caplog.text
+    assert sensitive_marker not in caplog.text
+    assert "writeErrors" not in caplog.text
+    assert "payload" not in caplog.text
+
+
+@patch("hr_pro_platform.ingestion.mongo.MongoClient")
+def test_hrp67_generic_insert_error_log_excludes_exception_message_and_traceback(
+    mock_cls: MagicMock,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    from hr_pro_platform.ingestion.mongo import MongoIngestionClient
+
+    sensitive_marker = "SYNTHETIC_SECRET_ADDRESS_PHONE"
+    mock_collection = MagicMock()
+    mock_collection.insert_many.side_effect = RuntimeError(
+        f"database rejected sensitive value {sensitive_marker}"
+    )
+
+    client = MongoIngestionClient()
+    client._collection = mock_collection
+
+    with caplog.at_level("ERROR"):
+        result = client.insert_many_fragments(
+            [("personal-data", {"address": sensitive_marker}, _make_msg())]
+        )
+
+    assert result is False
+    assert "operation=insert_many" in caplog.text
+    assert "status=failed" in caplog.text
+    assert "error_type=RuntimeError" in caplog.text
+    assert sensitive_marker not in caplog.text
+    assert "database rejected sensitive value" not in caplog.text
+    assert all(record.exc_info is None for record in caplog.records)
+
+
 def test_insert_many_returns_true_on_empty_list() -> None:
     from hr_pro_platform.ingestion.mongo import MongoIngestionClient
 
