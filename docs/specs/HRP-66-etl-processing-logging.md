@@ -41,14 +41,23 @@ addresses, emails, IBANs, salaries, passports, phone numbers, environment values
 database records. This keeps logging reusable from ETL orchestration without coupling
 the pure transformation modules to Docker, Kafka, MongoDB or PostgreSQL.
 
+The textual metadata is bounded by controlled technical values:
+
+| Field | Allowed values |
+|---|---|
+| `stage` | `classification`, `validation`, `grouping`, `consolidation`, `etl` |
+| `status` | `started`, `completed`, `failed`, `skipped` |
+| `domain` | `Personal`, `Location`, `Professional`, `Bank`, `Net`, `unknown` |
+| `error_type` | `invalid_metadata`, `validation_error`, `classification_error`, `grouping_error`, `consolidation_error`, `unexpected_error` |
+
 ## Acceptance criteria
 
 - [x] ETL processing logs can represent stage, status, optional domain, technical
   counts, error type and `processing_time_ms`.
 - [x] The logging API does not accept raw payloads, secrets, PII or correlation values.
 - [x] Logs are emitted as structured JSON through `stdout`-compatible Python logging.
-- [x] Invalid technical metadata, such as empty stage/status or negative counts, is
-  rejected before logging.
+- [x] Invalid technical metadata, such as uncontrolled textual metadata or negative
+  counts, is rejected before logging.
 - [x] Unit tests prove the event shape and absence of payload/PII fields.
 - [x] No Kafka, MongoDB, PostgreSQL, Redis, API, frontend or generator scope is changed.
 
@@ -67,13 +76,13 @@ the pure transformation modules to Docker, Kafka, MongoDB or PostgreSQL.
 |---|---|---|
 | Unit | Build an ETL log event | Deterministic technical metadata shape |
 | Unit | Emit an ETL log event | JSON log excludes payload and PII field names |
-| Unit | Invalid metadata | Empty labels and negative numeric values fail fast |
+| Unit | Invalid metadata | Uncontrolled text values and negative numeric values fail fast |
 | CI | Repository quality harness | Ruff, format, mypy, pytest and spec validation pass |
 
 ## Completion evidence
 
 - Branch / PR: `feature/HRP-66-etl-processing-logs` / PR #58
-- Commits: `2ffb83a` and `0817c72`
+- Commits: `2ffb83a`, `0817c72`, `b428962`; latest fix pending
 - Commands and result: `python scripts/validate_specs.py`, `ruff check .`,
   `ruff format --check .`, `mypy src` and `pytest tests/unit/test_etl_logging.py
   --no-cov` passed locally. Full local `pytest` is limited by Windows Application

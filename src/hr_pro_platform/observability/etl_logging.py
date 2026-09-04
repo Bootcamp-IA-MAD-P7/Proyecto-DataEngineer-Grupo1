@@ -9,21 +9,51 @@ from __future__ import annotations
 
 import json
 import logging
-from typing import Final
+from typing import Final, Literal, TypeAlias
 
 _EVENT_TYPE: Final = "etl_processing"
 _COMPONENT: Final = "transformation"
 
+ETLStage: TypeAlias = Literal["classification", "validation", "grouping", "consolidation", "etl"]
+ETLStatus: TypeAlias = Literal["started", "completed", "failed", "skipped"]
+ETLDomain: TypeAlias = Literal["Personal", "Location", "Professional", "Bank", "Net", "unknown"]
+ETLErrorType: TypeAlias = Literal[
+    "invalid_metadata",
+    "validation_error",
+    "classification_error",
+    "grouping_error",
+    "consolidation_error",
+    "unexpected_error",
+]
+
+_ALLOWED_STAGES: Final[frozenset[str]] = frozenset(
+    {"classification", "validation", "grouping", "consolidation", "etl"}
+)
+_ALLOWED_STATUSES: Final[frozenset[str]] = frozenset({"started", "completed", "failed", "skipped"})
+_ALLOWED_DOMAINS: Final[frozenset[str]] = frozenset(
+    {"Personal", "Location", "Professional", "Bank", "Net", "unknown"}
+)
+_ALLOWED_ERROR_TYPES: Final[frozenset[str]] = frozenset(
+    {
+        "invalid_metadata",
+        "validation_error",
+        "classification_error",
+        "grouping_error",
+        "consolidation_error",
+        "unexpected_error",
+    }
+)
+
 
 def build_etl_log_event(
     *,
-    stage: str,
-    status: str,
-    domain: str | None = None,
+    stage: ETLStage,
+    status: ETLStatus,
+    domain: ETLDomain | None = None,
     input_count: int | None = None,
     output_count: int | None = None,
     unresolved_count: int | None = None,
-    error_type: str | None = None,
+    error_type: ETLErrorType | None = None,
     processing_time_ms: float | None = None,
 ) -> dict[str, str | int | float]:
     """Build a structured, non-sensitive ETL log event.
@@ -33,10 +63,10 @@ def build_etl_log_event(
     interface.
     """
 
-    _require_text("stage", stage)
-    _require_text("status", status)
-    if domain is not None:
-        _require_text("domain", domain)
+    _require_allowed("stage", stage, _ALLOWED_STAGES)
+    _require_allowed("status", status, _ALLOWED_STATUSES)
+    _require_optional_allowed("domain", domain, _ALLOWED_DOMAINS)
+    _require_optional_allowed("error_type", error_type, _ALLOWED_ERROR_TYPES)
 
     event: dict[str, str | int | float] = {
         "component": _COMPONENT,
@@ -56,13 +86,13 @@ def build_etl_log_event(
 def log_etl_event(
     logger: logging.Logger,
     *,
-    stage: str,
-    status: str,
-    domain: str | None = None,
+    stage: ETLStage,
+    status: ETLStatus,
+    domain: ETLDomain | None = None,
     input_count: int | None = None,
     output_count: int | None = None,
     unresolved_count: int | None = None,
-    error_type: str | None = None,
+    error_type: ETLErrorType | None = None,
     processing_time_ms: float | None = None,
 ) -> None:
     """Emit one structured ETL event as JSON through the provided logger."""
@@ -80,9 +110,18 @@ def log_etl_event(
     logger.info(json.dumps(event, ensure_ascii=True, sort_keys=True, separators=(",", ":")))
 
 
-def _require_text(field: str, value: str) -> None:
-    if value == "":
-        raise ValueError(f"{field} must not be empty")
+def _require_allowed(field: str, value: str, allowed_values: frozenset[str]) -> None:
+    if value not in allowed_values:
+        raise ValueError(f"{field} must be one of the allowed technical values")
+
+
+def _require_optional_allowed(
+    field: str,
+    value: str | None,
+    allowed_values: frozenset[str],
+) -> None:
+    if value is not None:
+        _require_allowed(field, value, allowed_values)
 
 
 def _add_optional_text(
@@ -91,7 +130,6 @@ def _add_optional_text(
     value: str | None,
 ) -> None:
     if value is not None:
-        _require_text(field, value)
         event[field] = value
 
 
@@ -116,4 +154,11 @@ def _add_optional_duration(
         event["processing_time_ms"] = round(value, 3)
 
 
-__all__: list[str] = ["build_etl_log_event", "log_etl_event"]
+__all__: list[str] = [
+    "ETLDomain",
+    "ETLErrorType",
+    "ETLStage",
+    "ETLStatus",
+    "build_etl_log_event",
+    "log_etl_event",
+]

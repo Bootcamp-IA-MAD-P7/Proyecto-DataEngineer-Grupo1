@@ -34,7 +34,6 @@ def test_hrp66_builds_safe_structured_etl_event() -> None:
 
 def test_hrp66_log_output_excludes_payload_and_pii_fields(caplog: pytest.LogCaptureFixture) -> None:
     logger = logging.getLogger("tests.hrp66")
-    sensitive_sentinel = "secret-passport-iban-email-address-payload"
 
     with caplog.at_level(logging.INFO, logger=logger.name):
         log_etl_event(
@@ -45,7 +44,6 @@ def test_hrp66_log_output_excludes_payload_and_pii_fields(caplog: pytest.LogCapt
             input_count=3,
             output_count=1,
             unresolved_count=0,
-            error_type="none",
             processing_time_ms=4.0,
         )
 
@@ -53,19 +51,64 @@ def test_hrp66_log_output_excludes_payload_and_pii_fields(caplog: pytest.LogCapt
     event = json.loads(caplog.messages[0])
     assert event["stage"] == "grouping"
     assert event["domain"] == "Bank"
-    assert sensitive_sentinel not in caplog.text
     assert "payload" not in event
     assert "passport" not in event
     assert "IBAN" not in event
     assert "email" not in event
     assert "address" not in event
+    assert "salary" not in event
+    assert "IPv4" not in event
+    assert "correlation_key" not in event
 
 
 @pytest.mark.parametrize(
     ("kwargs", "expected_error"),
     [
-        ({"stage": "", "status": "completed"}, "stage must not be empty"),
-        ({"stage": "validation", "status": ""}, "status must not be empty"),
+        (
+            {"stage": "person@example.test", "status": "completed"},
+            "stage must be one of the allowed technical values",
+        ),
+        (
+            {"stage": "validation", "status": "ES91-0000-0000-0000-0000"},
+            "status must be one of the allowed technical values",
+        ),
+        (
+            {"stage": "grouping", "status": "failed", "domain": "passport-12345"},
+            "domain must be one of the allowed technical values",
+        ),
+        (
+            {
+                "stage": "etl",
+                "status": "failed",
+                "error_type": "address 192.0.2.10 leaked",
+            },
+            "error_type must be one of the allowed technical values",
+        ),
+        (
+            {"stage": "custom_stage", "status": "completed"},
+            "stage must be one of the allowed technical values",
+        ),
+    ],
+)
+def test_hrp66_rejects_sensitive_or_arbitrary_textual_metadata(
+    kwargs: dict[str, object],
+    expected_error: str,
+) -> None:
+    with pytest.raises(ValueError, match=expected_error):
+        build_etl_log_event(**kwargs)
+
+
+@pytest.mark.parametrize(
+    ("kwargs", "expected_error"),
+    [
+        (
+            {"stage": "", "status": "completed"},
+            "stage must be one of the allowed technical values",
+        ),
+        (
+            {"stage": "validation", "status": ""},
+            "status must be one of the allowed technical values",
+        ),
         (
             {"stage": "validation", "status": "failed", "input_count": -1},
             "input_count must be greater than or equal to 0",
