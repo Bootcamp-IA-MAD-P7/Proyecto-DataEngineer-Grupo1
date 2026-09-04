@@ -190,25 +190,39 @@ value, not a claim of resolved real-world identity.
 
 ## Closing evidence
 
-- Branch: `feature/HRP-85-search-by-location-profession` (created from
-  `origin/develop` at `fa156b9`). PR: pending — not opened yet.
-- Commit: pending (not committed yet; changes are staged in the working tree only).
+- Branch: `feature/HRP-85-search-by-location-profession`, created from
+  `origin/develop` at `fa156b9`, later rebased onto `origin/develop` at `ef69376`
+  (post PR [#66](https://github.com/Bootcamp-IA-MAD-P7/Proyecto-DataEngineer-Grupo1/pull/66),
+  HRP-74/Redis) with no conflicts — no file overlap between the two tasks. PR:
+  pending.
+- Commit: `f847c3b` (`HRP-85 feat: add GET /people/search/by-location-profession endpoint`,
+  rebased).
 - Commands executed and result:
-  - `python scripts/validate_specs.py` → passed, 47 specs validated.
+  - `python scripts/validate_specs.py` → passed, 48 specs validated (post-rebase).
   - `python -m ruff check .` → all checks passed.
-  - `python -m ruff format --check .` → passed (after auto-formatting the two new
-    test files with `python -m ruff format .`).
-  - `python -m mypy src` → `Success: no issues found in 32 source files`.
-  - `python -m pytest --no-cov` (full suite, no services started) →
-    `225 passed, 31 skipped` — the 2 new skips are this task's own integration
-    test and `tests/integration/test_api_people_search.py` (both skip cleanly:
-    "PostgreSQL is not reachable"), consistent with every other integration test
-    in this run when no local Postgres/Mongo/Redis container is running. No real
-    PostgreSQL round-trip has been executed yet — the new integration test
-    (`tests/integration/test_api_people_search_by_location_profession.py`) is
-    unverified against a live database and must be run against
-    `infra/compose.dev.yml` before this is considered fully validated.
-  - `python -m pre_commit run --all-files` → all hooks passed.
+  - `python -m ruff format --check .` → passed.
+  - `python -m mypy src` → `Success: no issues found in 33 source files` (after
+    `pip install -e ".[dev]"` picked up HRP-74's new `redis` dependency).
+  - `python -m pytest tests/unit --no-cov` → `232 passed` in 6.63s.
+  - `python -m pytest tests/integration/test_api_people_search.py
+    tests/integration/test_api_people_search_by_location_profession.py -v --no-cov`
+    against a real PostgreSQL container (`docker compose -f infra/compose.dev.yml
+    up -d postgres`) → both **passed** (`2 passed in 293.37s`). Confirms the real
+    round-trip: distinct-employee pagination, the `AND` intersection across
+    `locations`/`professional_profiles`, and that HRP-84's existing endpoint is
+    unaffected. Run twice in total (once before the rebase, once after); both
+    runs passed. No leftover synthetic rows confirmed via
+    `SELECT ... WHERE passport LIKE 'HRP8%'` → 0 rows after each run.
+  - The full, unscoped `pytest` suite (256 tests) was attempted twice against
+    real PostgreSQL and hung — both times on a pre-existing, unrelated test
+    (`tests/integration/test_api_people_search.py` once, then
+    `tests/integration/test_person_repository.py`), not on any HRP-85 code. This
+    appears to be a local Windows/Docker Desktop environment issue, not a defect
+    introduced here; it was abandoned in favor of the scoped run above once the
+    relevant tests were independently confirmed passing. CI (Linux) should be
+    checked once the PR is opened to see whether the same flakiness reproduces
+    there.
+  - `python -m pre_commit run --all-files` → all hooks passed (post-rebase).
 - Human reviewer approval: pending — not requested yet.
 - PR not opened; Jira closing comment: pending; closure is not authorised by this
   draft.
