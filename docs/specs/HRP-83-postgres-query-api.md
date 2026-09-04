@@ -124,7 +124,17 @@ at all, keeping the skeleton itself uncontroversial with respect to that boundar
 
 ## Evidencia de cierre
 
-- Rama / PR: pending
-- Commit: pending
-- Comandos ejecutados y resultado: pending
-- Comentario Jira con el resultado: pending
+- Rama: `feature/HRP-83-postgres-query-api`; PR: pending
+- Commit: pending (se añade tras el commit final de implementación)
+- Comandos ejecutados y resultado:
+  - `pre-commit run --all-files` → passed
+  - `ruff check .` / `ruff format --check .` → passed
+  - `mypy src` → `Success: no issues found in 31 source files`
+  - `pytest` (suite completa contra PostgreSQL real,
+    `docker compose -f infra/compose.dev.yml up -d postgres`) →
+    `221 passed, 2 skipped in 23.63s` (skips son solo MongoDB, no relacionados)
+  - Arranque real con el servidor ASGI:
+    `python -m uvicorn hr_pro_platform.api.main:app --host 127.0.0.1 --port 8123`
+    + `curl http://127.0.0.1:8123/health` → `{"status":"ok"}` — confirma que el
+    esqueleto arranca de verdad, no solo vía `TestClient`.
+- Comentario Jira con el resultado: pending (se redacta tras aprobación de PR)
