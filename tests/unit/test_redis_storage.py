@@ -6,6 +6,7 @@ from typing import Any
 import pytest
 
 from hr_pro_platform.storage.redis import (
+    MalformedFragmentError,
     RedisPartialStateStore,
     build_partial_state_key,
     serialize_fragment,
@@ -19,6 +20,8 @@ class FakeRedis:
     fail: Exception | None = None
     closed: bool = False
     expiration_calls: list[tuple[str, ...]] = field(default_factory=list)
+    smembers_fail: Exception | None = None
+    smembers_calls: list[str] = field(default_factory=list)
 
     def sadd(self, name: str, value: str) -> int:
         if self.fail is not None:
@@ -30,6 +33,12 @@ class FakeRedis:
 
     def close(self) -> None:
         self.closed = True
+
+    def smembers(self, name: str) -> set[str]:
+        if self.smembers_fail is not None:
+            raise self.smembers_fail
+        self.smembers_calls.append(name)
+        return set(self.values.get(name, set()))
 
     def expire(self, *args: Any) -> None:
         self.expiration_calls.append(("expire", *(str(arg) for arg in args)))
@@ -114,4 +123,89 @@ def test_store_does_not_assign_ttl_or_expose_retrieval_api() -> None:
     store.store_fragment("component-a", fragment({"name": "Ada"}))
 
     assert client.expiration_calls == []
-    assert not hasattr(store, "retrieve_fragments")
+
+
+def test_retrieves_one_fragment_and_preserves_all_fields() -> None:
+    client = FakeRedis()
+    store = RedisPartialStateStore(client=client)
+    fragment_to_store = fragment({"name": "Ada"})
+    store.connect()
+    store.store_fragment("component-a", fragment_to_store)
+
+    assert store.retrieve_fragments("component-a") == (fragment_to_store,)
+
+
+def test_retrieves_multiple_conflicting_fragments_without_resolution() -> None:
+    client = FakeRedis()
+    store = RedisPartialStateStore(client=client)
+    first = fragment({"name": "Ada"})
+    second = fragment({"name": "Different"}, "source-2")
+    store.connect()
+    store.store_fragment("component-a", first)
+    store.store_fragment("component-a", second)
+
+    retrieved = store.retrieve_fragments("component-a")
+    assert {serialize_fragment(item) for item in retrieved} == {
+        serialize_fragment(first),
+        serialize_fragment(second),
+    }
+
+
+def test_missing_component_returns_empty_tuple() -> None:
+    store = RedisPartialStateStore(client=FakeRedis())
+    store.connect()
+
+    assert store.retrieve_fragments("missing") == ()
+
+
+@pytest.mark.parametrize(
+    "member",
+    [
+        "not-json",
+        '{"classification":"Personal","payload":{"name":"Ada"}}',
+        '{"classification":"Personal","payload":{"name":"Ada"},'
+        '"source_reference":"source-1","extra":true}',
+        '{"classification":1,"payload":{"name":"Ada"},"source_reference":"source-1"}',
+        '{"classification":"Personal","payload":[],"source_reference":"source-1"}',
+        '{"classification":"Personal","payload":{"name":"Ada"},"source_reference":false}',
+    ],
+)
+def test_malformed_or_structurally_invalid_member_fails_explicitly(member: str) -> None:
+    client = FakeRedis(values={"hrp:partial:component-a": {member}})
+    store = RedisPartialStateStore(client=client)
+    store.connect()
+
+    with pytest.raises(MalformedFragmentError):
+        store.retrieve_fragments("component-a")
+
+
+def test_smembers_failure_is_propagated_unchanged() -> None:
+    failure = ConnectionError("synthetic failure")
+    store = RedisPartialStateStore(client=FakeRedis(smembers_fail=failure))
+    store.connect()
+
+    with pytest.raises(ConnectionError) as exc_info:
+        store.retrieve_fragments("component-a")
+
+    assert exc_info.value is failure
+
+
+def test_retrieval_is_read_only() -> None:
+    client = FakeRedis()
+    store = RedisPartialStateStore(client=client)
+    store.connect()
+    store.store_fragment("component-a", fragment({"name": "Ada"}))
+    before = dict(client.values)
+
+    store.retrieve_fragments("component-a")
+
+    assert client.values == before
+    assert client.smembers_calls == ["hrp:partial:component-a"]
+
+
+def test_retrieval_reuses_component_identifier_validation() -> None:
+    store = RedisPartialStateStore(client=FakeRedis())
+    store.connect()
+
+    with pytest.raises(ValueError, match="component_identifier"):
+        store.retrieve_fragments("")
