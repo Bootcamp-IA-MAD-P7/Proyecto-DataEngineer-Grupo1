@@ -3,11 +3,11 @@
 See docs/specs/HRP-83-postgres-query-api.md (skeleton: application
 factory, shared database-error handler, ``/health``),
 docs/specs/HRP-84-search-person-endpoint.md (``GET /people/search``,
-the first business endpoint) and
+the first business endpoint),
 docs/specs/HRP-85-search-by-location-profession.md (``GET
-/people/search/by-location-profession``). HRP-86 adds its own business
-endpoint on top of this skeleton in its own task; HRP-89 is the
-Streamlit frontend that will consume them.
+/people/search/by-location-profession``) and
+docs/specs/HRP-86-statistics-endpoint.md (``GET /statistics``). HRP-89
+is the Streamlit frontend that will consume them.
 """
 
 from __future__ import annotations
@@ -28,6 +28,7 @@ from .people import (
     search_employees,
     search_employees_by_location_or_profession,
 )
+from .statistics import StatisticsResult, compute_statistics
 
 logger = get_logger("api")
 
@@ -147,6 +148,13 @@ def create_app() -> FastAPI:
                 limit=limit,
                 offset=offset,
             )
+
+    @app.get("/statistics")
+    def statistics(
+        connection: Annotated[psycopg.Connection[tuple[Any, ...]], Depends(get_connection)],
+    ) -> StatisticsResult:
+        with connection.cursor() as cursor:
+            return compute_statistics(cursor)
 
     return app
 
