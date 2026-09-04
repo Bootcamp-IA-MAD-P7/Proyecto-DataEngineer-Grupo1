@@ -111,3 +111,22 @@ docker compose -f infra/compose.dev.yml --profile app ps
 El servicio `app` sobrescribe internamente `MONGODB_URI` a
 `mongodb://mongo:27017/hr_pro`, porque dentro de Compose `localhost` seria el
 propio contenedor de la aplicacion.
+
+## Redis para desarrollo
+
+Este Compose proporciona Redis como estado temporal para la correlación futura de
+fragmentos de personas. El servicio usa la red interna de Compose y no publica el
+puerto 6379 en el host. Los consumidores dentro de Compose deben conectarse a
+`redis:6379`; el estado no se persiste en un volumen porque Redis no es la fuente de
+verdad y los datos temporales deben poder reconstruirse desde MongoDB.
+
+Para iniciar y comprobar Redis:
+
+```powershell
+docker compose -f infra/compose.dev.yml up -d redis
+docker compose -f infra/compose.dev.yml ps
+docker compose -f infra/compose.dev.yml exec -T redis redis-cli ping
+```
+
+La última orden debe devolver `PONG`. Esta tarea solo habilita la infraestructura;
+no implementa almacenamiento de fragmentos, expiración de negocio ni integración ETL.
