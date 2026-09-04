@@ -13,6 +13,7 @@ SYNTHETIC_TEST_ENV = {
     "POSTGRES_DB": "synthetic_db",
     "POSTGRES_USER": "synthetic_user",
     "POSTGRES_PASSWORD": "synthetic_password",
+    "REDIS_URL": "redis://synthetic-redis.invalid:6379/0",
 }
 
 for name, value in SYNTHETIC_TEST_ENV.items():
