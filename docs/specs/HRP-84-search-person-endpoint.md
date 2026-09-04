@@ -142,7 +142,19 @@ employee with a second, equally parameterized query, scoped by `employee_id`.
 
 ## Evidencia de cierre
 
-- Rama / PR: pending
-- Commit: pending
-- Comandos ejecutados y resultado: pending
-- Comentario Jira con el resultado: pending
+- Rama: `feature/HRP-84-search-person-endpoint`; PR: pending
+- Commit: pending (se añade tras el commit final de implementación)
+- Comandos ejecutados y resultado:
+  - `pre-commit run --all-files` → passed
+  - `ruff check .` / `ruff format --check .` → passed
+  - `mypy src` → `Success: no issues found in 32 source files`
+  - `pytest` (suite completa contra PostgreSQL real,
+    `docker compose -f infra/compose.dev.yml up -d postgres`) →
+    `238 passed, 2 skipped in 30.77s` (skips son solo MongoDB, no relacionados)
+  - Verificación manual end-to-end (`TestClient` + Postgres real, empleado
+    sintético insertado): `passport` encontrado → `200` con `locations` real
+    adjunta y `professional_profiles: []`; `passport` inexistente → `200` con
+    `[]`; sin filtros → `400`.
+  - `bank_accounts` confirmado ausente de toda consulta (aserción explícita
+    en `tests/unit/test_api_people_search.py` sobre el SQL renderizado).
+- Comentario Jira con el resultado: pending (se redacta tras aprobación de PR)
