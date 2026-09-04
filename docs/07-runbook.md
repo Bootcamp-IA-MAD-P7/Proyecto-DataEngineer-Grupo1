@@ -116,3 +116,26 @@ corresponde a HRP-54).
 
 La imagen de aplicación solo demuestra que el consumer puede empaquetarse sin incluir
 el entorno local. No reemplaza el Compose final ni demuestra conectividad a Kafka.
+
+## Stack local con aplicacion
+
+HRP-63 añade el servicio `app` al Compose de desarrollo sin incluir Kafka. Para
+arrancar solo las bases:
+
+```powershell
+docker compose -f infra/compose.dev.yml up -d mongo postgres
+```
+
+Para arrancar la aplicacion, primero crea el `.env` local a partir de
+`.env.example` y configura el broker y topics autorizados. Desde dentro de Docker
+Desktop, un Kafka publicado en el host suele requerir una direccion alcanzable
+desde contenedores, como
+`host.docker.internal:29092`.
+
+```powershell
+docker compose -f infra/compose.dev.yml --profile app up -d --build app
+docker compose -f infra/compose.dev.yml --profile app ps
+```
+
+Si falta configuracion Kafka, que el contenedor `app` termine con error es un fallo
+de entorno esperado, no una razon para hard-codear topics o direcciones en el repo.

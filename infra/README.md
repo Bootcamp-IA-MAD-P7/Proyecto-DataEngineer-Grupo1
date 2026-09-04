@@ -7,9 +7,8 @@ su conexion mediante variables de entorno.
 ## MongoDB para desarrollo
 
 Este Compose es un habilitador local de HRP-33 para que Anahi pueda desarrollar
-la persistencia de eventos originales. No es todavia el Compose final de la
-plataforma: Redis, Prometheus y la aplicacion se incorporaran en sus tareas y
-specs correspondientes.
+la persistencia de eventos originales. Redis y Prometheus se incorporaran en sus
+tareas y specs correspondientes.
 
 ### Requisitos
 
@@ -52,24 +51,21 @@ aplicacion y MongoDB. No crea ninguna tabla, esquema ni dato de negocio.
 
 - Docker Desktop iniciado.
 - Docker Compose v2 (`docker compose version`).
-- Archivo `.env` local (ver "Uso" abajo); el servicio no arranca de forma
-  utilizable sin `POSTGRES_DB`, `POSTGRES_USER` y `POSTGRES_PASSWORD`.
+- Archivo `.env.example` versionado. El `.env` local es opcional y permite
+  sobrescribir valores sin subirlos a Git.
 
 ### Uso
 
 Desde la raiz del repositorio:
 
 ```powershell
-Copy-Item .env.example .env
 docker compose -f infra/compose.dev.yml up -d postgres
 docker compose -f infra/compose.dev.yml ps
 ```
 
-PostgreSQL queda disponible solo en `localhost:5432`, con las credenciales
-locales definidas en `.env` (`POSTGRES_DB`, `POSTGRES_USER`,
-`POSTGRES_PASSWORD`). El servicio lee esas variables desde el `.env` de la raiz
-del repositorio mediante `env_file`; no las declares tambien como variables de
-shell salvo que quieras sobrescribirlas.
+PostgreSQL queda disponible solo en `localhost:5432`. El servicio lee primero
+los valores no sensibles de `.env.example` y despues, si existe, los valores
+locales de `.env`.
 
 Para detenerlo y conservar el volumen:
 
@@ -85,3 +81,33 @@ docker compose -f infra/compose.dev.yml down -v
 
 No se deben subir `.env`, volcados, eventos capturados ni volumenes Docker al
 repositorio.
+
+## Aplicacion, MongoDB y PostgreSQL
+
+HRP-63 integra la imagen de aplicacion existente con MongoDB y PostgreSQL en el
+mismo Compose de desarrollo. Kafka sigue siendo externo y autorizado por el
+proyecto educativo: este repositorio no incluye su broker ni su generador.
+
+El modo por defecto permite levantar solo las bases de datos:
+
+```powershell
+docker compose -f infra/compose.dev.yml up -d mongo postgres
+docker compose -f infra/compose.dev.yml ps
+```
+
+Para arrancar tambien la aplicacion, crea un `.env` local y configura los valores
+autorizados de `KAFKA_BOOTSTRAP_SERVERS`, `KAFKA_TOPICS` y
+`KAFKA_CONSUMER_GROUP`. Si Kafka corre en Docker Desktop desde el host, la app
+en contenedor normalmente debe usar una direccion alcanzable desde contenedores,
+por ejemplo `host.docker.internal:29092`, no `localhost:29092`.
+
+Despues, inicia el perfil de aplicacion:
+
+```powershell
+docker compose -f infra/compose.dev.yml --profile app up -d --build app
+docker compose -f infra/compose.dev.yml --profile app ps
+```
+
+El servicio `app` sobrescribe internamente `MONGODB_URI` a
+`mongodb://mongo:27017/hr_pro`, porque dentro de Compose `localhost` seria el
+propio contenedor de la aplicacion.
