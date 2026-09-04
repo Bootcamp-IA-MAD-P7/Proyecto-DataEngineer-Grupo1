@@ -18,7 +18,13 @@ KEY_PREFIX = "hrp:partial:"
 class RedisSetClient(Protocol):
     def sadd(self, name: str, value: str) -> int: ...
 
+    def smembers(self, name: str) -> set[str]: ...
+
     def close(self) -> None: ...
+
+
+class MalformedFragmentError(ValueError):
+    """Raised when a Redis Set member is not a valid stored fragment."""
 
 
 def build_partial_state_key(component_identifier: str) -> str:
@@ -47,8 +53,40 @@ def serialize_fragment(fragment: ClassifiedFragment) -> str:
     return json.dumps(value, ensure_ascii=True, sort_keys=True, separators=(",", ":"))
 
 
+def _deserialize_fragment(member: str) -> ClassifiedFragment:
+    """Deserialize one HRP-74 Set member without discarding invalid data."""
+
+    try:
+        value = json.loads(member)
+    except (json.JSONDecodeError, TypeError) as exc:
+        raise MalformedFragmentError("stored Redis fragment is not valid JSON") from exc
+
+    if not isinstance(value, dict) or set(value) != {
+        "classification",
+        "payload",
+        "source_reference",
+    }:
+        raise MalformedFragmentError("stored Redis fragment has an invalid structure")
+
+    classification = value["classification"]
+    payload = value["payload"]
+    source_reference = value["source_reference"]
+    if not isinstance(classification, str) or not classification:
+        raise MalformedFragmentError("stored Redis fragment has an invalid classification")
+    if not isinstance(payload, Mapping):
+        raise MalformedFragmentError("stored Redis fragment has an invalid payload")
+    if not isinstance(source_reference, str) or not source_reference:
+        raise MalformedFragmentError("stored Redis fragment has an invalid source reference")
+
+    return ClassifiedFragment(
+        payload=cast(JSONValue, payload),
+        classification=classification,
+        source_reference=source_reference,
+    )
+
+
 class RedisPartialStateStore:
-    """Write-only HRP-74 boundary for temporary classified fragment state."""
+    """Redis boundary for temporary classified fragment state."""
 
     def __init__(self, redis_url: str | None = None, client: RedisSetClient | None = None) -> None:
         self._redis_url = redis_url or os.environ.get(REDIS_URL)
@@ -76,9 +114,18 @@ class RedisPartialStateStore:
         )
         return added == 1
 
+    def retrieve_fragments(self, component_identifier: str) -> tuple[ClassifiedFragment, ...]:
+        """Retrieve every stored fragment for an opaque provisional component."""
+
+        if self._client is None:
+            raise RuntimeError("Redis client is not connected")
+        key = build_partial_state_key(component_identifier)
+        return tuple(_deserialize_fragment(member) for member in self._client.smembers(key))
+
 
 __all__ = [
     "KEY_PREFIX",
+    "MalformedFragmentError",
     "RedisPartialStateStore",
     "build_partial_state_key",
     "serialize_fragment",
