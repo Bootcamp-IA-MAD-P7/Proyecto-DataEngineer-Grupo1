@@ -82,7 +82,7 @@ The textual metadata is bounded by controlled technical values:
 ## Completion evidence
 
 - Branch / PR: `feature/HRP-66-etl-processing-logs` / PR #58
-- Commits: `2ffb83a`, `0817c72`, `b428962`; latest fix pending
+- Commits: `2ffb83a`, `0817c72`, `b428962` and `0ecb540`
 - Commands and result: `python scripts/validate_specs.py`, `ruff check .`,
   `ruff format --check .`, `mypy src` and `pytest tests/unit/test_etl_logging.py
   --no-cov` passed locally. Full local `pytest` is limited by Windows Application
