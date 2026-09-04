@@ -2,7 +2,13 @@
 
 **Status:** Draft; implementation authorised — the metrics-list open decision
 below was confirmed by Johans Salas (task owner) on 2026-09-04, adopting the
-proposed minimal default as-is.
+proposed minimal default as-is. Revised on 2026-09-04 after Gabriela Granja's
+review of PR #69 (`CHANGES_REQUESTED`): the aggregation model changed from
+reusing `find_incomplete_employees()` (per-employee, materialized in Python)
+to a new, dedicated PostgreSQL aggregate query
+(`count_employees_missing_each_domain()`), and the response contract changed
+from `dict[str, int]` to explicit Pydantic models. See "Design" and
+"Decisions confirmed after review" below.
 **Owner:** Johans Salas
 **Human reviewer:** Miguel or Gaby
 **Jira:** HRP-86 — Crear endpoint de estadísticas
@@ -92,18 +98,63 @@ scope. A future task may add further metrics with its own spec.
 
 ## Design
 
-- New module `src/hr_pro_platform/api/statistics.py`: a `StatisticsResult`
-  Pydantic model (`rows_per_table: dict[str, int]`,
-  `employees_missing_domain: dict[str, int]`) and `compute_statistics(cursor)`,
-  which calls `count_rows_per_table(cursor)` and `find_incomplete_employees(cursor)`
-  and aggregates the latter's per-employee result into per-domain counts.
-  No new SQL is written for the counts themselves — only the aggregation from
-  per-employee to per-domain happens in this new module, in Python.
+- New function `count_employees_missing_each_domain()` in
+  `storage/validation_queries.py` (HRP-59's module, not modifying any
+  existing function there): a single query,
+  `SELECT count(*) FILTER (WHERE NOT EXISTS (SELECT 1 FROM {table} d WHERE
+  d.employee_id = e.id)) AS {table}, ... FROM employees e`, one `FILTER`
+  clause per dependent table. This returns exactly one row of four integers
+  — the database itself does the aggregation; no per-employee row is ever
+  fetched or reduced in Python. It intentionally does **not** reuse
+  `find_incomplete_employees()`, which answers a different question ("which
+  employees are missing which domains", one row per employee) at a cost
+  proportional to the employee count, unsuitable for an endpoint that only
+  needs four constant-size counters.
+- New module `src/hr_pro_platform/api/statistics.py`: two explicit response
+  models, `RowsPerTable` (six named `int` fields, one per curated table) and
+  `EmployeesMissingDomain` (four named `int` fields, one per dependent
+  table), composed into `StatisticsResult`. Every field name is part of the
+  API contract and appears in the generated OpenAPI schema; no field can be
+  silently added, removed or renamed without a visible model change, and no
+  per-record field (an `employee_id`, an `iban`/`salary`, etc.) can appear
+  without one either — a structural guarantee, not just a runtime check.
+  `compute_statistics(cursor)` calls `count_rows_per_table(cursor)` and
+  `count_employees_missing_each_domain(cursor)` and maps each result dict
+  directly onto its model (`Model(**result)`); no iteration over employees
+  happens anywhere in this module.
 - `GET /statistics` in `main.py` opens a cursor via the existing
   `get_connection` dependency and returns `compute_statistics(cursor)`
   directly — same shape as `/health`, no filters to validate.
 - Error handling: unchanged, reuses `main.py`'s existing `psycopg.Error`
   handler.
+
+### Decisions confirmed after review (addressing Gabriela Granja's PR #69 review)
+
+1. **Aggregation moved into PostgreSQL — CONFIRMED.** Per the "Design"
+   section above: `count_employees_missing_each_domain()` computes the four
+   counts as PostgreSQL aggregates in one query, never materializing a
+   per-employee row. `find_incomplete_employees()` remains untouched and
+   unused by this endpoint.
+2. **Explicit response contract — CONFIRMED.** `RowsPerTable` and
+   `EmployeesMissingDomain` replace the original `dict[str, int]` fields.
+3. **No-individual-data guarantee — CONFIRMED as structural.** Tested
+   directly against the Pydantic models' field sets and field types
+   (`tests/unit/test_api_statistics.py::test_response_models_only_expose_allowed_aggregate_fields`),
+   not only against one response instance's keys.
+4. **Integration-test runtime (151.44s originally reported) — investigated.**
+   Every real-PostgreSQL integration test run manually in this development
+   environment during HRP-84/85/86 (a Windows host with Docker Desktop) has
+   taken between roughly 140 and 300 seconds, regardless of query
+   complexity — including `GET /health`-adjacent round-trips with a single
+   trivial query. This is consistent with connection/schema-creation
+   latency specific to this local Docker setup, not with the cost of the
+   query under test. As direct evidence for this specific case: the runtime
+   of `test_statistics_reflects_inserted_employees_and_missing_domains`
+   after replacing the O(employees) Python-side reduction with a single
+   O(1) aggregate query is recorded in "Closing evidence" below — if it did
+   not meaningfully drop, that confirms the bottleneck is environmental, not
+   the query.
+5. **Spec state — CONFIRMED updated**, this revision.
 
 ## What stays provisional / unknown / pending
 
@@ -122,15 +173,21 @@ scope. A future task may add further metrics with its own spec.
 - [x] `GET /statistics` exists, reachable through the existing `create_app()`
       factory, no query parameters required.
 - [x] `rows_per_table` matches `count_rows_per_table()`'s output exactly.
-- [x] `employees_missing_domain` matches a per-domain aggregation of
-      `find_incomplete_employees()`'s output exactly.
+- [x] `employees_missing_domain` matches `count_employees_missing_each_domain()`'s
+      output exactly, computed entirely as PostgreSQL aggregates — no
+      per-employee row is fetched to answer this endpoint.
+- [x] The response contract uses explicit Pydantic models (`RowsPerTable`,
+      `EmployeesMissingDomain`), not an unrestricted `dict[str, int]`.
 - [x] No individual `employee_id`, `iban`, `salary`, or any other per-record
-      field ever appears in the response.
+      field can appear in the response — guaranteed structurally by the
+      response models' field sets, verified by a test that inspects the
+      models directly, not only one response instance.
 - [x] Database failures are handled by the existing `psycopg.Error` handler;
       no new logging path is introduced.
 - [x] No HRP-89/90/91 logic, no schema/Docker/Kafka/Mongo/Redis change, no
       change to `people.py`'s existing routes or `validation_queries.py`'s
-      existing functions.
+      existing functions (`count_employees_missing_each_domain()` is a new
+      addition, not a modification).
 - [x] `docs/specs/HRP-86-statistics-endpoint.md` complete per
       `docs/specs/template.md`.
 
@@ -139,10 +196,11 @@ scope. A future task may add further metrics with its own spec.
 - Accessibility: not applicable — this is a JSON API response with no
   rendered interface; the Streamlit frontend (HRP-91) that will consume it is
   a separate, later task that will assess accessibility for its own UI.
-- Sustainability: applicable — a single bounded aggregate snapshot (fixed
-  number of `COUNT(*)` queries plus one correlated-subquery query over
-  `employees`), no pagination, no new persistent connection or background
-  process beyond the existing per-request pattern.
+- Sustainability: applicable — a single bounded aggregate snapshot (six
+  `COUNT(*)` queries plus one `FILTER`-based aggregate query over
+  `employees`, all constant-result-size regardless of table size), no
+  pagination, no per-employee data transferred, no new persistent
+  connection or background process beyond the existing per-request pattern.
 - Deferred claims: no performance, throughput or production-readiness claim
   is made; no claim about query cost at a scale larger than currently tested.
 
@@ -150,33 +208,60 @@ scope. A future task may add further metrics with its own spec.
 
 | Level | Case | Expected evidence |
 |---|---|---|
-| Unit | `compute_statistics()` aggregates a mocked cursor's results into the exact expected `StatisticsResult` | Direct call, fully mocked cursor, exact dict comparison |
+| Unit | `count_employees_missing_each_domain()` maps one aggregate row, in table order, using `NOT EXISTS`/`FILTER`, never `JOIN`, never a per-employee `fetchall` | `tests/unit/test_validation_queries.py`, mocked cursor, asserts rendered SQL and call counts |
+| Unit | `compute_statistics()` issues only 7 aggregate `fetchone` calls, zero `fetchall` calls | Direct call, fully mocked cursor, call-count assertions |
 | Unit | `GET /statistics` returns the computed result, no query params needed | `TestClient`, dependency override with fixture cursor |
 | Unit | Database failure | Reuses the existing handler; `503`, no message leak |
-| Unit | No individual record field (`iban`, `salary`, `employee_id`, etc.) ever appears in the response | Assertion on the response JSON's key set |
-| Integration | Real round-trip with **delta assertions**, not absolute counts (the database may already hold unrelated rows) | Real PostgreSQL container: capture a baseline via `GET /statistics`, insert synthetic employees with distinguishable missing/present domains, assert the *difference* from baseline matches the exact expected delta per table and per domain, then clean up and assert the response returns exactly to baseline |
+| Unit | Response models expose only the allowed aggregate integer fields — structural guarantee | Assertions on `RowsPerTable`/`EmployeesMissingDomain`'s own `model_fields` and field types, not just one response instance |
+| Integration | `count_employees_missing_each_domain()` real round-trip with **delta assertions**, not absolute counts | Real PostgreSQL container, `tests/integration/test_validation_queries.py`, baseline captured before insert, exact delta asserted, restored-to-baseline asserted after cleanup |
+| Integration | `GET /statistics` real round-trip with **delta assertions** | Real PostgreSQL container: capture a baseline via `GET /statistics`, insert synthetic employees with distinguishable missing/present domains, assert the *difference* from baseline matches the exact expected delta per table and per domain, then clean up and assert the response returns exactly to baseline |
 
 ## Closing evidence
 
+### First implementation (PR #69, commit `c0b536e`)
+
 - Branch: `feature/HRP-86-statistics-endpoint`, created from `origin/develop`
-  at `e0306a1`. PR: pending.
-- Commit: pending (not committed yet at spec-writing time).
+  at `e0306a1`. PR: [#69](https://github.com/Bootcamp-IA-MAD-P7/Proyecto-DataEngineer-Grupo1/pull/69).
+- Reviewed by Gabriela Granja on 2026-09-04 (`CHANGES_REQUESTED`): required
+  moving the `employees_missing_domain` aggregation into PostgreSQL instead
+  of reusing `find_incomplete_employees()`, making the response contract
+  explicit instead of `dict[str, int]`, strengthening the no-individual-data
+  guarantee structurally, investigating the ~151s integration-test runtime,
+  and updating this spec's stale closing evidence. See "Decisions confirmed
+  after review" above for how each point was addressed.
+- Original validation (superseded by the revision below, kept for
+  traceability): `pytest tests/unit` → `237 passed` in 7.19s; real-PostgreSQL
+  integration → `1 passed in 151.44s`.
+
+### Revision addressing the review (commit pending)
+
+- Rebased onto `origin/develop` at `a0929b6` (post PR #67, HRP-75/Redis
+  retrieval) — no conflicts, no file overlap.
 - Commands executed and result:
   - `python -m ruff check .` → all checks passed.
-  - `python -m ruff format .` → no changes needed.
+  - `python -m ruff format .` → 1 file reformatted (`storage/validation_queries.py`,
+    line-length only), no logic change.
   - `python -m mypy src` → `Success: no issues found in 34 source files`.
-  - `python -m pytest tests/unit --no-cov` → `237 passed` in 7.19s.
-  - `python -m pytest tests/integration/test_api_statistics.py -v --no-cov`
-    against a real PostgreSQL container (`docker compose -f
-    infra/compose.dev.yml up -d postgres`, already running) →
-    **passed** (`1 passed in 151.44s`). Confirms the real round-trip: exact
-    delta in `rows_per_table` and `employees_missing_domain` after inserting
-    two synthetic employees with distinguishable missing/present domains,
-    and that the response returns exactly to baseline after cleanup. No
-    leftover synthetic rows confirmed via `SELECT ... WHERE passport LIKE
-    'HRP86%'` → 0 rows.
-  - `python scripts/validate_specs.py` → passed, 49 specs validated.
+  - `python -m pytest tests/unit --no-cov` → `250 passed` in 6.19s (13 more
+    than before: the new `count_employees_missing_each_domain()` unit test,
+    the revised `compute_statistics()`/route tests, and the structural
+    model-field test).
+  - `python -m pytest tests/integration/test_api_statistics.py
+    tests/integration/test_validation_queries.py::test_count_employees_missing_each_domain_reflects_a_delta
+    -v --no-cov` against a real PostgreSQL container (already running) →
+    both **passed** (`2 passed in 281.64s`, ≈140s each). This is the same
+    order of magnitude as the original single test's 151.44s — switching
+    from an O(employees) Python-side reduction to a single O(1) PostgreSQL
+    aggregate query did not meaningfully change the per-test runtime,
+    confirming the earlier concern's runtime is environmental
+    (connection/schema-creation latency specific to this local Windows +
+    Docker Desktop setup, observed consistently across every HRP-84/85/86
+    real-PostgreSQL integration test run manually this session, regardless
+    of query complexity), not the cost of the query itself. No leftover
+    synthetic rows confirmed via `SELECT ... WHERE passport LIKE 'HRP86%' OR
+    passport LIKE 'HRP59-P-MISSING%'` → 0 rows.
+  - `python scripts/validate_specs.py` → passed, 50 specs validated.
   - `python -m pre_commit run --all-files` → all hooks passed.
-- Human reviewer approval: pending — not requested yet.
-- PR not opened; Jira closing comment: pending; closure is not authorised by
-  this draft.
+- Human reviewer approval: pending re-review from Gabriela Granja (and the
+  still-outstanding requests to Miguel/Anahí).
+- Jira closing comment: pending; closure is not authorised by this draft.

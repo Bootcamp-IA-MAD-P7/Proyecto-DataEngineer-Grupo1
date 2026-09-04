@@ -18,38 +18,46 @@ from fastapi.testclient import TestClient
 
 from hr_pro_platform.api.db import get_connection
 from hr_pro_platform.api.main import create_app
-from hr_pro_platform.api.statistics import compute_statistics
+from hr_pro_platform.api.statistics import (
+    EmployeesMissingDomain,
+    RowsPerTable,
+    compute_statistics,
+)
 
-# count_rows_per_table() issues one SELECT count(*) per table, in this order,
-# each consumed via cursor.fetchone().
-_ROWS_PER_TABLE_FETCHONE_SIDE_EFFECT = [(10,), (4,), (3,), (2,), (1,), (7,)]
-_EXPECTED_ROWS_PER_TABLE = {
-    "employees": 10,
-    "locations": 4,
-    "professional_profiles": 3,
-    "bank_accounts": 2,
-    "network_data": 1,
-    "processing_audit": 7,
-}
-# find_incomplete_employees() issues one query returning
-# (employee_id, locations_count, professional_profiles_count,
-#  bank_accounts_count, network_data_count) per employee.
-_INCOMPLETE_EMPLOYEES_FETCHALL_RETURN = [
-    (1, 0, 1, 1, 1),  # employee 1: missing only locations
-    (2, 1, 0, 0, 1),  # employee 2: missing professional_profiles and bank_accounts
+# count_rows_per_table() issues one SELECT count(*) per table, in this
+# order, each consumed via cursor.fetchone(). Then
+# count_employees_missing_each_domain() issues one further aggregate query,
+# also consumed via cursor.fetchone(), returning one row of four counts
+# (locations, professional_profiles, bank_accounts, network_data) -- no
+# per-employee row is ever fetched.
+_FETCHONE_SIDE_EFFECT = [
+    (10,),  # employees
+    (4,),  # locations
+    (3,),  # professional_profiles
+    (2,),  # bank_accounts
+    (1,),  # network_data
+    (7,),  # processing_audit
+    (3, 2, 1, 4),  # employees_missing_domain aggregate row
 ]
-_EXPECTED_MISSING_DOMAIN = {
-    "locations": 1,
-    "professional_profiles": 1,
-    "bank_accounts": 1,
-    "network_data": 0,
-}
+_EXPECTED_ROWS_PER_TABLE = RowsPerTable(
+    employees=10,
+    locations=4,
+    professional_profiles=3,
+    bank_accounts=2,
+    network_data=1,
+    processing_audit=7,
+)
+_EXPECTED_MISSING_DOMAIN = EmployeesMissingDomain(
+    locations=3,
+    professional_profiles=2,
+    bank_accounts=1,
+    network_data=4,
+)
 
 
 def _cursor_with_fixture_data() -> MagicMock:
     cursor = MagicMock()
-    cursor.fetchone.side_effect = _ROWS_PER_TABLE_FETCHONE_SIDE_EFFECT
-    cursor.fetchall.return_value = _INCOMPLETE_EMPLOYEES_FETCHALL_RETURN
+    cursor.fetchone.side_effect = list(_FETCHONE_SIDE_EFFECT)
     return cursor
 
 
@@ -65,13 +73,18 @@ def _client_with_fake_cursor(cursor: MagicMock) -> TestClient:
     return TestClient(app)
 
 
-def test_compute_statistics_aggregates_counts_and_missing_domains() -> None:
+def test_compute_statistics_uses_only_aggregate_queries() -> None:
     cursor = _cursor_with_fixture_data()
 
     result = compute_statistics(cursor)
 
     assert result.rows_per_table == _EXPECTED_ROWS_PER_TABLE
     assert result.employees_missing_domain == _EXPECTED_MISSING_DOMAIN
+    # Exactly 7 aggregate queries (6 table counts + 1 missing-domain
+    # aggregate), never a per-employee fetchall -- proves no per-employee
+    # data is materialized to answer this endpoint.
+    assert cursor.fetchone.call_count == 7
+    cursor.fetchall.assert_not_called()
 
 
 def test_get_statistics_returns_the_computed_result() -> None:
@@ -81,22 +94,47 @@ def test_get_statistics_returns_the_computed_result() -> None:
 
     assert response.status_code == 200
     assert response.json() == {
-        "rows_per_table": _EXPECTED_ROWS_PER_TABLE,
-        "employees_missing_domain": _EXPECTED_MISSING_DOMAIN,
+        "rows_per_table": _EXPECTED_ROWS_PER_TABLE.model_dump(),
+        "employees_missing_domain": _EXPECTED_MISSING_DOMAIN.model_dump(),
     }
 
 
-def test_statistics_response_never_includes_individual_record_fields() -> None:
-    client = _client_with_fake_cursor(_cursor_with_fixture_data())
+def test_response_models_only_expose_allowed_aggregate_fields() -> None:
+    """Structural guarantee (not just a runtime blacklist check on one
+    instance): the response models' own schema cannot carry a per-record
+    field -- an employee_id, an iban/salary, or any other column value --
+    without a visible, reviewable change to these field lists.
+    """
 
-    body = client.get("/statistics").json()
-
-    # Only the two aggregate top-level keys, never a per-record field name
-    # (employee_id, iban, salary, city, job, ...) leaking into the response.
-    assert set(body) == {"rows_per_table", "employees_missing_domain"}
-    forbidden_fields = {"employee_id", "iban", "salary", "passport", "city", "job", "address"}
-    assert forbidden_fields.isdisjoint(body["rows_per_table"])
-    assert forbidden_fields.isdisjoint(body["employees_missing_domain"])
+    forbidden_fields = {
+        "employee_id",
+        "iban",
+        "salary",
+        "passport",
+        "city",
+        "job",
+        "address",
+        "full_name",
+    }
+    assert forbidden_fields.isdisjoint(RowsPerTable.model_fields)
+    assert forbidden_fields.isdisjoint(EmployeesMissingDomain.model_fields)
+    assert set(RowsPerTable.model_fields) == {
+        "employees",
+        "locations",
+        "professional_profiles",
+        "bank_accounts",
+        "network_data",
+        "processing_audit",
+    }
+    assert set(EmployeesMissingDomain.model_fields) == {
+        "locations",
+        "professional_profiles",
+        "bank_accounts",
+        "network_data",
+    }
+    # Every field is a plain int -- no field can carry a string/record value.
+    assert all(field.annotation is int for field in RowsPerTable.model_fields.values())
+    assert all(field.annotation is int for field in EmployeesMissingDomain.model_fields.values())
 
 
 def test_statistics_reuses_the_shared_database_error_handler(

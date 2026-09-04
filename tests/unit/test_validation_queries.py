@@ -11,6 +11,7 @@ from unittest.mock import MagicMock
 
 from hr_pro_platform.storage.validation_queries import (
     check_foreign_key_constraints_present,
+    count_employees_missing_each_domain,
     find_duplicate_processing_audit_references,
     find_exact_duplicate_dependent_rows,
 )
@@ -76,3 +77,28 @@ def test_find_exact_duplicate_dependent_rows_groups_by_employee_id_and_every_col
     assert '"ip_v4"' in locations_query_text
     assert "GROUP BY" in locations_query_text
     assert "HAVING count(*) > 1" in locations_query_text
+
+
+def test_count_employees_missing_each_domain_maps_one_aggregate_row_by_table_order() -> None:
+    cursor = MagicMock()
+    # One row, four counts, in DEPENDENT_TABLES order
+    # (locations, professional_profiles, bank_accounts, network_data).
+    cursor.fetchone.return_value = (3, 5, 0, 2)
+
+    result = count_employees_missing_each_domain(cursor)
+
+    assert result == {
+        "locations": 3,
+        "professional_profiles": 5,
+        "bank_accounts": 0,
+        "network_data": 2,
+    }
+    # A single query, computed as PostgreSQL aggregates -- never a JOIN
+    # (which would multiply rows across the 1:N dependent tables) and never
+    # a per-employee fetchall.
+    assert cursor.execute.call_count == 1
+    query_text = _query_text(cursor.execute.call_args.args[0])
+    assert "NOT EXISTS" in query_text
+    assert "FILTER" in query_text
+    assert "JOIN" not in query_text
+    cursor.fetchall.assert_not_called()
