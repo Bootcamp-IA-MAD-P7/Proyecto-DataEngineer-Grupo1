@@ -1,6 +1,6 @@
 # HRP-84 — Search person endpoint
 
-**Status:** Draft; not yet implemented
+**Status:** Implemented; PR [#64](https://github.com/Bootcamp-IA-MAD-P7/Proyecto-DataEngineer-Grupo1/pull/64) open for review
 **Owner:** Johans Salas
 **Human reviewer:** Miguel or Gaby
 **Jira:** HRP-84 — Crear endpoint para buscar una persona
@@ -104,19 +104,20 @@ employee with a second, equally parameterized query, scoped by `employee_id`.
 
 ## Acceptance criteria
 
-- [ ] `GET /people/search` exists in `api/main.py`, reachable through the existing
+- [x] `GET /people/search` exists in `api/main.py`, reachable through the existing
       app factory.
-- [ ] At least one of `passport`/`first_name`/`last_name`/`id` is required; a request
+- [x] At least one of `passport`/`first_name`/`last_name`/`id` is required; a request
       with none returns `400`.
-- [ ] `limit`/`offset` are validated (bounded, non-negative) and default sensibly.
-- [ ] A match returns the employee's curated columns plus its `locations` and
+- [x] `limit`/`offset` are validated (bounded, non-negative) and default sensibly.
+- [x] A match returns the employee's curated columns plus its `locations` and
       `professional_profiles` rows; `bank_accounts` is excluded per the open decision
-      above (or the spec is updated before implementation if reviewers override it).
-- [ ] No match returns an empty result, not an error.
-- [ ] Database failures are handled by the existing `psycopg.Error` handler; no new
+      above (confirmed by Miguel's review as "the right conservative decision until
+      access-control rules are defined").
+- [x] No match returns an empty result, not an error.
+- [x] Database failures are handled by the existing `psycopg.Error` handler; no new
       logging path is introduced.
-- [ ] No HRP-85/86/89/90 logic, no schema/Docker/Kafka/Mongo/Redis change.
-- [ ] `docs/specs/HRP-84-search-person-endpoint.md` complete per
+- [x] No HRP-85/86/89/90 logic, no schema/Docker/Kafka/Mongo/Redis change.
+- [x] `docs/specs/HRP-84-search-person-endpoint.md` complete per
       `docs/specs/template.md`.
 
 ## Accessibility and sustainability applicability
@@ -142,8 +143,9 @@ employee with a second, equally parameterized query, scoped by `employee_id`.
 
 ## Evidencia de cierre
 
-- Rama: `feature/HRP-84-search-person-endpoint`; PR: pending
-- Commit: pending (se añade tras el commit final de implementación)
+- Rama: `feature/HRP-84-search-person-endpoint`; PR:
+  [#64](https://github.com/Bootcamp-IA-MAD-P7/Proyecto-DataEngineer-Grupo1/pull/64)
+- Commit: `83243f8`
 - Comandos ejecutados y resultado:
   - `pre-commit run --all-files` → passed
   - `ruff check .` / `ruff format --check .` → passed
@@ -157,4 +159,8 @@ employee with a second, equally parameterized query, scoped by `employee_id`.
     `[]`; sin filtros → `400`.
   - `bank_accounts` confirmado ausente de toda consulta (aserción explícita
     en `tests/unit/test_api_people_search.py` sobre el SQL renderizado).
+  - Revisión de Miguel sobre el commit `83243f8`: sin bloqueo técnico; confirma
+    la decisión de excluir `bank_accounts` como "the right conservative
+    decision until access-control rules are defined"; único pendiente era
+    esta alineación documental (estado, PR/commit, checklist).
 - Comentario Jira con el resultado: pending (se redacta tras aprobación de PR)
