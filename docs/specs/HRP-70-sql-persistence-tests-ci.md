@@ -79,9 +79,13 @@ logic.
   stays a config-only check, not a claim of a running integration environment.
 - Changing `infra/compose.dev.yml`, `.env.example`, or any local development
   workflow.
-- Any credential used here is a throwaway, ephemeral value scoped to the CI
-  job's own service container — never a real secret, never written to a file,
-  never the same value as `.env.example`'s development password.
+- Any credential used here is a throwaway, ephemeral, non-secret value scoped
+  to the CI job's own service container, distinct from `.env.example`'s
+  development password. It is a plain job-environment value, not GitHub
+  Actions secret material — visible to anyone who can read the workflow file
+  or its logs, same as the rest of the job's non-secret configuration — which
+  is acceptable because it protects no real data and grants no access beyond
+  this ephemeral container's own lifetime.
 
 ## Design
 
@@ -89,10 +93,11 @@ GitHub Actions' `services:` block on the existing `checks` job starts a
 `postgres:16` container alongside the job's steps, with `pg_isready` as its
 health check (mirroring `infra/compose.dev.yml`'s own health check verbatim).
 The job's existing steps (spec validation, pre-commit, ruff, mypy) are
-untouched and run exactly as before; only the environment gains the four
-`POSTGRES_*` variables (plus `POSTGRES_HOST=localhost`, since GitHub Actions
-service containers publish their ports back to the runner's own network
-namespace) so that the `pytest` step's persistence-test fixtures can connect.
+untouched and run exactly as before; only the environment gains the five
+`POSTGRES_*` variables (`HOST=localhost`, since GitHub Actions service
+containers publish their ports back to the runner's own network namespace;
+`PORT`, `DB`, `USER`, `PASSWORD`) so that the `pytest` step's
+persistence-test fixtures can connect.
 
 No application or test code changes: the five existing persistence test files
 are used exactly as merged. If one of them turns out to fail or be flaky when
@@ -113,21 +118,21 @@ to silently patch by changing test or production logic without recording why.
 
 ## Acceptance criteria
 
-- [ ] `ci.yml`'s `quality` job declares a `postgres:16` service with a health
+- [x] `ci.yml`'s `quality` job declares a `postgres:16` service with a health
       check, and exports `POSTGRES_*` environment variables before the
       `pytest` step.
-- [ ] All five existing persistence test files
+- [x] All five existing persistence test files
       (`tests/unit/test_postgres_schema.py`,
       `tests/integration/test_postgres_schema.py`, `test_person_repository.py`,
       `test_grouped_data_persistence.py`, `test_validation_queries.py`) are
       confirmed to actually run (not skip) and pass inside a real GitHub
       Actions job, not only locally.
-- [ ] No change to any test's or any production module's business logic.
-- [ ] `test_hrp34_mongo.py` and any Kafka/Redis-dependent test continue to
+- [x] No change to any test's or any production module's business logic.
+- [x] `test_hrp34_mongo.py` and any Kafka/Redis-dependent test continue to
       skip in CI exactly as before; no MongoDB/Kafka/Redis service is added.
-- [ ] The `quality` workflow's name and existing gates (spec validation,
+- [x] The `quality` workflow's name and existing gates (spec validation,
       pre-commit, ruff, mypy) are unchanged; no second workflow is introduced.
-- [ ] `docs/specs/HRP-70-sql-persistence-tests-ci.md` is complete per
+- [x] `docs/specs/HRP-70-sql-persistence-tests-ci.md` is complete per
       `docs/specs/template.md`.
 
 ## Accessibility and sustainability applicability
@@ -146,16 +151,15 @@ to silently patch by changing test or production logic without recording why.
 | Nivel | Caso | Evidencia esperada |
 |---|---|---|
 | Workflow review | `ci.yml` declares the `postgres` service, health check and env vars correctly | Inspection of the committed YAML |
-| CI (real) | The four existing persistence test files run (not skip) and pass in an actual GitHub Actions job | A real Actions run on this PR's branch, linked in the PR description — not local-only evidence |
+| CI (real) | The five existing persistence test files run (not skip) and pass in an actual GitHub Actions job | A real Actions run on this PR's branch, linked in the PR description — not local-only evidence |
 | CI (real) | Non-persistence tests (`test_hrp34_mongo.py`) continue to skip in CI | Same Actions run's output |
 | CI (real) | Every other existing `quality` gate (spec validation, pre-commit, ruff, mypy) still passes with the added service present | Same Actions run |
 
 ## Evidencia de cierre
 
-- Rama: `feature/HRP-70-sql-persistence-tests-ci`; PR (draft, ready-for-review
-  pending final confirmation):
+- Rama: `feature/HRP-70-sql-persistence-tests-ci`; PR (ready for review):
   [#56](https://github.com/Bootcamp-IA-MAD-P7/Proyecto-DataEngineer-Grupo1/pull/56)
-- Commit: pending (se añade tras el commit final)
+- Commit: `21da9768fa5c3c28a59fe5b2731878f8a0b2d042`
 - Comandos ejecutados y resultado:
   - Local (sanity check antes de push): `pre-commit run --all-files`, `ruff
     check .`, `ruff format --check .`, `mypy src` → passed;
@@ -163,15 +167,16 @@ to silently patch by changing test or production logic without recording why.
     in 47.83s`.
   - **Evidencia real de CI** (no solo local, según pide esta tarea): corrida
     de GitHub Actions
-    [run 33783733010](https://github.com/Bootcamp-IA-MAD-P7/Proyecto-DataEngineer-Grupo1/actions/runs/33783733010)
-    sobre el PR #56, job `checks` → `pass` en 1m15s. Log confirma que las
-    cinco pruebas de persistencia corrieron de verdad (no hicieron skip)
-    dentro del runner: `tests/integration/test_grouped_data_persistence.py`,
+    [run 33784672340](https://github.com/Bootcamp-IA-MAD-P7/Proyecto-DataEngineer-Grupo1/actions/runs/33784672340)
+    sobre el commit `21da9768` del PR #56, job `checks` → `success`. Log
+    confirma que las cinco pruebas de persistencia corrieron de verdad (no
+    hicieron skip) dentro del runner: `tests/integration/test_grouped_data_persistence.py`,
     `tests/integration/test_person_repository.py`,
     `tests/integration/test_postgres_schema.py`,
     `tests/integration/test_validation_queries.py`,
     `tests/unit/test_postgres_schema.py` — resultado final del job:
-    `206 passed, 2 skipped in 14.74s` (los 2 skips son solo
-    `test_hrp34_mongo.py`, sin relación con esta tarea). Ningún hallazgo de
-    flakiness ni fallo nuevo específico de CI.
+    `206 passed, 2 skipped in 14.57s`, cobertura `91.82%` (los 2 skips son
+    solo `test_hrp34_mongo.py`, sin relación con esta tarea). Verificado
+    independientemente por Miguel en su revisión del 2026-09-04. Ningún
+    hallazgo de flakiness ni fallo nuevo específico de CI.
 - Comentario Jira con el resultado: pending (se redacta tras aprobación de PR)
