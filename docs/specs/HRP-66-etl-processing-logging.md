@@ -72,8 +72,11 @@ the pure transformation modules to Docker, Kafka, MongoDB or PostgreSQL.
 
 ## Completion evidence
 
-- Branch / PR: `feature/HRP-66-etl-processing-logs` / pending human review
-- Commit: pending
-- Commands and result: pending local and GitHub Actions execution
+- Branch / PR: `feature/HRP-66-etl-processing-logs` / PR #58
+- Commit: `2ffb83a`
+- Commands and result: `python scripts/validate_specs.py`, `ruff check .`,
+  `ruff format --check .`, `mypy src` and `pytest tests/unit/test_etl_logging.py
+  --no-cov` passed locally. Full local `pytest` is limited by Windows Application
+  Control blocking the Confluent Kafka DLL in existing ingestion tests; GitHub Actions
+  must provide the authoritative full-suite evidence.
 - Jira closing comment: pending merge and human verification
-
