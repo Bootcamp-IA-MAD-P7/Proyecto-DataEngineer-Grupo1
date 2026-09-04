@@ -82,6 +82,19 @@ simulados; no es un E2E con broker real.
 4. Añadir fixture de regresión antes de corregir la lógica.
 5. Registrar la decisión en una ADR si cambia la estrategia de datos.
 
+## Redis local
+
+Para validar Redis localmente:
+
+```powershell
+docker compose -f infra/compose.dev.yml up -d redis
+docker compose -f infra/compose.dev.yml ps
+docker compose -f infra/compose.dev.yml exec -T redis redis-cli ping
+```
+
+La respuesta esperada es `PONG`. Los servicios de Compose deben usar `redis:6379`,
+no `localhost:6379`; Redis no publica el puerto en el host ni conserva un volumen.
+
 ## Incidencia de infraestructura
 
 1. Consultar logs del servicio.
