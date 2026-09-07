@@ -25,7 +25,3 @@
 "area:infra":
   - changed-files:
       - any-glob-to-any-file: ["infra/**", "docker-compose*.yml", "Dockerfile*"]
-
-"area:frontend":
-  - changed-files:
-      - any-glob-to-any-file: "frontend/**"
