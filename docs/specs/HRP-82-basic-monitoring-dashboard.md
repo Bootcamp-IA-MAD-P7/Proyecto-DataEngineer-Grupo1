@@ -80,7 +80,12 @@ MongoDB RAW, registros PostgreSQL ni contenido Kafka.
 
 ## Evidencia de cierre
 
-- Rama / PR: `feature/HRP-82-basic-monitoring-dashboard` / pendiente.
-- Commit: pendiente.
-- Comandos ejecutados y resultado: pendiente.
+- Rama / PR: `feature/HRP-82-basic-monitoring-dashboard` / PR #77.
+- Commit: `5c8043a`.
+- Comandos ejecutados y resultado: `git diff --check` pasó;
+  `python scripts/validate_specs.py` pasó con 57 specs; `docker compose -f
+  infra/compose.dev.yml config --quiet` pasó; validación de sintaxis JSON del
+  dashboard pasó; `pre-commit run --all-files` pasó; `ruff check .` pasó;
+  `ruff format --check .` pasó; `mypy src` pasó. `pytest` no se ejecutó
+  localmente porque HRP-82 no modifica código Python ni tests.
 - Comentario Jira con el resultado: pendiente tras revisión, merge y evidencia final.
