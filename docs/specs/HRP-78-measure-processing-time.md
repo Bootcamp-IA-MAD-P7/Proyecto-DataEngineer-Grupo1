@@ -91,8 +91,8 @@ durations and does not retain payloads, identifiers or correlation keys.
 
 ## Closing evidence
 
-- Branch / PR: `feature/HRP-78-measure-processing-time` / PR pending.
-- Commit: pending.
+- Branch / PR: `feature/HRP-78-measure-processing-time` / PR #73.
+- Commit: `4130bbb` (implementation commit).
 - Commands executed and result:
   - `python scripts/validate_specs.py` — passed, 53 specifications validated.
   - `ruff check .` — blocked by access-denied warnings for existing temporary
@@ -110,4 +110,5 @@ durations and does not retain payloads, identifiers or correlation keys.
   - `pre-commit run --all-files` — blocked before hooks by the known
     `sqlite3.OperationalError: attempt to write a readonly database` and a
     permission error writing the pre-commit log.
+- GitHub Actions `quality` — passed for PR #73.
 - Jira closing comment: pending human review, merge and final evidence.
