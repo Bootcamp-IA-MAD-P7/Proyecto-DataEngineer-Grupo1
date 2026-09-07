@@ -1,11 +1,18 @@
 import json
 import signal
+import time
 from collections import defaultdict
+from dataclasses import dataclass
 from typing import Any
 
 from confluent_kafka import Consumer, KafkaError
 
-from ..observability.metrics import CONSUMED_MESSAGES_TOTAL, MonotonicCounter
+from ..observability.metrics import (
+    CONSUMED_MESSAGES_TOTAL,
+    PROCESSING_DURATION_SECONDS,
+    Histogram,
+    MonotonicCounter,
+)
 from .config import KAFKA_CONFIG, KAFKA_TOPICS
 from .error_handler import get_logger
 from .mongo import MongoIngestionClient, PersistenceOutcome
@@ -14,6 +21,53 @@ logger = get_logger("consumer")
 
 running = True
 consumed_messages_counter = MonotonicCounter(CONSUMED_MESSAGES_TOTAL)
+processing_duration_histogram = Histogram(PROCESSING_DURATION_SECONDS)
+
+
+@dataclass
+class _ProcessingResult:
+    raw_event: tuple[str, dict[str, Any], int, int] | None = None
+    invalid_event: tuple[str, int, int, bytes | None, str] | None = None
+    outcome_message: Any | None = None
+
+
+def _process_message(msg: Any) -> _ProcessingResult:
+    topic = msg.topic()
+    if topic is None:
+        logger.warning("Kafka message missing topic")
+        return _ProcessingResult()
+    partition = msg.partition()
+    offset = msg.offset()
+    if partition is None or offset is None:
+        logger.warning("Kafka message missing coordinate")
+        return _ProcessingResult()
+
+    value = msg.value()
+    if value is None:
+        return _ProcessingResult(
+            invalid_event=(topic, partition, offset, None, "missing_value"),
+            outcome_message=msg,
+        )
+
+    try:
+        data = json.loads(value.decode("utf-8"))
+    except UnicodeDecodeError:
+        return _ProcessingResult(
+            invalid_event=(topic, partition, offset, value, "invalid_utf8"),
+            outcome_message=msg,
+        )
+    except json.JSONDecodeError:
+        return _ProcessingResult(
+            invalid_event=(topic, partition, offset, value, "invalid_json"),
+            outcome_message=msg,
+        )
+
+    if not isinstance(data, dict):
+        return _ProcessingResult(
+            invalid_event=(topic, partition, offset, value, "non_object_json"),
+            outcome_message=msg,
+        )
+    return _ProcessingResult(raw_event=(topic, data, partition, offset), outcome_message=msg)
 
 
 def _durable_prefix_messages(messages: list[Any], outcomes: list[PersistenceOutcome]) -> list[Any]:
@@ -60,8 +114,12 @@ def _handle_kafka_error(msg: Any) -> None:
         logger.error(f"Kafka error: {error}")
 
 
-def run_consumer(message_counter: MonotonicCounter | None = None) -> None:
+def run_consumer(
+    message_counter: MonotonicCounter | None = None,
+    processing_timer: Histogram | None = None,
+) -> None:
     counter = message_counter or consumed_messages_counter
+    timer = processing_timer or processing_duration_histogram
     mongo_client = MongoIngestionClient()
     mongo_client.connect()
 
@@ -86,56 +144,18 @@ def run_consumer(message_counter: MonotonicCounter | None = None) -> None:
 
                     counter.increment()
 
-                    topic = msg.topic()
-                    if topic is None:
-                        logger.warning("Kafka message missing topic")
-                        continue
-                    partition = msg.partition()
-                    offset = msg.offset()
-                    if partition is None or offset is None:
-                        logger.warning("Kafka message missing coordinate")
-                        continue
-
-                    value = msg.value()
-                    if value is None:
-                        outcomes.append(
-                            mongo_client.persist_invalid_event(
-                                topic, partition, offset, None, "missing_value"
-                            )
-                        )
-                        outcome_messages.append(msg)
-                        continue
-
+                    started = time.perf_counter()
                     try:
-                        data = json.loads(value.decode("utf-8"))
-                    except UnicodeDecodeError:
-                        outcomes.append(
-                            mongo_client.persist_invalid_event(
-                                topic, partition, offset, value, "invalid_utf8"
-                            )
-                        )
-                        outcome_messages.append(msg)
-                        continue
-                    except json.JSONDecodeError:
-                        outcomes.append(
-                            mongo_client.persist_invalid_event(
-                                topic, partition, offset, value, "invalid_json"
-                            )
-                        )
-                        outcome_messages.append(msg)
-                        continue
+                        result = _process_message(msg)
+                    finally:
+                        timer.observe(time.perf_counter() - started)
 
-                    if not isinstance(data, dict):
-                        outcomes.append(
-                            mongo_client.persist_invalid_event(
-                                topic, partition, offset, value, "non_object_json"
-                            )
-                        )
-                        outcome_messages.append(msg)
-                        continue
-
-                    raw_events.append((topic, data, partition, offset))
-                    outcome_messages.append(msg)
+                    if result.raw_event is not None:
+                        raw_events.append(result.raw_event)
+                    if result.invalid_event is not None:
+                        outcomes.append(mongo_client.persist_invalid_event(*result.invalid_event))
+                    if result.outcome_message is not None:
+                        outcome_messages.append(result.outcome_message)
 
                 if raw_events:
                     outcomes.extend(mongo_client.persist_batch(raw_events))
