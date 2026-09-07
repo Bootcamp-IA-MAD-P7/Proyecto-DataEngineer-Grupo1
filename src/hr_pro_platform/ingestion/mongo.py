@@ -18,6 +18,7 @@ from .config import MONGODB_COLLECTION, MONGODB_DB, MONGODB_INVALID_COLLECTION, 
 from .error_handler import get_logger
 
 logger = get_logger("mongo")
+persistence_duration_histogram = Histogram(PERSISTENCE_DURATION_SECONDS)
 
 PersistenceStatus = Literal["inserted", "already_exists", "failed", "unresolved_conflict"]
 
@@ -35,7 +36,7 @@ class MongoIngestionClient:
         self._client: MongoClient[Any] | None = None
         self._collection: Collection[Any] | None = None
         self._invalid_collection: Collection[Any] | None = None
-        self._persistence_timer = persistence_timer or Histogram(PERSISTENCE_DURATION_SECONDS)
+        self._persistence_timer = persistence_timer or persistence_duration_histogram
 
     def connect(self) -> None:
         self._client = MongoClient(MONGODB_URI, serverSelectionTimeoutMS=5000)
