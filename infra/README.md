@@ -6,9 +6,9 @@ su conexion mediante variables de entorno.
 
 ## MongoDB para desarrollo
 
-Este Compose es un habilitador local de HRP-33 para que Anahi pueda desarrollar
-la persistencia de eventos originales. Redis y Prometheus se incorporaran en sus
-tareas y specs correspondientes.
+Este Compose comenzo como habilitador local de HRP-33 y evoluciona por specs
+acotadas: MongoDB, PostgreSQL, Redis, aplicacion y Prometheus se documentan en
+sus tareas correspondientes.
 
 ### Requisitos
 
@@ -127,6 +127,29 @@ docker compose -f infra/compose.dev.yml up -d redis
 docker compose -f infra/compose.dev.yml ps
 docker compose -f infra/compose.dev.yml exec -T redis redis-cli ping
 ```
+
+## HRP-81 — Prometheus local
+
+HRP-81 añade Prometheus al Compose de desarrollo para recopilar las métricas de
+ingesta expuestas por HRP-80. Prometheus no crea métricas nuevas: solo scrapea el
+endpoint `/metrics` de la aplicación cuando el servicio `app` está arrancado.
+
+```powershell
+docker compose -f infra/compose.dev.yml up -d prometheus
+docker compose -f infra/compose.dev.yml ps
+```
+
+La interfaz local queda disponible en `http://localhost:9090`. El target
+`hr-pro-ingestion` apunta internamente a `app:9464/metrics`; aparecerá como `UP`
+solo cuando la aplicación esté ejecutándose con el perfil `app` y su endpoint de
+métricas esté disponible.
+
+```powershell
+docker compose -f infra/compose.dev.yml --profile app up -d --build app prometheus
+```
+
+Kafka sigue siendo externo al repositorio y debe configurarse mediante variables
+de entorno autorizadas. No se incluye ni se inspecciona el generador educativo.
 
 La última orden debe devolver `PONG`. Esta tarea solo habilita la infraestructura;
 no implementa almacenamiento de fragmentos, expiración de negocio ni integración ETL.

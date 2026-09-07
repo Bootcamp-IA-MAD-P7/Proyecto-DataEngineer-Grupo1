@@ -150,5 +150,28 @@ docker compose -f infra/compose.dev.yml --profile app up -d --build app
 docker compose -f infra/compose.dev.yml --profile app ps
 ```
 
+## Prometheus local
+
+HRP-81 configura Prometheus para observar las métricas de ingesta expuestas por
+la aplicación en `/metrics`.
+
+Arrancar solo Prometheus:
+
+```powershell
+docker compose -f infra/compose.dev.yml up -d prometheus
+```
+
+Arrancar aplicación y Prometheus:
+
+```powershell
+docker compose -f infra/compose.dev.yml --profile app up -d --build app prometheus
+```
+
+Abrir `http://localhost:9090` y revisar el target `hr-pro-ingestion`. El target
+usa `app:9464/metrics` dentro de la red Compose y solo estará `UP` si la
+aplicación está ejecutándose y Kafka externo está configurado correctamente. No
+hay que copiar, leer ni inspeccionar el generador educativo para validar esta
+configuración.
+
 Si falta configuracion Kafka, que el contenedor `app` termine con error es un fallo
 de entorno esperado, no una razon para hard-codear topics o direcciones en el repo.
