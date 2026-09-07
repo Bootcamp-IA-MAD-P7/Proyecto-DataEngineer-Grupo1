@@ -62,9 +62,9 @@ belongs to HRP-80.
 - [x] The counter has no high-cardinality labels and does not log or retain payloads.
 - [x] No Prometheus endpoint, processing-time metric, persistence-time metric or
       unrelated ingestion behaviour is added.
-- [ ] Targeted tests, specification validation and the applicable quality checks
-      provide reproducible evidence; pre-commit remains blocked by the local
-      read-only SQLite/cache environment limitation recorded below.
+- [x] Targeted tests, specification validation and the applicable quality checks
+      provide reproducible evidence; GitHub Actions `quality` is green/passing
+      for PR #72, with the local pre-commit limitation recorded below.
 
 ## Accessibility and sustainability applicability
 
@@ -95,7 +95,7 @@ payload, person identifier, topic label or other unbounded state.
 
 ## Closing evidence
 
-- Branch / PR: `feature/HRP-77-measure-consumed-messages-per-second` / pending.
+- Branch / PR: `feature/HRP-77-measure-consumed-messages-per-second` / PR #72.
 - Commit: `ae63da7` (implementation and tests); this evidence-closure update is
   the follow-up documentation commit.
 - Commands executed and result:
@@ -123,5 +123,5 @@ payload, person identifier, topic label or other unbounded state.
     permission error writing `C:\Users\ggran\.cache\pre-commit\pre-commit.log`.
 - Local/manual evidence: focused fake-consumer tests prove the fetch boundary,
   exact-once increments, invalid-message counting and unchanged commit behavior.
-- CI evidence: pending; not claimed until CI runs.
+- CI evidence: GitHub Actions `quality` is green/passing for PR #72.
 - Jira closing comment: pending human review, merge and final evidence.
