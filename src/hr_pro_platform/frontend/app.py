@@ -1,533 +1,430 @@
 from __future__ import annotations
 
-import os
-
-import requests
 import streamlit as st
-from dotenv import load_dotenv
 
-load_dotenv()
+from .api_client import (
+    ApiRequestError,
+    ApiUnavailableError,
+    get_health,
+    get_statistics,
+    search_all,
+    search_by_location_profession,
+    search_people,
+)
+from .masking import (
+    domain_completeness,
+    mask_email,
+    mask_ip,
+    mask_passport,
+    mask_phone,
+)
 
-API_BASE = os.getenv("HRP_API_BASE_URL", "http://127.0.0.1:8123").rstrip("/")
+st.set_page_config(page_title="HR Pro Explorer", layout="wide")
 
-st.set_page_config(page_title="HR Pro Explorer", layout="wide", page_icon="🌸")
-
-CUSTOM_CSS = """
+BASE_CSS = """
 <style>
-/* Palette:
-   background #E7C0C5
-   card #e8a598
-   primary accent #FFD0BF
-   secondary lilac #9b8bb4
-   highlight #77B692
-   main text #3d2b2b
-   muted #8a6f6f
-   button text #3D1D10
-*/
-.stApp {
-    background: #E7C0C5 !important;
+.stApp { background-color: #0b1026; color: #e6f1ff; }
+[data-testid="stHeader"] { background: transparent; }
+h1, h2, h3 { color: #e6f1ff; }
+[data-testid="stTabs"] [data-baseweb="tab"] { color: #8fa3c2; }
+[data-testid="stTabs"] [aria-selected="true"] [data-baseweb="tab"] {
+    color: #e6f1ff !important;
+    border-bottom: 2px solid #57e39a;
 }
-[data-testid="stAppViewContainer"] {
-    background: #E7C0C5 !important;
-}
-[data-testid="stHeader"] {
-    background: #E7C0C5 !important;
-}
-.main .block-container {
-    background: #E7C0C5 !important;
-}
-h1, h2, h3, h4, h5, h6, p, span, div {
-    color: #3d2b2b;
-}
-[data-testid="stTabs"] [data-baseweb="tab-list"] {
-    background: #FFD0BF;
-    border-radius: 12px;
-    gap: 4px;
-    padding: 4px;
-}
-[data-testid="stTabs"] [data-baseweb="tab"] {
-    color: #3d2b2b !important;
-    font-weight: 600;
-    border-radius: 8px;
-    padding: 8px 18px;
-}
-[data-testid="stTabs"] [aria-selected="true"] {
-    background: #e8a598 !important;
-    color: #3D1D10 !important;
-    border-bottom: none !important;
-}
-/* Buttons */
+[data-testid="stMetricLabel"] { color: #8fa3c2; }
+[data-testid="stMetricValue"] { color: #57e39a; }
 .stButton > button {
-    background: #e8a598 !important;
-    color: #3D1D10 !important;
-    border: none !important;
-    border-radius: 8px !important;
-    padding: 0.5rem 1.8rem !important;
-    font-weight: 700 !important;
+    background: #16213f; color: #e6f1ff;
+    border: 1px solid #37c8c3; border-radius: 6px;
 }
-.stButton > button:hover {
-    background: #77B692 !important;
-    color: #3D1D10 !important;
-}
-.stButton > button:active {
-    background: #77B692 !important;
-}
-.stButton > button:focus {
-    box-shadow: none !important;
-}
-/* Inputs */
-[data-testid="stTextInput"] label, [data-testid="stNumberInput"] label,
-[data-testid="stSlider"] label, [data-testid="stSelectbox"] label {
-    color: #3d2b2b !important;
-    font-weight: 600 !important;
-}
-/* Metrics */
-[data-testid="stMetric"] {
-    background: #e8a598 !important;
-    border-radius: 14px;
-    padding: 1rem 1.2rem;
-    box-shadow: 0 2px 8px rgba(61,43,43,0.12);
-}
-[data-testid="stMetricLabel"] {
-    color: #9b8bb4 !important;
-    font-weight: 700 !important;
-    font-size: 0.85rem !important;
-}
-[data-testid="stMetricValue"] {
-    color: #FFD0BF !important;
-    font-weight: 800 !important;
-}
-.gap-metrics [data-testid="stMetricValue"] {
-    color: #e8a598 !important;
-}
-/* Override gap metrics to dusty rose explicitly */
-div.gap-metrics [data-testid="stMetric"] {
-    background: #3d2b2b !important;
-}
-div.gap-metrics [data-testid="stMetricValue"] {
-    color: #e8a598 !important;
-}
-/* Cards */
+.stButton > button:hover { border-color: #57e39a; }
+[data-testid="stDataFrame"] { background: #111a33; }
+[data-testid="stTextInput"] label,
+[data-testid="stNumberInput"] label,
+[data-testid="stSelectbox"] label,
+[data-testid="stSlider"] label { color: #8fa3c2; }
+[data-testid="stExpander"] { background: #16213f; border-radius: 10px; }
 .hr-card {
-    background: #e8a598;
-    border-radius: 14px;
-    padding: 1.2rem 1.4rem;
-    margin-bottom: 1rem;
-    box-shadow: 0 2px 8px rgba(61,43,43,0.12);
-    color: #3d2b2b;
+    background: #16213f; border-radius: 12px;
+    padding: 1.2rem 1.4rem; margin-bottom: 1rem; color: #e6f1ff;
 }
-.hr-card h4 {
-    margin: 0 0 0.3rem 0;
-    color: #3D1D10;
-    font-size: 1.1rem;
-    font-weight: 800;
+.hr-card .muted { color: #8fa3c2; font-size: 0.85rem; }
+.hr-card .field-row { color: #e6f1ff; font-size: 0.9rem; line-height: 1.7; }
+.hr-card .field-row strong { color: #e6f1ff; }
+.aurora-line {
+    background: linear-gradient(90deg, #57e39a, #37c8c3, #9b8cff, #c96bff);
+    height: 3px; border-radius: 2px; margin: 0.4rem 0 1.2rem 0;
 }
-.hr-card .muted {
-    color: #8a6f6f;
-    font-size: 0.85rem;
+.pipeline-step {
+    display: inline-block; padding: 0.4rem 0.8rem; border-radius: 6px;
+    background: #16213f; border: 1px solid #8fa3c2; font-size: 0.9rem;
+    color: #e6f1ff;
 }
-.hr-card .field-row {
-    color: #3d2b2b;
-    font-size: 0.9rem;
-    line-height: 1.7;
+.pipeline-step.highlight {
+    border: 2px solid #57e39a; font-weight: 700;
 }
-.hr-card .field-row strong {
-    color: #3d2b2b;
-}
-.section-label {
-    color: #8a6f6f;
-    font-size: 0.78rem;
-    font-weight: 700;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-    margin: 0.6rem 0 0.5rem 0;
-}
-.empty-state {
-    text-align: center;
-    color: #8a6f6f;
-    padding: 2.8rem 1rem;
-    font-size: 0.95rem;
-}
-[data-testid="stExpander"] {
-    background: #FFD0BF;
-    border-radius: 10px;
-    border: 1px solid #e8a598;
-}
-[data-testid="stDataFrame"] {
-    background: #FFD0BF;
-    border-radius: 10px;
+.pipeline-arrow {
+    display: inline-block; margin: 0 0.4rem; color: #8fa3c2;
 }
 </style>
 """
 
-st.markdown(CUSTOM_CSS, unsafe_allow_html=True)
 
-
-def _handle_api_error(resp: requests.Response) -> None:
-    try:
-        detail = resp.json().get("detail", resp.text)
-    except Exception:
-        detail = resp.text
-    st.error(f"API error {resp.status_code}: {detail}")
-
-
-def _api_get_people_search(params: dict) -> list | None:
-    try:
-        resp = requests.get(f"{API_BASE}/people/search", params=params, timeout=15)
-        if not resp.ok:
-            _handle_api_error(resp)
-            return None
-        return resp.json()
-    except requests.exceptions.ConnectionError:
-        st.error("Cannot reach the API. Is uvicorn running?")
-        return None
-    except Exception:
-        st.error("Cannot reach the API. Is uvicorn running?")
-        return None
-
-
-def _api_get_by_location(params: dict) -> list | None:
-    try:
-        resp = requests.get(
-            f"{API_BASE}/people/search/by-location-profession", params=params, timeout=15
+def _render_search_results(results: list[dict]) -> None:
+    rows = []
+    for p in results:
+        fn = p.get("first_name") or "—"
+        ln = p.get("last_name") or "—"
+        locs = p.get("locations") or []
+        profs = p.get("professional_profiles") or []
+        city_val = "—"
+        for loc in locs:
+            if loc.get("city"):
+                city_val = str(loc["city"])
+                break
+        job_val = "—"
+        for prof in profs:
+            if prof.get("job"):
+                job_val = str(prof["job"])
+                break
+        rows.append(
+            {
+                "ID": p.get("id"),
+                "Name": f"{fn} {ln}" if fn != "—" or ln != "—" else "—",
+                "City": city_val,
+                "Job": job_val,
+                "Domains": f"{domain_completeness(p)}/4",
+                "Passport": mask_passport(str(p["passport"])) if p.get("passport") else "—",
+            }
         )
-        if not resp.ok:
-            _handle_api_error(resp)
-            return None
-        return resp.json()
-    except requests.exceptions.ConnectionError:
-        st.error("Cannot reach the API. Is uvicorn running?")
-        return None
-    except Exception:
-        st.error("Cannot reach the API. Is uvicorn running?")
-        return None
+    st.dataframe(rows, use_container_width=True, hide_index=True)
+    st.caption(f"Showing {len(results)} result(s)")
 
 
-def _api_get_statistics() -> dict | None:
+def _render_person_detail(person: dict) -> None:
+    pid = person.get("id")
+    fn = person.get("first_name") or "—"
+    ln = person.get("last_name") or "—"
+    sex_raw = person.get("sex")
+    sex = ", ".join(sex_raw) if isinstance(sex_raw, list) and sex_raw else "—"
+    completeness = domain_completeness(person)
+
+    st.markdown(
+        f'<div class="hr-card">'
+        f"<h3>{fn} {ln}</h3>"
+        f'<div class="muted">Record id: {pid} — source: API / PostgreSQL</div>'
+        f"</div>",
+        unsafe_allow_html=True,
+    )
+
+    domains = [
+        ("Identity", bool(person.get("first_name") and person.get("last_name"))),
+        ("Contact", bool(person.get("email") or person.get("telephone_number"))),
+        ("Location", bool(person.get("locations"))),
+        ("Professional", bool(person.get("professional_profiles"))),
+    ]
+    domain_html = " ".join(
+        f'<span style="color:{"#57e39a" if present else "#8fa3c2"}">'
+        f"{'✓' if present else '✗'} {name}</span>"
+        for name, present in domains
+    )
+    st.markdown(
+        f'<div class="hr-card">'
+        f"<strong>Profile completeness: {completeness}/4 domains</strong><br/>"
+        f'<span style="font-size:0.9rem">{domain_html}</span>'
+        f"</div>",
+        unsafe_allow_html=True,
+    )
+
+    st.subheader("Personal data")
+    st.markdown(
+        f'<div class="hr-card">'
+        f'<div class="field-row"><strong>Name:</strong> {fn}</div>'
+        f'<div class="field-row"><strong>Last name:</strong> {ln}</div>'
+        f'<div class="field-row"><strong>Sex:</strong> {sex}</div>'
+        f'<div class="field-row"><strong>Passport:</strong> '
+        f"{mask_passport(str(person['passport'])) if person.get('passport') else '—'}</div>"
+        f"</div>",
+        unsafe_allow_html=True,
+    )
+
+    st.subheader("Contact")
+    email_val = mask_email(str(person["email"])) if person.get("email") else "—"
+    tel_val = mask_phone(str(person["telephone_number"])) if person.get("telephone_number") else "—"
+    st.markdown(
+        f'<div class="hr-card">'
+        f'<div class="field-row"><strong>Email:</strong> {email_val}</div>'
+        f'<div class="field-row"><strong>Phone:</strong> {tel_val}</div>'
+        f"</div>",
+        unsafe_allow_html=True,
+    )
+
+    st.subheader("Location")
+    locs = person.get("locations") or []
+    if not locs:
+        st.markdown(
+            '<div class="hr-card"><div class="muted">—</div></div>',
+            unsafe_allow_html=True,
+        )
+    for idx, loc in enumerate(locs, 1):
+        loc_fn = loc.get("full_name") or "—"
+        city = loc.get("city") or "—"
+        addr = loc.get("address") or "—"
+        ip = mask_ip(str(loc["ip_v4"])) if loc.get("ip_v4") else "—"
+        st.markdown(
+            f'<div class="hr-card">'
+            f'<div class="field-row"><strong>Location {idx}</strong></div>'
+            f'<div class="field-row"><strong>Name:</strong> {loc_fn}</div>'
+            f'<div class="field-row"><strong>City:</strong> {city}</div>'
+            f'<div class="field-row"><strong>Address:</strong> {addr}</div>'
+            f'<div class="field-row"><strong>IP:</strong> {ip}</div>'
+            f"</div>",
+            unsafe_allow_html=True,
+        )
+
+    st.subheader("Professional information")
+    profs = person.get("professional_profiles") or []
+    if not profs:
+        st.markdown(
+            '<div class="hr-card"><div class="muted">—</div></div>',
+            unsafe_allow_html=True,
+        )
+    for idx, prof in enumerate(profs, 1):
+        prof_fn = prof.get("full_name") or "—"
+        company = prof.get("company") or "—"
+        comp_addr = prof.get("company_address") or "—"
+        job = prof.get("job") or "—"
+        comp_email = mask_email(str(prof["company_email"])) if prof.get("company_email") else "—"
+        comp_tel = (
+            mask_phone(str(prof["company_telephone_number"]))
+            if prof.get("company_telephone_number")
+            else "—"
+        )
+        st.markdown(
+            f'<div class="hr-card">'
+            f'<div class="field-row"><strong>Profile {idx}</strong></div>'
+            f'<div class="field-row"><strong>Name:</strong> {prof_fn}</div>'
+            f'<div class="field-row"><strong>Company:</strong> {company}</div>'
+            f'<div class="field-row"><strong>Company address:</strong> {comp_addr}</div>'
+            f'<div class="field-row"><strong>Job:</strong> {job}</div>'
+            f'<div class="field-row"><strong>Company email:</strong> {comp_email}</div>'
+            f'<div class="field-row"><strong>Company phone:</strong> {comp_tel}</div>'
+            f"</div>",
+            unsafe_allow_html=True,
+        )
+
+
+def _tab_inicio() -> None:
+    st.markdown(
+        '<h2 style="color:#e6f1ff">HR Pro Data Platform</h2><div class="aurora-line"></div>',
+        unsafe_allow_html=True,
+    )
+
+    steps = ["Kafka", "MongoDB", "ETL", "PostgreSQL", "API", "Frontend"]
+    steps_html = ""
+    for i, step in enumerate(steps):
+        cls = "pipeline-step highlight" if step in ("API", "Frontend") else "pipeline-step"
+        steps_html += f'<span class="{cls}">{step}</span>'
+        if i < len(steps) - 1:
+            steps_html += '<span class="pipeline-arrow">→</span>'
+    st.markdown(
+        f'<div class="hr-card" style="text-align:center">{steps_html}</div>'
+        '<p style="color:#8fa3c2;font-size:0.85rem;text-align:center">'
+        "From fragmented events to consolidated information: this frontend queries only "
+        "the final layer through the API.</p>",
+        unsafe_allow_html=True,
+    )
+
+    st.divider()
+    st.subheader("Records per table")
     try:
-        resp = requests.get(f"{API_BASE}/statistics", timeout=15)
-        if not resp.ok:
-            _handle_api_error(resp)
-            return None
-        return resp.json()
-    except requests.exceptions.ConnectionError:
-        st.error("Cannot reach the API. Is uvicorn running?")
-        return None
-    except Exception:
-        st.error("Cannot reach the API. Is uvicorn running?")
-        return None
+        stats = get_statistics()
+    except ApiUnavailableError:
+        st.error("Could not connect to the API. Check that the backend is running.")
+        return
+    except ApiRequestError as e:
+        st.error(f"Query error: {e}")
+        return
+
+    rows_tbl = stats.get("rows_per_table", {})
+    c1, c2, c3 = st.columns(3)
+    c1.metric("Employees", rows_tbl.get("employees", "—"))
+    c2.metric("Locations", rows_tbl.get("locations", "—"))
+    c3.metric("Professional profiles", rows_tbl.get("professional_profiles", "—"))
+    c4, c5, c6 = st.columns(3)
+    c4.metric("Bank accounts", rows_tbl.get("bank_accounts", "—"))
+    c5.metric("Network data", rows_tbl.get("network_data", "—"))
+    c6.metric("Processing audit", rows_tbl.get("processing_audit", "—"))
+
+    st.divider()
+    st.subheader("Employees missing a domain")
+    missing = stats.get("employees_missing_domain", {})
+    g1, g2, g3, g4 = st.columns(4)
+    g1.metric("Locations", missing.get("locations", "—"))
+    g2.metric("Professional profiles", missing.get("professional_profiles", "—"))
+    g3.metric("Bank accounts", missing.get("bank_accounts", "—"))
+    g4.metric("Network data", missing.get("network_data", "—"))
+
+    with st.expander("About this application"):
+        st.markdown(
+            "A read-only interface over consolidated data in PostgreSQL. "
+            "It does not expose raw Kafka or MongoDB events, Redis, or "
+            "financial fields (IBAN and salary are excluded by design). "
+            "It consumes only the API."
+        )
+        st.markdown(
+            "**Endpoints in use:**\n"
+            "- `GET /health` — liveness check\n"
+            "- `GET /people/search` — search by identity fields\n"
+            "- `GET /people/search/by-location-profession` — search by location or profession\n"
+            "- `GET /statistics` — aggregate counts per table"
+        )
 
 
-def _health_check() -> None:
-    try:
-        resp = requests.get(f"{API_BASE}/health", timeout=5)
-        if not resp.ok or resp.json().get("status") != "ok":
-            st.warning("⚠️ API unavailable — data may not load.")
-    except Exception:
-        st.warning("⚠️ API unavailable — data may not load.")
-
-
-_health_check()
-
-tab_search, tab_statistics, tab_about = st.tabs(["🔍 Search", "📊 Statistics", "ℹ️ About"])
-
-# ------------------------------------------------------------------ TAB 1
-with tab_search:
+def _tab_personas() -> None:
     with st.form("search_form", clear_on_submit=False):
         col_id, col_loc = st.columns(2)
         with col_id:
-            st.markdown('<div class="section-label">Identity</div>', unsafe_allow_html=True)
-            first_name = st.text_input("first_name", key="s_first_name")
-            last_name = st.text_input("last_name", key="s_last_name")
-            passport = st.text_input("passport", key="s_passport")
-            person_id = st.number_input("id", min_value=0, step=1, value=0, key="s_id", format="%d")
-            st.caption("Leave id at 0 to omit.")
+            st.markdown("**Identity**")
+            first_name = st.text_input("First name", key="s_first_name")
+            last_name = st.text_input("Last name", key="s_last_name")
+            passport = st.text_input("Passport", key="s_passport")
+            person_id = st.number_input(
+                "ID",
+                min_value=0,
+                step=1,
+                value=0,
+                key="s_id",
+                format="%d",
+            )
         with col_loc:
-            st.markdown('<div class="section-label">Location & Role</div>', unsafe_allow_html=True)
-            city = st.text_input("city", key="s_city")
-            address = st.text_input("address", key="s_address")
-            job = st.text_input("job", key="s_job")
-            company = st.text_input("company", key="s_company")
+            st.markdown("**Location & role**")
+            city = st.text_input("City", key="s_city")
+            address = st.text_input("Address", key="s_address")
+            job = st.text_input("Job", key="s_job")
+            company = st.text_input("Company", key="s_company")
 
-        st.divider()
-        col_lim, col_off = st.columns(2)
-        with col_lim:
-            limit = st.slider("limit", min_value=1, max_value=100, value=20, key="s_limit")
-        with col_off:
-            offset = st.number_input("offset", min_value=0, value=0, step=1, key="s_offset")
-
+        limit = st.slider(
+            "Results per page",
+            min_value=10,
+            max_value=100,
+            value=20,
+            key="s_limit",
+        )
         submitted = st.form_submit_button("Search")
-
-    # session state to persist results across reruns
-    if "search_results" not in st.session_state:
-        st.session_state["search_results"] = None
 
     if submitted:
         id_val = int(person_id) if person_id and int(person_id) != 0 else None
-        identity_params = {
-            k: v
-            for k, v in {
-                "first_name": first_name.strip() or None,
-                "last_name": last_name.strip() or None,
-                "passport": passport.strip() or None,
-                "id": id_val,
-            }.items()
-            if v is not None
-        }
-        location_params = {
-            k: v
-            for k, v in {
-                "city": city.strip() or None,
-                "address": address.strip() or None,
-                "job": job.strip() or None,
-                "company": company.strip() or None,
-            }.items()
-            if v is not None
-        }
-
-        has_identity = bool(identity_params)
-        has_location = bool(location_params)
+        has_identity = any(
+            [
+                id_val,
+                first_name.strip(),
+                last_name.strip(),
+                passport.strip(),
+            ]
+        )
+        has_location = any([city.strip(), address.strip(), job.strip(), company.strip()])
 
         if not has_identity and not has_location:
-            st.warning("Fill in at least one field.")
-            st.session_state["search_results"] = []
-        elif has_identity and not has_location:
-            params = {**identity_params, "limit": limit, "offset": offset}
-            data = _api_get_people_search(params)
-            st.session_state["search_results"] = data if data is not None else []
-        elif has_location and not has_identity:
-            params = {**location_params, "limit": limit, "offset": offset}
-            data = _api_get_by_location(params)
-            st.session_state["search_results"] = data if data is not None else []
-        else:
-            id_params = {**identity_params, "limit": limit, "offset": offset}
-            loc_params = {**location_params, "limit": limit, "offset": offset}
-            data_a = _api_get_people_search(id_params) or []
-            data_b = _api_get_by_location(loc_params) or []
-            merged: dict[int, dict] = {}
-            for p in data_a + data_b:
-                pid = p.get("id")
-                if pid not in merged:
-                    merged[pid] = p
-            st.session_state["search_results"] = list(merged.values())
+            st.warning("Fill in at least one search field.")
+            return
+
+        with st.spinner("Querying the API..."):
+            try:
+                if has_identity and not has_location:
+                    results = search_people(
+                        id=id_val,
+                        passport=passport.strip() or None,
+                        first_name=first_name.strip() or None,
+                        last_name=last_name.strip() or None,
+                        limit=limit,
+                    )
+                elif has_location and not has_identity:
+                    results = search_by_location_profession(
+                        city=city.strip() or None,
+                        address=address.strip() or None,
+                        job=job.strip() or None,
+                        company=company.strip() or None,
+                        limit=limit,
+                    )
+                else:
+                    results = search_all(
+                        id=id_val,
+                        passport=passport.strip() or None,
+                        first_name=first_name.strip() or None,
+                        last_name=last_name.strip() or None,
+                        city=city.strip() or None,
+                        address=address.strip() or None,
+                        job=job.strip() or None,
+                        company=company.strip() or None,
+                        limit=limit,
+                    )
+            except ApiUnavailableError:
+                st.error("Could not connect to the API. Check that the backend is running.")
+                return
+            except ApiRequestError as e:
+                st.error(f"Query error: {e}")
+                return
+
+        if not results:
+            criteria_parts = []
+            if id_val:
+                criteria_parts.append(f"id={id_val}")
+            if first_name.strip():
+                criteria_parts.append(f"first_name={first_name.strip()}")
+            if last_name.strip():
+                criteria_parts.append(f"last_name={last_name.strip()}")
+            if passport.strip():
+                criteria_parts.append(f"passport={passport.strip()}")
+            if city.strip():
+                criteria_parts.append(f"city={city.strip()}")
+            if address.strip():
+                criteria_parts.append(f"address={address.strip()}")
+            if job.strip():
+                criteria_parts.append(f"job={job.strip()}")
+            if company.strip():
+                criteria_parts.append(f"company={company.strip()}")
+            criteria = ", ".join(criteria_parts)
+            st.info(f"No people found matching the selected criteria: {criteria}")
+            return
+
+        st.session_state["search_results"] = results
+        _render_search_results(results)
 
     results = st.session_state.get("search_results")
-
-    if results is None:
-        st.markdown(
-            '<div class="empty-state">Search above to explore records.</div>',
-            unsafe_allow_html=True,
-        )
-    elif len(results) == 0:
-        # Distinguish between never searched vs empty result after search
-        # If submitted was ever true, we show no results; otherwise empty state
-        if submitted or st.session_state.get("search_results") == []:
-            # Check if user actually submitted at least once: results is [] not None
-            # Show appropriate message
-            if submitted:
-                st.markdown(
-                    '<div class="empty-state">No results found.</div>',
-                    unsafe_allow_html=True,
-                )
-            else:
-                st.markdown(
-                    '<div class="empty-state">Search above to explore records.</div>',
-                    unsafe_allow_html=True,
-                )
-        else:
-            st.markdown(
-                '<div class="empty-state">Search above to explore records.</div>',
-                unsafe_allow_html=True,
-            )
-    else:
-        # Build table rows
-        rows = []
-        for p in results:
-            pid = p.get("id")
-            fn = p.get("first_name") or ""
-            ln = p.get("last_name") or ""
-            profs = p.get("professional_profiles") or []
-            locs = p.get("locations") or []
-            job_val = profs[0].get("job") if profs and profs[0].get("job") else "—"
-            city_val = locs[0].get("city") if locs and locs[0].get("city") else "—"
-            domains_count = (1 if locs else 0) + (1 if profs else 0)
-            domains = f"{domains_count}/2"
-            rows.append(
-                {
-                    "id": pid,
-                    "first_name": fn,
-                    "last_name": ln,
-                    "job": job_val,
-                    "city": city_val,
-                    "domains": domains,
-                    "passport": p.get("passport") or "—",
-                }
-            )
-        st.dataframe(rows, use_container_width=True, hide_index=True)
-
-        # Detail panel
+    if results:
         options = [
-            (
-                f"{p.get('id')} — "
-                f"{(p.get('first_name') or '').strip()} "
-                f"{(p.get('last_name') or '').strip()}".strip()
-            )
+            f"{p.get('id')} — {(p.get('first_name') or '').strip()} "
+            f"{(p.get('last_name') or '').strip()}"
             for p in results
         ]
-        id_to_person = {opt: person for opt, person in zip(options, results, strict=True)}
-        selected_label = st.selectbox("Select a person to view details", options=options)
-        selected = id_to_person[selected_label]
+        id_map = {opt: p for opt, p in zip(options, results, strict=True)}
+        selected_label = st.selectbox("View details of...", options=options)
+        if selected_label:
+            _render_person_detail(id_map[selected_label])
 
-        full_name = (
-            " ".join(filter(None, [selected.get("first_name"), selected.get("last_name")])).strip()
-            or "Unknown"
-        )
-        pid = selected.get("id")
-        passport_val = selected.get("passport") or "—"
-        email_val = selected.get("email") or "—"
-        tel_val = selected.get("telephone_number") or "—"
-        sex_raw = selected.get("sex")
-        if isinstance(sex_raw, list):
-            sex_val = ", ".join(sex_raw) if sex_raw else "—"
-        else:
-            sex_val = sex_raw or "—"
 
-        st.markdown(
-            f"""
-            <div class="hr-card">
-                <h4 style="color:#3D1D10;">{full_name}</h4>
-                <div class="muted">id: {pid} &nbsp;·&nbsp; passport: {passport_val}</div>
-                <div class="field-row" style="margin-top:0.6rem;">
-                    <strong>email:</strong> {email_val} &nbsp;|&nbsp;
-                    <strong>telephone:</strong> {tel_val} &nbsp;|&nbsp;
-                    <strong>sex:</strong> {sex_val}
-                </div>
-            </div>
-            """,
-            unsafe_allow_html=True,
-        )
+def main() -> None:
+    st.markdown(BASE_CSS, unsafe_allow_html=True)
 
-        col_a, col_b = st.columns(2)
-        with col_a:
-            with st.expander(f"📍 Locations ({len(selected.get('locations') or [])})"):
-                locs = selected.get("locations") or []
-                if not locs:
-                    st.caption("No locations.")
-                for idx, loc in enumerate(locs, 1):
-                    st.markdown(f"**Location {idx}**")
-                    has_any = False
-                    for field in ["full_name", "city", "address", "ip_v4"]:
-                        val = loc.get(field)
-                        if val is not None and str(val).strip() != "":
-                            st.markdown(f"`{field}`: {val}")
-                            has_any = True
-                    if not has_any:
-                        st.caption("No fields")
-                    if idx < len(locs):
-                        st.divider()
-        with col_b:
-            with st.expander(
-                f"💼 Professional profiles ({len(selected.get('professional_profiles') or [])})"
-            ):
-                profs = selected.get("professional_profiles") or []
-                if not profs:
-                    st.caption("No professional profiles.")
-                for idx, prof in enumerate(profs, 1):
-                    st.markdown(f"**Profile {idx}**")
-                    has_any = False
-                    for field in [
-                        "full_name",
-                        "company",
-                        "company_address",
-                        "company_email",
-                        "company_telephone_number",
-                        "job",
-                    ]:
-                        val = prof.get(field)
-                        if val is not None and str(val).strip() != "":
-                            st.markdown(f"`{field}`: {val}")
-                            has_any = True
-                    if not has_any:
-                        st.caption("No fields")
-                    if idx < len(profs):
-                        st.divider()
+    try:
+        health = get_health()
+        api_ok = health.get("status") == "ok"
+    except Exception:
+        api_ok = False
 
-# ------------------------------------------------------------------ TAB 2
-with tab_statistics:
-    stats = _api_get_statistics()
-    if stats is None:
-        st.error("Could not load statistics.")
+    if api_ok:
+        st.markdown("🟢 API available")
     else:
-        rows_tbl = stats.get("rows_per_table", {})
-        missing = stats.get("employees_missing_domain", {})
+        st.warning("🔴 API unavailable")
 
-        st.markdown('<div class="section-label">Records per table</div>', unsafe_allow_html=True)
-        r1c1, r1c2, r1c3 = st.columns(3)
-        r1c1.metric("Employees", rows_tbl.get("employees", "—"))
-        r1c2.metric("Locations", rows_tbl.get("locations", "—"))
-        r1c3.metric("Professional Profiles", rows_tbl.get("professional_profiles", "—"))
-        r2c1, r2c2, r2c3 = st.columns(3)
-        r2c1.metric("Bank Accounts", rows_tbl.get("bank_accounts", "—"))
-        r2c2.metric("Network Data", rows_tbl.get("network_data", "—"))
-        r2c3.metric("Processing Audit", rows_tbl.get("processing_audit", "—"))
+    tab_inicio, tab_personas = st.tabs(["🏠 Home", "🔍 People"])
 
-        st.divider()
+    with tab_inicio:
+        _tab_inicio()
 
-        st.markdown(
-            '<div class="section-label">Employees missing a domain</div>',
-            unsafe_allow_html=True,
-        )
-        # Wrap gap metrics to allow dusty-rose styling
-        st.markdown('<div class="gap-metrics">', unsafe_allow_html=True)
-        g1, g2, g3, g4 = st.columns(4)
-        g1.metric("Locations", missing.get("locations", "—"))
-        g2.metric("Professional Profiles", missing.get("professional_profiles", "—"))
-        g3.metric("Bank Accounts", missing.get("bank_accounts", "—"))
-        g4.metric("Network Data", missing.get("network_data", "—"))
-        st.markdown("</div>", unsafe_allow_html=True)
+    with tab_personas:
+        _tab_personas()
 
-# ------------------------------------------------------------------ TAB 3
-with tab_about:
-    st.markdown(
-        """
-        <div class="hr-card">
-            <h4>What this tool is</h4>
-            <p class="field-row" style="margin:0.4rem 0 0 0;">
-                HR Pro Explorer is a read-only interface for querying curated
-                employee records stored in PostgreSQL.
-                It does not expose Kafka, MongoDB RAW events, or any financial fields.
-            </p>
-        </div>
-        """,  # noqa: E501
-        unsafe_allow_html=True,
-    )
-    st.markdown(
-        """
-        <div class="hr-card">
-            <h4>Data boundary</h4>
-            <p class="field-row" style="margin:0.4rem 0 0 0;">
-                All records shown are synthetic and curated. The API queries PostgreSQL only.
-                Bank account fields (IBAN, salary) are intentionally excluded from all responses.
-            </p>
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
-    st.markdown(
-        """
-        <div class="hr-card">
-            <h4>Endpoints in use</h4>
-            <ul class="field-row" style="margin:0.4rem 0 0 1.1rem; line-height:1.8;">
-                <li><code>GET /health</code> — liveness check, returns
-                {"status": "ok"} when the API is reachable.</li>
-                <li><code>GET /people/search</code> — search employees by identity
-                fields (id, passport, first_name, last_name).</li>
-                <li><code>GET /people/search/by-location-profession</code> — search
-                employees by location or professional fields (city, address, job, company).</li>
-                <li><code>GET /statistics</code> — aggregate counts per table and
-                employees missing each domain.</li>
-            </ul>
-        </div>
-        """,  # noqa: E501
-        unsafe_allow_html=True,
-    )
+
+main()
