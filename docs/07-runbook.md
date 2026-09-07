@@ -202,3 +202,56 @@ de ingesta.
 
 Si falta configuracion Kafka, que el contenedor `app` termine con error es un fallo
 de entorno esperado, no una razon para hard-codear topics o direcciones en el repo.
+
+## Pipeline continuo
+
+HRP-87 documenta el modo continuo del pipeline. Este modo usa el servicio `app`
+existente del Compose de desarrollo y mantiene Kafka como runtime externo
+autorizado.
+
+Antes de arrancar, el `.env` local debe contener al menos:
+
+```text
+KAFKA_BOOTSTRAP_SERVERS=host.docker.internal:29092
+KAFKA_TOPICS=probando
+KAFKA_CONSUMER_GROUP=hr-pro-platform
+```
+
+El archivo `.env` es local, está ignorado por Git y no debe copiarse a chats,
+Jira, pull requests ni documentación versionada.
+
+Arrancar el pipeline continuo con observabilidad:
+
+```powershell
+docker compose -f infra/compose.dev.yml --profile app up -d --build app prometheus grafana
+docker compose -f infra/compose.dev.yml ps
+```
+
+Comprobar logs técnicos sin mostrar payloads:
+
+```powershell
+docker compose -f infra/compose.dev.yml logs --tail=80 app
+```
+
+Comprobar monitorización:
+
+- Prometheus: `http://localhost:9090/targets`
+- Grafana: `http://localhost:3000`
+- Dashboard: `HR Pro Ingestion Overview`
+
+El servicio `app` usa `restart: unless-stopped`. Si Kafka externo no está
+disponible o la configuración es incorrecta, Docker puede reiniciar la aplicación.
+Ese comportamiento ayuda a detectar incidencias de runtime, pero no autoriza a
+incluir Kafka educativo, hardcodear topics o modificar el contrato de datos.
+
+Parar solo la aplicación:
+
+```powershell
+docker compose -f infra/compose.dev.yml stop app
+```
+
+Parar la observabilidad:
+
+```powershell
+docker compose -f infra/compose.dev.yml stop prometheus grafana
+```
