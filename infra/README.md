@@ -153,3 +153,27 @@ docker compose -f infra/compose.dev.yml --profile app up -d --build app promethe
 
 Kafka sigue siendo externo al repositorio y debe configurarse mediante variables
 de entorno autorizadas. No se incluye ni se inspecciona el generador educativo.
+
+## HRP-82 — Dashboard Grafana local
+
+HRP-82 añade un dashboard básico de Grafana para visualizar las métricas técnicas
+de ingesta ya expuestas en Prometheus. No crea métricas nuevas ni muestra datos
+personales o payloads.
+
+```powershell
+docker compose -f infra/compose.dev.yml up -d prometheus grafana
+docker compose -f infra/compose.dev.yml ps
+```
+
+La interfaz local queda disponible en `http://localhost:3000`. El dashboard
+provisionado se llama `HR Pro Ingestion Overview`.
+
+Para ver datos reales, la aplicación debe estar ejecutándose y Prometheus debe
+poder raspar `app:9464/metrics`:
+
+```powershell
+docker compose -f infra/compose.dev.yml --profile app up -d --build app prometheus grafana
+```
+
+Si la aplicación o Kafka externo no están disponibles, el dashboard puede cargar
+correctamente pero mostrar el target de ingesta como `DOWN` o paneles sin datos.

@@ -32,4 +32,8 @@ payloads, claves de correlación, secretos ni valores personales.
 - Fallos de persistencia raw que dejan offsets sin confirmar.
 - Reentregas descartadas por el índice único de MongoDB.
 
-Prometheus y un dashboard básico se implementarán en el Sprint 5.
+HRP-80 expone las métricas técnicas en formato Prometheus. HRP-81 configura
+Prometheus en Docker Compose y HRP-82 añade un dashboard Grafana local para la
+demo básica de observabilidad. Este dashboard solo visualiza métricas técnicas:
+no muestra payloads, datos personales, claves de correlación ni registros de
+clientes.
