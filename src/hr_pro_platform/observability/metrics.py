@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import math
 from dataclasses import dataclass
 
 
@@ -21,3 +22,19 @@ class MonotonicCounter:
 
 
 CONSUMED_MESSAGES_TOTAL = "hr_pro_platform_ingestion_messages_consumed_total"
+PROCESSING_DURATION_SECONDS = "hr_pro_platform_ingestion_processing_duration_seconds"
+
+
+@dataclass
+class Histogram:
+    """Small process-local timer metric for later external exposition."""
+
+    name: str
+    count: int = 0
+    total: float = 0.0
+
+    def observe(self, value: float) -> None:
+        if not math.isfinite(value) or value < 0:
+            raise ValueError("histogram observations must be finite and non-negative")
+        self.count += 1
+        self.total += value

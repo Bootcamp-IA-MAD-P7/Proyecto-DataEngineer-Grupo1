@@ -180,6 +180,73 @@ def test_hrp77_excludes_kafka_error_and_counts_invalid_fetched_message(
 
 @patch("hr_pro_platform.ingestion.consumer.MongoIngestionClient")
 @patch("hr_pro_platform.ingestion.consumer.Consumer")
+def test_hrp78_records_processing_duration_once_without_timing_persistence(
+    mock_consumer_class: MagicMock,
+    mock_mongo_class: MagicMock,
+) -> None:
+    import hr_pro_platform.ingestion.consumer as consumer_mod
+    from hr_pro_platform.ingestion.mongo import PersistenceOutcome
+    from hr_pro_platform.observability.metrics import (
+        PROCESSING_DURATION_SECONDS,
+        Histogram,
+    )
+
+    messages = [
+        ConsumerUnitFakeMessage(offset_id=13),
+        ConsumerUnitFakeMessage(offset_id=14),
+    ]
+    fake_consumer = ConsumerUnitFakeConsumer(messages=messages)
+    mock_consumer_class.return_value = fake_consumer
+    mock_mongo_class.return_value.persist_batch.return_value = [
+        PersistenceOutcome("configured-topic", 0, 13, "inserted"),
+        PersistenceOutcome("configured-topic", 0, 14, "inserted"),
+    ]
+    timer = Histogram(PROCESSING_DURATION_SECONDS)
+    clock = iter([10.0, 10.25, 20.0, 20.5])
+
+    consumer_mod.running = True
+    with patch("hr_pro_platform.ingestion.consumer.time.perf_counter", side_effect=clock):
+        consumer_mod.run_consumer(processing_timer=timer)
+    consumer_mod.running = True
+
+    assert timer.count == 2
+    assert timer.total == 0.75
+    assert fake_consumer.commits == [messages[1]]
+
+
+@patch("hr_pro_platform.ingestion.consumer.MongoIngestionClient")
+@patch("hr_pro_platform.ingestion.consumer.Consumer")
+def test_hrp78_records_one_duration_when_processing_raises(
+    mock_consumer_class: MagicMock,
+    mock_mongo_class: MagicMock,
+) -> None:
+    import hr_pro_platform.ingestion.consumer as consumer_mod
+    from hr_pro_platform.observability.metrics import (
+        PROCESSING_DURATION_SECONDS,
+        Histogram,
+    )
+
+    message = MagicMock()
+    message.error.return_value = None
+    message.topic.side_effect = RuntimeError("processing failure")
+    fake_consumer = ConsumerUnitFakeConsumer(messages=[])
+    fake_consumer.messages = [message]
+    mock_consumer_class.return_value = fake_consumer
+    timer = Histogram(PROCESSING_DURATION_SECONDS)
+    clock = iter([20.0, 20.5])
+
+    consumer_mod.running = True
+    with patch("hr_pro_platform.ingestion.consumer.time.perf_counter", side_effect=clock):
+        consumer_mod.run_consumer(processing_timer=timer)
+    consumer_mod.running = True
+
+    assert timer.count == 1
+    assert timer.total == 0.5
+    mock_mongo_class.return_value.persist_batch.assert_not_called()
+
+
+@patch("hr_pro_platform.ingestion.consumer.MongoIngestionClient")
+@patch("hr_pro_platform.ingestion.consumer.Consumer")
 def test_hrp68_does_not_commit_when_raw_persistence_fails(
     mock_consumer_class: MagicMock,
     mock_mongo_class: MagicMock,
