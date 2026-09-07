@@ -128,6 +128,9 @@ docker compose -f infra/compose.dev.yml ps
 docker compose -f infra/compose.dev.yml exec -T redis redis-cli ping
 ```
 
+La última orden debe devolver `PONG`. Esta tarea solo habilita la infraestructura;
+no implementa almacenamiento de fragmentos, expiración de negocio ni integración ETL.
+
 ## HRP-81 — Prometheus local
 
 HRP-81 añade Prometheus al Compose de desarrollo para recopilar las métricas de
@@ -150,6 +153,3 @@ docker compose -f infra/compose.dev.yml --profile app up -d --build app promethe
 
 Kafka sigue siendo externo al repositorio y debe configurarse mediante variables
 de entorno autorizadas. No se incluye ni se inspecciona el generador educativo.
-
-La última orden debe devolver `PONG`. Esta tarea solo habilita la infraestructura;
-no implementa almacenamiento de fragmentos, expiración de negocio ni integración ETL.

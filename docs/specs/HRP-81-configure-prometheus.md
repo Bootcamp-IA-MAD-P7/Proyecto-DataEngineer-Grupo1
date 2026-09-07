@@ -71,11 +71,16 @@ volúmenes persistentes de métricas, reglas de alertado ni dashboards.
 ## Evidencia de cierre
 
 - Rama / PR: `feature/HRP-81-configure-prometheus` / PR #76.
-- Commit: `9225124`.
+- Commits: ver historial de PR #76; el merge commit final queda pendiente hasta
+  revisión humana y fusión en `develop`.
 - Comandos ejecutados y resultado: `git diff --check` pasó;
   `python scripts/validate_specs.py` pasó con 56 specs; `docker compose -f
   infra/compose.dev.yml config --quiet` pasó; `pre-commit run --all-files`
   pasó; `ruff check .` pasó; `ruff format --check .` pasó; `mypy src` pasó
   después de refrescar dependencias locales desde `pyproject.toml`. `pytest` no
   se ejecutó localmente porque HRP-81 no modifica código Python ni tests.
+- Evidencia runtime revisada en PR #76: Prometheus arranca, registra el target
+  `hr-pro-ingestion` en `app:9464/metrics` y puede alcanzar el endpoint HRP-80
+  cuando la aplicación está ejecutándose en la red Compose. El archivo `.env`
+  usado para la prueba es local, está ignorado por Git y no se versiona.
 - Comentario Jira con el resultado: pendiente tras revisión, merge y evidencia final
