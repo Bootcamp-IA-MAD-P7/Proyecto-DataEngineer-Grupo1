@@ -4,7 +4,7 @@
 **Owner:** Gabriela Granja
 **Jira:** HRP-80
 **Branch:** `feature/HRP-80-expose-prometheus-metrics`
-**PR:** pending
+**PR:** #75
 **Implementation commit:** `ca351b68cb47ccd34c1a0c50881e002d7a5bd451`
 **Dependencies:** merged HRP-77, HRP-78, and HRP-79
 **Related ADR:** None
@@ -104,8 +104,9 @@ HRP-78's processing boundary is unchanged. HRP-79 remains measured around MongoD
 Rollback removes the HRP-80 commits and dependency; ingestion returns to the prior
 process-local metrics behavior. No data migration is required.
 
-- Branch / PR: `feature/HRP-80-expose-prometheus-metrics` / pending.
+- Branch / PR: `feature/HRP-80-expose-prometheus-metrics` / PR #75.
 - Implementation commit: `ca351b68cb47ccd34c1a0c50881e002d7a5bd451`.
+- Traceability commit: `bd2018560821ec184377251f6a7dfe1d6fb4e8e0`.
 - Local validation: spec validation passed (55 specs); Ruff check passed; Ruff format
   passed (226 files); mypy passed (35 source files); focused HRP-80 tests passed (2);
   focused regression tests passed (40); full pytest passed (267 passed, 40 skipped,
@@ -113,7 +114,7 @@ process-local metrics behavior. No data migration is required.
 - Exposition runtime validation: official client serialization and HTTP `/metrics`
   check passed; response status 200, `text/plain` content type, and all three HRP
   metric families present with current values.
-- CI: pending until a PR exists and Actions reports its state.
+- CI: GitHub Actions `quality` — PASS for PR #75.
 - Pre-commit: BLOCKED before hooks by readonly SQLite and permission denied writing
   `C:\Users\ggran\.cache\pre-commit\pre-commit.log`.
 - Environment limitations: MongoDB/PostgreSQL/Redis integration services were
