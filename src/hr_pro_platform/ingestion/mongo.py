@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import time
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from typing import Any, Literal
@@ -9,6 +10,10 @@ from pymongo import MongoClient
 from pymongo.collection import Collection
 from pymongo.errors import BulkWriteError, DuplicateKeyError
 
+from ..observability.metrics import (
+    PERSISTENCE_DURATION_SECONDS,
+    Histogram,
+)
 from .config import MONGODB_COLLECTION, MONGODB_DB, MONGODB_INVALID_COLLECTION, MONGODB_URI
 from .error_handler import get_logger
 
@@ -26,10 +31,11 @@ class PersistenceOutcome:
 
 
 class MongoIngestionClient:
-    def __init__(self) -> None:
+    def __init__(self, persistence_timer: Histogram | None = None) -> None:
         self._client: MongoClient[Any] | None = None
         self._collection: Collection[Any] | None = None
         self._invalid_collection: Collection[Any] | None = None
+        self._persistence_timer = persistence_timer or Histogram(PERSISTENCE_DURATION_SECONDS)
 
     def connect(self) -> None:
         self._client = MongoClient(MONGODB_URI, serverSelectionTimeoutMS=5000)
@@ -113,8 +119,8 @@ class MongoIngestionClient:
             self._invalid_collection, self._collection, document, topic, partition, offset
         )
 
-    @staticmethod
     def _persist(
+        self,
         collection: Collection[Any] | None,
         opposite: Collection[Any] | None,
         document: dict[str, Any],
@@ -122,10 +128,11 @@ class MongoIngestionClient:
         partition: int,
         offset: int,
     ) -> PersistenceOutcome:
+        started = time.perf_counter()
         coordinate = {"topic": topic, "partition": partition, "offset": offset}
-        if collection is None or opposite is None:
-            return PersistenceOutcome(topic, partition, offset, "failed")
         try:
+            if collection is None or opposite is None:
+                return PersistenceOutcome(topic, partition, offset, "failed")
             if opposite.find_one(coordinate) is not None:
                 logger.error("Unresolved persistence conflict")
                 return PersistenceOutcome(topic, partition, offset, "unresolved_conflict")
@@ -143,6 +150,8 @@ class MongoIngestionClient:
         except Exception:
             logger.error("MongoDB persistence failed")
             return PersistenceOutcome(topic, partition, offset, "failed")
+        finally:
+            self._persistence_timer.observe(time.perf_counter() - started)
 
     def persist_batch(
         self, events: list[tuple[str, dict[str, Any], int, int]]
