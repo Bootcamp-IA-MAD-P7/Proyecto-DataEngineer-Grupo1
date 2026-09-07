@@ -192,6 +192,34 @@ def find_duplicate_processing_audit_references(cursor: psycopg.Cursor[Any]) -> t
     return tuple(row[0] for row in cursor.fetchall())
 
 
+def count_employees_missing_each_domain(cursor: psycopg.Cursor[Any]) -> dict[str, int]:
+    """Count, per dependent table, how many employees currently have zero
+    rows there -- computed entirely as PostgreSQL aggregates (one row, one
+    ``NOT EXISTS``-filtered ``count(*)`` per domain), never materializing a
+    per-employee result to reduce in Python. See HRP-86's spec: this answers
+    "how many employees are missing each domain", a different, cheaper
+    access pattern than ``find_incomplete_employees()``'s "which employees
+    are missing which domains".
+
+    Informational, not a pass/fail signal by itself: a missing domain is an
+    expected, documented HRP-50 outcome (a domain that genuinely never
+    arrived), not necessarily a defect.
+    """
+
+    filters = [
+        sql.SQL(
+            "count(*) FILTER (WHERE NOT EXISTS ("
+            "SELECT 1 FROM {table} d WHERE d.employee_id = e.id)) AS {alias}"
+        ).format(table=sql.Identifier(table), alias=sql.Identifier(table))
+        for table in DEPENDENT_TABLES
+    ]
+    query = sql.SQL("SELECT {filters} FROM employees e").format(filters=sql.SQL(", ").join(filters))
+    cursor.execute(query)
+    result = cursor.fetchone()
+    assert result is not None
+    return dict(zip(DEPENDENT_TABLES, (int(value) for value in result), strict=True))
+
+
 def count_rows_per_table(cursor: psycopg.Cursor[Any]) -> dict[str, int]:
     """Return a row count for every curated table, for a quick manual
     sanity snapshot. Proves nothing about the correctness of the data

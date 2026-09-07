@@ -245,6 +245,49 @@ def test_incomplete_employee_reports_its_missing_domains(
         _cleanup_employees(live_connection, [employee_id])
 
 
+def test_count_employees_missing_each_domain_reflects_a_delta(
+    live_connection: psycopg.Connection[tuple[object, ...]],
+) -> None:
+    """Global aggregate over every employee in the (shared, dev-container)
+    database, so this asserts the *delta* the fixture introduces, never an
+    absolute count -- the same discipline
+    ``tests/integration/test_api_statistics.py`` uses at the API level.
+    """
+
+    from hr_pro_platform.storage.validation_queries import count_employees_missing_each_domain
+
+    with live_connection.cursor() as cursor:
+        baseline = count_employees_missing_each_domain(cursor)
+
+    employee_id = _insert_employee(live_connection, "HRP59-P-MISSING-DOMAIN-COUNT")
+    try:
+        with live_connection.cursor() as cursor:
+            cursor.execute(
+                "INSERT INTO locations (employee_id, full_name, city, address) "
+                "VALUES (%s, %s, %s, %s)",
+                (employee_id, "HRP59 Fixture", "Springfield", "1 Fixture Way"),
+            )
+        live_connection.commit()
+
+        with live_connection.cursor() as cursor:
+            after = count_employees_missing_each_domain(cursor)
+
+        # This employee has a location but nothing else: +0 for
+        # "locations", +1 for each of the other three domains.
+        assert {key: after[key] - baseline[key] for key in after} == {
+            "locations": 0,
+            "professional_profiles": 1,
+            "bank_accounts": 1,
+            "network_data": 1,
+        }
+    finally:
+        _cleanup_employees(live_connection, [employee_id])
+
+        with live_connection.cursor() as cursor:
+            restored = count_employees_missing_each_domain(cursor)
+        assert restored == baseline
+
+
 def test_exact_duplicate_dependent_row_is_detected(
     live_connection: psycopg.Connection[tuple[object, ...]],
 ) -> None:
