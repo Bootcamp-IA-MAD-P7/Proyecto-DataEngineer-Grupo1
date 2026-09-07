@@ -173,5 +173,32 @@ aplicación está ejecutándose y Kafka externo está configurado correctamente.
 hay que copiar, leer ni inspeccionar el generador educativo para validar esta
 configuración.
 
+## Dashboard local
+
+HRP-82 añade un dashboard Grafana provisionado para la demo técnica de
+observabilidad.
+
+Arrancar Prometheus y Grafana:
+
+```powershell
+docker compose -f infra/compose.dev.yml up -d prometheus grafana
+```
+
+Abrir `http://localhost:3000` y seleccionar el dashboard
+`HR Pro Ingestion Overview`.
+
+El dashboard muestra:
+
+- estado del target de ingesta;
+- mensajes consumidos;
+- tasa de consumo derivada por Prometheus;
+- duración media de procesamiento;
+- duración media de persistencia MongoDB.
+
+Los paneles solo usan métricas técnicas. No consultan Kafka, MongoDB RAW,
+PostgreSQL ni datos de clientes. Si la aplicación no está activa o Kafka externo
+no está configurado, el dashboard puede estar disponible aunque no muestre datos
+de ingesta.
+
 Si falta configuracion Kafka, que el contenedor `app` termine con error es un fallo
 de entorno esperado, no una razon para hard-codear topics o direcciones en el repo.
