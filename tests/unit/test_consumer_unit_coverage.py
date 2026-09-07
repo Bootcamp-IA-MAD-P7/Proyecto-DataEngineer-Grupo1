@@ -117,6 +117,69 @@ def test_hrp68_commits_valid_message_only_after_durable_persistence(
 
 @patch("hr_pro_platform.ingestion.consumer.MongoIngestionClient")
 @patch("hr_pro_platform.ingestion.consumer.Consumer")
+def test_hrp77_counts_each_successfully_fetched_message_once(
+    mock_consumer_class: MagicMock,
+    mock_mongo_class: MagicMock,
+) -> None:
+    import hr_pro_platform.ingestion.consumer as consumer_mod
+    from hr_pro_platform.ingestion.mongo import PersistenceOutcome
+    from hr_pro_platform.observability import metrics
+
+    messages = [
+        ConsumerUnitFakeMessage(offset_id=1),
+        ConsumerUnitFakeMessage(offset_id=2),
+    ]
+    fake_consumer = ConsumerUnitFakeConsumer(messages=messages)
+    mock_consumer_class.return_value = fake_consumer
+    mock_mongo_class.return_value.persist_batch.return_value = [
+        PersistenceOutcome("configured-topic", 0, 1, "inserted"),
+        PersistenceOutcome("configured-topic", 0, 2, "inserted"),
+    ]
+    counter = metrics.MonotonicCounter(metrics.CONSUMED_MESSAGES_TOTAL)
+
+    consumer_mod.running = True
+    consumer_mod.run_consumer(counter)
+    consumer_mod.running = True
+
+    assert counter.name == "hr_pro_platform_ingestion_messages_consumed_total"
+    assert counter.value == 2
+    assert fake_consumer.commits == [messages[1]]
+
+
+@patch("hr_pro_platform.ingestion.consumer.MongoIngestionClient")
+@patch("hr_pro_platform.ingestion.consumer.Consumer")
+def test_hrp77_excludes_kafka_error_and_counts_invalid_fetched_message(
+    mock_consumer_class: MagicMock,
+    mock_mongo_class: MagicMock,
+) -> None:
+    import hr_pro_platform.ingestion.consumer as consumer_mod
+    from hr_pro_platform.ingestion.mongo import PersistenceOutcome
+    from hr_pro_platform.observability import metrics
+
+    messages = [
+        ConsumerUnitFakeMessage(kafka_error=MagicMock(), offset_id=3),
+        ConsumerUnitFakeMessage(payload=b"{invalid", offset_id=4),
+    ]
+    fake_consumer = ConsumerUnitFakeConsumer(messages=messages)
+    mock_consumer_class.return_value = fake_consumer
+    mock_mongo_class.return_value.persist_invalid_event.return_value = PersistenceOutcome(
+        "configured-topic", 0, 4, "inserted"
+    )
+    counter = metrics.MonotonicCounter(metrics.CONSUMED_MESSAGES_TOTAL)
+
+    consumer_mod.running = True
+    consumer_mod.run_consumer(counter)
+    consumer_mod.running = True
+
+    assert counter.value == 1
+    mock_mongo_class.return_value.persist_invalid_event.assert_called_once_with(
+        "configured-topic", 0, 4, b"{invalid", "invalid_json"
+    )
+    assert fake_consumer.commits == [messages[1]]
+
+
+@patch("hr_pro_platform.ingestion.consumer.MongoIngestionClient")
+@patch("hr_pro_platform.ingestion.consumer.Consumer")
 def test_hrp68_does_not_commit_when_raw_persistence_fails(
     mock_consumer_class: MagicMock,
     mock_mongo_class: MagicMock,
