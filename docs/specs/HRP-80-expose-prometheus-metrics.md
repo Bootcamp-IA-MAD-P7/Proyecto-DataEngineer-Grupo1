@@ -5,7 +5,7 @@
 **Jira:** HRP-80
 **Branch:** `feature/HRP-80-expose-prometheus-metrics`
 **PR:** pending
-**Implementation commit:** pending
+**Implementation commit:** `ca351b68cb47ccd34c1a0c50881e002d7a5bd451`
 **Dependencies:** merged HRP-77, HRP-78, and HRP-79
 **Related ADR:** None
 
@@ -105,7 +105,7 @@ Rollback removes the HRP-80 commits and dependency; ingestion returns to the pri
 process-local metrics behavior. No data migration is required.
 
 - Branch / PR: `feature/HRP-80-expose-prometheus-metrics` / pending.
-- Implementation commit: pending until the implementation commit exists.
+- Implementation commit: `ca351b68cb47ccd34c1a0c50881e002d7a5bd451`.
 - Local validation: spec validation passed (55 specs); Ruff check passed; Ruff format
   passed (226 files); mypy passed (35 source files); focused HRP-80 tests passed (2);
   focused regression tests passed (40); full pytest passed (267 passed, 40 skipped,
