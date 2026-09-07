@@ -79,7 +79,12 @@ límite durable antes del commit de offsets Kafka. HRP-87 no modifica esa decisi
 
 ## Evidencia de cierre
 
-- Rama / PR: `feature/HRP-87-continuous-pipeline-runtime` / pendiente.
-- Commit: pendiente.
-- Comandos ejecutados y resultado: pendiente.
+- Rama / PR: `feature/HRP-87-continuous-pipeline-runtime` / PR #78.
+- Commit: `76f21d1`.
+- Comandos ejecutados y resultado: `git diff --check` pasó;
+  `python scripts/validate_specs.py` pasó con 58 specs; `docker compose -f
+  infra/compose.dev.yml config --quiet` pasó; `pre-commit run --all-files`
+  pasó; `ruff check .` pasó; `ruff format --check .` pasó; `mypy src` pasó.
+  `pytest` no se ejecutó localmente porque HRP-87 no modifica código Python ni
+  tests.
 - Comentario Jira con el resultado: pendiente tras revisión, merge y evidencia final.
