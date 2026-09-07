@@ -96,7 +96,8 @@ payload, person identifier, topic label or other unbounded state.
 ## Closing evidence
 
 - Branch / PR: `feature/HRP-77-measure-consumed-messages-per-second` / pending.
-- Commit: pending.
+- Commit: `ae63da7` (implementation and tests); this evidence-closure update is
+  the follow-up documentation commit.
 - Commands executed and result:
   - `python scripts/validate_specs.py` — passed, 52 specifications validated.
   - `ruff check src/hr_pro_platform/observability/metrics.py
