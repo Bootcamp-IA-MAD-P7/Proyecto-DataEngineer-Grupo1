@@ -1,6 +1,6 @@
 # HRP-81 — Configure Prometheus
 
-**Estado:** En curso
+**Estado:** En curso; pendiente de revisión humana y merge
 **Responsable:** Miguel
 **Jira:** HRP-81
 **Dependencias:** HRP-77, HRP-78, HRP-79, HRP-80
@@ -70,7 +70,12 @@ volúmenes persistentes de métricas, reglas de alertado ni dashboards.
 
 ## Evidencia de cierre
 
-- Rama / PR: `feature/HRP-81-configure-prometheus` / pendiente
-- Commit: pendiente
-- Comandos ejecutados y resultado: pendiente
+- Rama / PR: `feature/HRP-81-configure-prometheus` / PR #76.
+- Commit: `9225124`.
+- Comandos ejecutados y resultado: `git diff --check` pasó;
+  `python scripts/validate_specs.py` pasó con 56 specs; `docker compose -f
+  infra/compose.dev.yml config --quiet` pasó; `pre-commit run --all-files`
+  pasó; `ruff check .` pasó; `ruff format --check .` pasó; `mypy src` pasó
+  después de refrescar dependencias locales desde `pyproject.toml`. `pytest` no
+  se ejecutó localmente porque HRP-81 no modifica código Python ni tests.
 - Comentario Jira con el resultado: pendiente tras revisión, merge y evidencia final
