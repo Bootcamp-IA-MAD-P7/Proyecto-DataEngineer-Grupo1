@@ -6,8 +6,11 @@ from typing import Any
 import pytest
 
 from hr_pro_platform.storage.redis import (
+    DEFAULT_PARTIAL_STATE_TTL_SECONDS,
+    PARTIAL_STATE_TTL_SECONDS,
     RedisPartialStateStore,
     build_partial_state_key,
+    parse_partial_state_ttl,
     serialize_fragment,
 )
 from hr_pro_platform.transformation.fragment_contract import ClassifiedFragment
@@ -17,6 +20,7 @@ from hr_pro_platform.transformation.fragment_contract import ClassifiedFragment
 class FakeRedis:
     values: dict[str, set[str]] = field(default_factory=dict)
     fail: Exception | None = None
+    expire_fail: Exception | None = None
     closed: bool = False
     expiration_calls: list[tuple[str, ...]] = field(default_factory=list)
 
@@ -31,8 +35,11 @@ class FakeRedis:
     def close(self) -> None:
         self.closed = True
 
-    def expire(self, *args: Any) -> None:
+    def expire(self, *args: Any) -> bool:
+        if self.expire_fail is not None:
+            raise self.expire_fail
         self.expiration_calls.append(("expire", *(str(arg) for arg in args)))
+        return True
 
     def pexpire(self, *args: Any) -> None:
         self.expiration_calls.append(("pexpire", *(str(arg) for arg in args)))
@@ -66,35 +73,44 @@ def test_serialization_is_deterministic_and_preserves_provenance() -> None:
 
 def test_first_and_second_fragments_accumulate_without_replacement() -> None:
     client = FakeRedis()
-    store = RedisPartialStateStore(client=client)
+    store = RedisPartialStateStore(client=client, ttl_seconds=120)
     store.connect()
 
     assert store.store_fragment("component-a", fragment({"name": "Ada"})) is True
     assert store.store_fragment("component-a", fragment({"passport": "P-1"}, "source-2")) is True
 
     assert len(client.values["hrp:partial:component-a"]) == 2
+    assert client.expiration_calls == [
+        ("expire", "hrp:partial:component-a", "120"),
+        ("expire", "hrp:partial:component-a", "120"),
+    ]
 
 
 def test_exact_duplicate_is_idempotent() -> None:
     client = FakeRedis()
-    store = RedisPartialStateStore(client=client)
+    store = RedisPartialStateStore(client=client, ttl_seconds=120)
     store.connect()
     item = fragment({"name": "Ada", "passport": "P-1"})
 
     assert store.store_fragment("component-a", item) is True
     assert store.store_fragment("component-a", item) is False
     assert len(client.values["hrp:partial:component-a"]) == 1
+    assert client.expiration_calls == [
+        ("expire", "hrp:partial:component-a", "120"),
+        ("expire", "hrp:partial:component-a", "120"),
+    ]
 
 
 def test_conflicting_evidence_and_incomplete_fragment_are_preserved() -> None:
     client = FakeRedis()
-    store = RedisPartialStateStore(client=client)
+    store = RedisPartialStateStore(client=client, ttl_seconds=120)
     store.connect()
 
     assert store.store_fragment("component-a", fragment({"name": "Ada"})) is True
     assert store.store_fragment("component-a", fragment({"name": "Different"}, "source-2")) is True
 
     assert len(client.values["hrp:partial:component-a"]) == 2
+    assert len(client.expiration_calls) == 2
 
 
 def test_redis_failure_is_propagated_without_adapter_retry() -> None:
@@ -104,14 +120,43 @@ def test_redis_failure_is_propagated_without_adapter_retry() -> None:
 
     with pytest.raises(ConnectionError, match="synthetic failure"):
         store.store_fragment("component-a", fragment({"name": "Ada"}))
+    assert client.expiration_calls == []
 
 
-def test_store_does_not_assign_ttl_or_expose_retrieval_api() -> None:
+def test_expire_failure_is_propagated_without_silent_success() -> None:
+    failure = ConnectionError("synthetic expire failure")
+    client = FakeRedis(expire_fail=failure)
+    store = RedisPartialStateStore(client=client, ttl_seconds=120)
+
+    with pytest.raises(ConnectionError, match="synthetic expire failure"):
+        store.store_fragment("component-a", fragment({"name": "Ada"}))
+
+
+def test_default_ttl_is_one_hour() -> None:
     client = FakeRedis()
     store = RedisPartialStateStore(client=client)
     store.connect()
 
     store.store_fragment("component-a", fragment({"name": "Ada"}))
 
-    assert client.expiration_calls == []
-    assert not hasattr(store, "retrieve_fragments")
+    assert client.expiration_calls == [("expire", "hrp:partial:component-a", "3600")]
+    assert DEFAULT_PARTIAL_STATE_TTL_SECONDS == 3600
+
+
+@pytest.mark.parametrize("raw_value", ["0", "-1", "one", ""])
+def test_invalid_ttl_configuration_is_rejected(raw_value: str) -> None:
+    with pytest.raises(ValueError, match=PARTIAL_STATE_TTL_SECONDS):
+        parse_partial_state_ttl(raw_value)
+
+
+def test_invalid_environment_ttl_is_rejected(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv(PARTIAL_STATE_TTL_SECONDS, "not-an-integer")
+
+    with pytest.raises(ValueError, match=PARTIAL_STATE_TTL_SECONDS):
+        RedisPartialStateStore(client=FakeRedis())
+
+
+@pytest.mark.parametrize("ttl_seconds", [0, -1])
+def test_invalid_explicit_ttl_is_rejected(ttl_seconds: int) -> None:
+    with pytest.raises(ValueError, match="ttl_seconds"):
+        RedisPartialStateStore(client=FakeRedis(), ttl_seconds=ttl_seconds)
