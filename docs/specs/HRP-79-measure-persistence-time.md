@@ -5,7 +5,7 @@
 **Jira:** HRP-79  
 **Branch:** `feature/HRP-79-measure-persistence-time`  
 **PR:** pending  
-**Implementation commit:** pending  
+**Implementation commit:** `290edd99301d8c369c6c669b20f7abc4f3ddca00`
 **Dependencies:** HRP-77, merged HRP-78, HRP-30/31 Kafka consumer, HRP-68 consumer tests  
 **Related ADR:** None
 
@@ -108,7 +108,7 @@ available without the metric.
 ## Closing evidence
 
 - **Branch / PR:** `feature/HRP-79-measure-persistence-time` / pending (no PR has been created yet).
-- **Implementation commit:** pending until the implementation commit exists.
+- **Implementation commit:** `290edd99301d8c369c6c669b20f7abc4f3ddca00`.
 - **Local validation:** `python scripts/validate_specs.py` passed (54 specs); `ruff check .`
   passed; `ruff format --check .` passed (224 files); `mypy src` passed (35 source
   files); targeted HRP-79 plus HRP-78/77 consumer tests passed (11 tests); full
