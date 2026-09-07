@@ -1,6 +1,6 @@
 # HRP-73 — Configure Redis in Docker Compose
 
-**Status:** Draft
+**Status:** Implemented — pending PR review
 **Owner:** Gabriela (GG)
 **Jira:** HRP-73
 **Dependencies:** Existing development Compose and Redis temporary-state architecture
@@ -37,14 +37,14 @@ curated stores.
 
 ## Acceptance criteria
 
-- [ ] `infra/compose.dev.yml` defines an official, versioned `redis` service.
-- [ ] Redis is reachable by the Compose hostname `redis` on internal port 6379.
-- [ ] Redis does not publish port 6379 to the host.
-- [ ] The healthcheck verifies Redis with `redis-cli ping` and expects `PONG`.
-- [ ] Redis has no persistent volume or authentication secret.
-- [ ] Existing MongoDB and PostgreSQL service definitions remain valid.
-- [ ] Operational documentation explains startup, connectivity and ephemeral state.
-- [ ] Future Redis storage, TTL, ETL and metrics tasks remain out of scope.
+- [x] `infra/compose.dev.yml` defines an official, versioned `redis` service.
+- [x] Redis is reachable by the Compose hostname `redis` on internal port 6379.
+- [x] Redis does not publish port 6379 to the host.
+- [x] The healthcheck verifies Redis with `redis-cli ping` and expects `PONG`.
+- [x] Redis has no persistent volume or authentication secret.
+- [x] Existing MongoDB and PostgreSQL service definitions remain valid.
+- [x] Operational documentation explains startup, connectivity and ephemeral state.
+- [x] Future Redis storage, TTL, ETL and metrics tasks remain out of scope.
 
 ## Accessibility and sustainability applicability
 
@@ -66,7 +66,12 @@ curated stores.
 
 ## Closing evidence
 
-- Branch / PR: pending human workflow
+- Branch / PR: `feature/HRP-73-configure-redis-docker-compose` / pending.
 - Commit: pending human workflow
-- Commands and results: recorded in the task report
+- Commands and results:
+  - `docker compose -f infra/compose.dev.yml config --quiet` -> passed.
+  - `docker compose -f infra/compose.dev.yml up -d redis` -> passed.
+  - `docker compose -f infra/compose.dev.yml ps redis` -> Redis reported healthy.
+  - `docker compose -f infra/compose.dev.yml exec -T redis redis-cli ping` -> returned `PONG`.
+  - `python scripts/validate_specs.py` -> passed for 51 spec files.
 - Jira closing comment: pending human approval and merge
