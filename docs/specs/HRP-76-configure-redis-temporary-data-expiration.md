@@ -1,6 +1,6 @@
 # HRP-76 — Configure expiration of temporary Redis data
 
-**Status:** Implemented — pending validation and human closure
+**Status:** Implementation validated — PR #70 pending human approval and merge
 **Owner:** Gabriela Granja
 **Jira:** HRP-76
 **Dependencies:** HRP-73, HRP-74
@@ -43,18 +43,18 @@ from HRP-74.
 
 ## Acceptance criteria
 
-- [ ] The partial-state TTL is configurable through
+- [x] The partial-state TTL is configurable through
   `HRP_REDIS_PARTIAL_STATE_TTL_SECONDS`.
-- [ ] The default TTL is 3600 seconds when the variable is absent.
-- [ ] Zero, negative and non-numeric TTL values are rejected.
-- [ ] `EXPIRE` is applied to the Redis key after a fragment storage operation.
-- [ ] A subsequent duplicate or distinct fragment refreshes the key TTL.
-- [ ] Redis `SADD` and `EXPIRE` failures are propagated without silent success.
-- [ ] Existing HRP-74 Set serialization, accumulation and idempotency behavior is
+- [x] The default TTL is 3600 seconds when the variable is absent.
+- [x] Zero, negative and non-numeric TTL values are rejected.
+- [x] `EXPIRE` is applied to the Redis key after a fragment storage operation.
+- [x] A subsequent duplicate or distinct fragment refreshes the key TTL.
+- [x] Redis `SADD` and `EXPIRE` failures are propagated without silent success.
+- [x] Existing HRP-74 Set serialization, accumulation and idempotency behavior is
   preserved.
-- [ ] Unit tests cover configuration and failure behavior, and Redis integration
+- [x] Unit tests cover configuration and failure behavior, and Redis integration
   tests demonstrate TTL refresh and expiration.
-- [ ] The spec passes the repository specification validator.
+- [x] The spec passes the repository specification validator.
 
 ## Accessibility and sustainability applicability
 
@@ -69,13 +69,22 @@ from HRP-74.
 
 | Level | Case | Evidence |
 |---|---|---|
-| Unitario | Default/configured TTL, invalid values, refresh call and failures | `tests/unit/test_redis_storage.py` |
-| Integración | Real Redis TTL assignment, refresh and idle expiration | `tests/integration/test_redis_storage.py` |
-| Static | Spec structure and affected Python files | `scripts/validate_specs.py`, Ruff, mypy |
+| Unitario | Default/configured TTL, invalid values, refresh call and failures | `tests/unit/test_redis_storage.py` — 27 passed |
+| Integración local/manual | Real Redis TTL assignment, refresh and idle expiration; Redis runtime `PONG` | `tests/integration/test_redis_storage.py` — 7 passed, 0 skipped |
+| Static / CI | Spec structure and checks provided by the existing quality workflow | `scripts/validate_specs.py`, Ruff, mypy; CI does not provision Redis |
 
 ## Evidence of closure
 
-- Branch / PR: `feature/HRP-76-configure-redis-temporary-data-expiration`
-- Commit: pending human workflow
-- Commands and results: pending validation
-- Jira closing comment: pending human approval
+- Branch: `feature/HRP-76-configure-redis-temporary-data-expiration`
+- PR: #70
+- Implementation/merge-resolution head used for final validation: `deee457`
+- Unit Redis: 27 passed
+- Redis integration: 7 passed, 0 skipped against real Redis
+- Redis runtime: `PONG`
+- Spec validation: PASS
+- Ruff: PASS
+- mypy: PASS
+- CI qualification: Redis integration tests were executed locally/manually against
+  real Redis. The current `quality` GitHub Actions workflow does not provision
+  Redis, so its green status is not Redis integration evidence.
+- Human approval / merge: pending
