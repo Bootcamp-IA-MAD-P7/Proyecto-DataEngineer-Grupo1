@@ -1,12 +1,12 @@
 # HRP-79 — Measure ingestion persistence duration
 
-**Status:** In progress  
-**Owner:** Gabriela Granja  
-**Jira:** HRP-79  
-**Branch:** `feature/HRP-79-measure-persistence-time`  
-**PR:** pending  
+**Status:** In progress
+**Owner:** Gabriela Granja
+**Jira:** HRP-79
+**Branch:** `feature/HRP-79-measure-persistence-time`
+**PR:** #74
 **Implementation commit:** `290edd99301d8c369c6c669b20f7abc4f3ddca00`
-**Dependencies:** HRP-77, merged HRP-78, HRP-30/31 Kafka consumer, HRP-68 consumer tests  
+**Dependencies:** HRP-77, merged HRP-78, HRP-30/31 Kafka consumer, HRP-68 consumer tests
 **Related ADR:** None
 
 ## Objective
@@ -107,14 +107,17 @@ available without the metric.
 
 ## Closing evidence
 
-- **Branch / PR:** `feature/HRP-79-measure-persistence-time` / pending (no PR has been created yet).
+- **Branch / PR:** `feature/HRP-79-measure-persistence-time` / PR #74.
 - **Implementation commit:** `290edd99301d8c369c6c669b20f7abc4f3ddca00`.
+- **Traceability commit:** `f78f8bc4190ab016b13baaaa0ea132be067465d0`.
 - **Local validation:** `python scripts/validate_specs.py` passed (54 specs); `ruff check .`
   passed; `ruff format --check .` passed (224 files); `mypy src` passed (35 source
   files); targeted HRP-79 plus HRP-78/77 consumer tests passed (11 tests); full
   `pytest --basetemp .pytest-tmp-hrp79` passed (265 passed, 40 skipped, 2 warnings);
   Compose config passed; `git diff --check` passed.
-- **CI:** pending until a PR exists and GitHub Actions reports its state.
+- **CI:** GitHub Actions `quality` — PASS for PR #74.
+- **PR diff validation:** `git diff --check origin/develop...HEAD` — PASS; local
+  `git diff --check` — PASS.
 - **Pre-commit:** BLOCKED by the local environment before hooks: SQLite readonly
   database and permission denied writing `C:\Users\ggran\.cache\pre-commit\pre-commit.log`.
 - **Environment limitations:** integration tests skipped because MongoDB/PostgreSQL/
