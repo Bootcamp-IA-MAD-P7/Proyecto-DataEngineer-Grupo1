@@ -5,6 +5,7 @@ from typing import Any
 
 from confluent_kafka import Consumer, KafkaError
 
+from ..observability.metrics import CONSUMED_MESSAGES_TOTAL, MonotonicCounter
 from .config import KAFKA_CONFIG, KAFKA_TOPICS
 from .error_handler import get_logger
 from .mongo import MongoIngestionClient, PersistenceOutcome
@@ -12,6 +13,7 @@ from .mongo import MongoIngestionClient, PersistenceOutcome
 logger = get_logger("consumer")
 
 running = True
+consumed_messages_counter = MonotonicCounter(CONSUMED_MESSAGES_TOTAL)
 
 
 def _durable_prefix_messages(messages: list[Any], outcomes: list[PersistenceOutcome]) -> list[Any]:
@@ -58,15 +60,14 @@ def _handle_kafka_error(msg: Any) -> None:
         logger.error(f"Kafka error: {error}")
 
 
-def run_consumer() -> None:
+def run_consumer(message_counter: MonotonicCounter | None = None) -> None:
+    counter = message_counter or consumed_messages_counter
     mongo_client = MongoIngestionClient()
     mongo_client.connect()
 
     consumer = Consumer(KAFKA_CONFIG)
     consumer.subscribe(KAFKA_TOPICS)
     logger.info(f"Subscribed to topics: {KAFKA_TOPICS}")
-
-    msg_count = 0
 
     try:
         while running:
@@ -82,6 +83,8 @@ def run_consumer() -> None:
                     if msg.error():
                         _handle_kafka_error(msg)
                         continue
+
+                    counter.increment()
 
                     topic = msg.topic()
                     if topic is None:
@@ -138,7 +141,6 @@ def run_consumer() -> None:
                     outcomes.extend(mongo_client.persist_batch(raw_events))
                 for commit_message in _durable_prefix_messages(outcome_messages, outcomes):
                     consumer.commit(message=commit_message)
-                msg_count += len(raw_events)
 
             except Exception as e:
                 logger.error(f"Unexpected error: {e}")
