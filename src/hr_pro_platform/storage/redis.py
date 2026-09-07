@@ -12,11 +12,15 @@ from redis import Redis
 from ..transformation.fragment_contract import ClassifiedFragment, JSONValue
 
 REDIS_URL = "REDIS_URL"
+PARTIAL_STATE_TTL_SECONDS = "HRP_REDIS_PARTIAL_STATE_TTL_SECONDS"
+DEFAULT_PARTIAL_STATE_TTL_SECONDS = 3600
 KEY_PREFIX = "hrp:partial:"
 
 
 class RedisSetClient(Protocol):
     def sadd(self, name: str, value: str) -> int: ...
+
+    def expire(self, name: str, time: int) -> bool: ...
 
     def smembers(self, name: str) -> set[str]: ...
 
@@ -33,6 +37,26 @@ def build_partial_state_key(component_identifier: str) -> str:
     if not component_identifier:
         raise ValueError("component_identifier must not be empty")
     return f"{KEY_PREFIX}{component_identifier}"
+
+
+def parse_partial_state_ttl(raw_value: str) -> int:
+    """Validate a configured Redis partial-state TTL expressed in seconds."""
+
+    if not raw_value or not raw_value.isdecimal():
+        raise ValueError(f"{PARTIAL_STATE_TTL_SECONDS} must be a positive integer")
+    ttl_seconds = int(raw_value)
+    if ttl_seconds <= 0:
+        raise ValueError(f"{PARTIAL_STATE_TTL_SECONDS} must be a positive integer")
+    return ttl_seconds
+
+
+def resolve_partial_state_ttl(raw_value: str | None = None) -> int:
+    """Resolve the partial-state TTL from an explicit value or the environment."""
+
+    configured_value = os.environ.get(PARTIAL_STATE_TTL_SECONDS) if raw_value is None else raw_value
+    if configured_value is None:
+        return DEFAULT_PARTIAL_STATE_TTL_SECONDS
+    return parse_partial_state_ttl(configured_value)
 
 
 def serialize_fragment(fragment: ClassifiedFragment) -> str:
@@ -88,9 +112,20 @@ def _deserialize_fragment(member: str) -> ClassifiedFragment:
 class RedisPartialStateStore:
     """Redis boundary for temporary classified fragment state."""
 
-    def __init__(self, redis_url: str | None = None, client: RedisSetClient | None = None) -> None:
+    def __init__(
+        self,
+        redis_url: str | None = None,
+        client: RedisSetClient | None = None,
+        ttl_seconds: int | None = None,
+    ) -> None:
         self._redis_url = redis_url or os.environ.get(REDIS_URL)
         self._client = client
+        if ttl_seconds is None:
+            self._ttl_seconds = resolve_partial_state_ttl()
+        elif isinstance(ttl_seconds, bool) or ttl_seconds <= 0:
+            raise ValueError("ttl_seconds must be a positive integer")
+        else:
+            self._ttl_seconds = ttl_seconds
 
     def connect(self) -> None:
         if self._client is None:
@@ -109,9 +144,9 @@ class RedisPartialStateStore:
 
         if self._client is None:
             raise RuntimeError("Redis client is not connected")
-        added = self._client.sadd(
-            build_partial_state_key(component_identifier), serialize_fragment(fragment)
-        )
+        key = build_partial_state_key(component_identifier)
+        added = self._client.sadd(key, serialize_fragment(fragment))
+        self._client.expire(key, self._ttl_seconds)
         return added == 1
 
     def retrieve_fragments(self, component_identifier: str) -> tuple[ClassifiedFragment, ...]:
@@ -124,9 +159,13 @@ class RedisPartialStateStore:
 
 
 __all__ = [
+    "DEFAULT_PARTIAL_STATE_TTL_SECONDS",
     "KEY_PREFIX",
+    "PARTIAL_STATE_TTL_SECONDS",
     "MalformedFragmentError",
     "RedisPartialStateStore",
     "build_partial_state_key",
+    "parse_partial_state_ttl",
+    "resolve_partial_state_ttl",
     "serialize_fragment",
 ]

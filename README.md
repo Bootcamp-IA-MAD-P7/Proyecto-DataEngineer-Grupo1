@@ -368,6 +368,7 @@ proceso.
 | `POSTGRES_USER` | Usuario de PostgreSQL | Reservada para PostgreSQL | Nunca versionar credenciales reales |
 | `POSTGRES_PASSWORD` | Contraseña de PostgreSQL | Reservada para PostgreSQL | Mantener exclusivamente fuera de Git |
 | `REDIS_URL` | Conexión al estado temporal | Reservada para Redis | Puede contener credenciales; nunca versionarla |
+| `HRP_REDIS_PARTIAL_STATE_TTL_SECONDS` | Expiración del estado parcial temporal, en segundos | `3600` si no se configura | Debe ser un entero positivo |
 | `LOG_LEVEL` | Nivel de detalle operativo | Reservada para logging estructurado | Los logs nunca exponen secretos ni payloads |
 
 Las variables reservadas describen el contrato operativo objetivo; no significan que
