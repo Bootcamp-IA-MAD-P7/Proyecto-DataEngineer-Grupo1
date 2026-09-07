@@ -23,6 +23,7 @@ class MonotonicCounter:
 
 CONSUMED_MESSAGES_TOTAL = "hr_pro_platform_ingestion_messages_consumed_total"
 PROCESSING_DURATION_SECONDS = "hr_pro_platform_ingestion_processing_duration_seconds"
+PERSISTENCE_DURATION_SECONDS = "hr_pro_platform_ingestion_persistence_duration_seconds"
 
 
 @dataclass
