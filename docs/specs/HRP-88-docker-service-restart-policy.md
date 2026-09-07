@@ -78,7 +78,12 @@ implementado. HRP-88 queda como tarea de trazabilidad/evidencia y runbook.
 
 ## Evidencia de cierre
 
-- Rama / PR: `feature/HRP-88-docker-service-restart-policy` / pendiente.
-- Commit: pendiente.
-- Comandos ejecutados y resultado: pendiente.
+- Rama / PR: `feature/HRP-88-docker-service-restart-policy` / PR #79.
+- Commit: `e60e73e`.
+- Comandos ejecutados y resultado: `git diff --check` pasó;
+  `python scripts/validate_specs.py` pasó con 58 specs; `docker compose -f
+  infra/compose.dev.yml config --quiet` pasó; `pre-commit run --all-files`
+  pasó; `ruff check .` pasó; `ruff format --check .` pasó; `mypy src` pasó.
+  `pytest` no se ejecutó localmente porque HRP-88 no modifica código Python ni
+  tests.
 - Comentario Jira con el resultado: pendiente tras revisión, merge y evidencia final.
