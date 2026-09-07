@@ -16,6 +16,7 @@ from typing import Annotated, Any
 
 import psycopg
 from fastapi import Depends, FastAPI, HTTPException, Query, Request
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from ..ingestion.error_handler import get_logger
@@ -41,6 +42,14 @@ def create_app() -> FastAPI:
     """
 
     app = FastAPI(title="HR Pro Data Platform API")
+
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=["*"],
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
 
     @app.exception_handler(psycopg.Error)
     async def _database_error_handler(request: Request, error: Exception) -> JSONResponse:
