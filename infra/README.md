@@ -177,3 +177,22 @@ docker compose -f infra/compose.dev.yml --profile app up -d --build app promethe
 
 Si la aplicación o Kafka externo no están disponibles, el dashboard puede cargar
 correctamente pero mostrar el target de ingesta como `DOWN` o paneles sin datos.
+
+## HRP-88 — Política de reinicio
+
+Los servicios locales del Compose usan `restart: unless-stopped`. Esto permite
+que Docker intente recuperar contenedores que fallen durante el desarrollo o la
+demo, pero respeta una parada manual deliberada.
+
+Servicios cubiertos:
+
+- `app`
+- `mongo`
+- `postgres`
+- `redis`
+- `prometheus`
+- `grafana`
+
+Esta política no sustituye una estrategia de alta disponibilidad productiva. Si
+falta Kafka externo o la configuración local de `.env` es incorrecta, la app puede
+reiniciarse hasta que se corrija el entorno.
