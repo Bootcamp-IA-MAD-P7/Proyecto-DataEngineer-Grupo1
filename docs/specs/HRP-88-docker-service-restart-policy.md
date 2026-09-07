@@ -79,7 +79,8 @@ implementado. HRP-88 queda como tarea de trazabilidad/evidencia y runbook.
 ## Evidencia de cierre
 
 - Rama / PR: `feature/HRP-88-docker-service-restart-policy` / PR #79.
-- Commit: `e60e73e`.
+- Commits: ver historial de PR #79; el merge commit final queda pendiente hasta
+  revisión humana y fusión en `develop`.
 - Comandos ejecutados y resultado: `git diff --check` pasó;
   `python scripts/validate_specs.py` pasó con 58 specs; `docker compose -f
   infra/compose.dev.yml config --quiet` pasó; `pre-commit run --all-files`
