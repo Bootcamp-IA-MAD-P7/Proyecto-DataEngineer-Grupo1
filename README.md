@@ -15,6 +15,18 @@ por niveles hasta ofrecer monitorización, API y frontend.
 > Convertimos evidencia de Kafka en contratos, contratos en software comprobable y
 > software comprobable en una demo que puede explicarse de principio a fin.
 
+## Estado de entrega — cierre documental HRP-93
+
+El baseline de `develop` queda documentado para el cierre del proyecto. Incluye
+ingesta Kafka, persistencia raw en MongoDB, transformación y estado parcial con
+Redis, persistencia y consulta PostgreSQL, API, métricas Prometheus/Grafana, Docker
+Compose, quality gates y gobernanza Git. La evidencia y el alcance final están
+consolidados en [project-closeout.md](docs/project-closeout.md) y en la [daily de
+cierre](docs/dailies/2026-09-08-project-closeout.md).
+
+El frontend queda fuera de este cierre y no debe presentarse como capacidad terminada.
+Las futuras ampliaciones deben abrirse como tareas independientes.
+
 ## Resumen ejecutivo
 
 HR Pro necesita unificar cinco tipos de información que llegan de forma fragmentada:
@@ -31,7 +43,7 @@ El proyecto no presupone el contenido de los mensajes. El contrato inicial se ob
 mediante observación limitada y revisada del broker, sin consultar el código del
 generador y sin versionar datos personales.
 
-## Estado verificable — 31 de agosto de 2026
+## Estado verificable — 31 de agosto de 2026 (corte histórico)
 
 | Capacidad | Estado | Evidencia | Límite actual |
 |---|---|---|---|
@@ -50,10 +62,10 @@ generador y sin versionar datos personales.
 | Modelo PostgreSQL | Completado como diseño | HRP-25, HRP-52, PRs #18, #19 y #28 | La implementación SQL aún no existe |
 | Pipeline completo | Pendiente | — | No debe presentarse todavía como funcional |
 
-La suite actual contiene **17 tests**, alcanza **80.10 % de cobertura de línea** y
-mantiene un umbral automático del **75 %**. El último workflow `quality` en `develop`
-pasó `validate_specs.py`, `pre-commit`, Ruff, formato, mypy, pytest y validación de
-Compose sobre el commit `0942230`.
+En ese corte histórico, la suite contenía **17 tests** y alcanzaba **80.10 % de
+cobertura de línea**. El baseline actual recoge **307 tests** y mantiene un umbral
+automático del **75 %**; el resultado de la ejecución final debe registrarse desde el
+entorno de release.
 
 ## Lo que ya puede verse funcionando
 
@@ -69,9 +81,10 @@ Hoy se puede demostrar, de manera honesta y reproducible:
 - lint, formato, tipos, tests, cobertura, validación de specs y de Compose en CI;
 - trazabilidad `Jira -> spec -> código/documento -> PR -> revisión -> evidencia`.
 
-Todavía no se puede demostrar un perfil completo en PostgreSQL ni una consulta desde
-API o frontend. Antes de vender el flujo como final, también hay que revisar que el
-La implementación de HRP-34 ya preserva el topic Kafka original, partición, offset,
+La implementación integrada ya cubre almacenamiento raw, estado parcial, persistencia
+curada, API y observabilidad en el alcance documentado. La capacidad de frontend queda
+fuera de este cierre. La implementación de HRP-34 preserva el topic Kafka original,
+partición, offset,
 payload y estado de procesamiento sin confundirlos con la clasificación del fragmento;
 la revisión humana de la corrección sigue pendiente.
 
@@ -151,9 +164,14 @@ normalización. Las cinco variantes A–E siguen siendo etiquetas técnicas neut
 La evidencia completa, sin valores de payload, está en
 [docs/observations/2026-08-27-HRP-29-kafka.md](docs/observations/2026-08-27-HRP-29-kafka.md).
 
-## Estado frente al briefing
+## Estado frente al briefing — snapshot histórico
 
-**Última revisión:** 2026-08-31
+**Última revisión del snapshot:** 2026-08-31
+
+> Esta matriz conserva el corte de evaluación inicial y no representa por sí sola el
+> estado final de `develop`. Para el cierre del proyecto, usa
+> [project-closeout.md](docs/project-closeout.md), que incorpora los cambios
+> posteriores de Redis, API, observabilidad y runtime.
 
 Esta matriz reproduce todos los requisitos de entrega. Un requisito solo figura como
 completado cuando existe evidencia versionada o una demostración reproducible. Un
@@ -198,22 +216,22 @@ servicio arrancado, una spec o un diseño por sí solos cuentan como trabajo en 
 | Check literal | Estado | Evidencia actual | Próxima prueba de cierre |
 |---|---|---|---|
 | Sistema de logs | [![En curso][status-active]][status-active-link] | Logs técnicos seguros del consumer y política de observabilidad | Logs estructurados del pipeline completo y errores de persistencia |
-| Tests unitarios | [![Completado][status-done]][status-done-link] | 17 tests, cobertura medida del 80.10 % y umbral CI del 75 % | Ampliar pruebas con cada comportamiento nuevo |
+| Tests unitarios | [![Completado][status-done]][status-done-link] | Snapshot: 17 tests y 80.10 %; baseline actual: 307 tests colectables y umbral CI del 75 % | Registrar el resultado de la ejecución final |
 | Aplicación Dockerizada con Docker Compose | [![En curso][status-active]][status-active-link] | Compose de MongoDB validado en CI | Añadir aplicación, PostgreSQL y configuración integral |
 
 ### Nivel avanzado
 
 | Check literal | Estado | Evidencia actual | Próxima prueba de cierre |
 |---|---|---|---|
-| Redis como almacenamiento intermedio en caché | [![Pendiente][status-pending]][status-pending-link] | Arquitectura objetivo y responsabilidades definidas | Estado parcial con TTL y prueba de recuperación |
-| Monitorización de consumo, velocidad, procesamiento y persistencia | [![Pendiente][status-pending]][status-pending-link] | Catálogo inicial de métricas | Prometheus, métricas reales y dashboard reproducible |
-| API de consulta sobre la base SQL | [![Pendiente][status-pending]][status-pending-link] | Límite de API definido en arquitectura | Endpoints, validación, tests y consultas PostgreSQL |
+| Redis como almacenamiento intermedio en caché | [![Completado][status-done]][status-done-link] | HRP-73–HRP-76, estado parcial, TTL y pruebas | Ampliaciones futuras según necesidad |
+| Monitorización de consumo, velocidad, procesamiento y persistencia | [![Completado][status-done]][status-done-link] | HRP-77–HRP-82, Prometheus y dashboard | Carga de producción fuera de alcance |
+| API de consulta sobre la base SQL | [![Completado][status-done]][status-done-link] | HRP-83–HRP-86 y tests de endpoints | Frontend fuera de alcance |
 
 ### Nivel experto
 
 | Check literal | Estado | Evidencia actual | Próxima prueba de cierre |
 |---|---|---|---|
-| Actualización continua de las bases mientras Kafka publica | [![Pendiente][status-pending]][status-pending-link] | Consumer continuo validado, sin persistencia conectada | Demo prolongada Kafka -> MongoDB -> PostgreSQL sin intervención |
+| Actualización continua de las bases mientras Kafka publica | [![En curso][status-active]][status-active-link] | Runtime continuo y componentes integrados en `develop` | Validación prolongada con broker real fuera del cierre |
 | Frontend sencillo para consultar clientes | [![Pendiente][status-pending]][status-pending-link] | React + TypeScript + Vite es la dirección preferida; Streamlit solo fallback de demo | Buscador, resultados, métricas accesibles y conexión exclusiva mediante API |
 
 ### Tecnologías del briefing
