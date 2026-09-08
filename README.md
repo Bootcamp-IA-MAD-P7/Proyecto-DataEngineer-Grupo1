@@ -312,6 +312,22 @@ pytest
 docker compose -f infra/compose.dev.yml config --quiet
 ```
 
+### Frontend Streamlit reproducible
+
+The read-only frontend consumes FastAPI exclusively; it does not connect to
+PostgreSQL, MongoDB, Kafka or Redis. Start the local flow in this order:
+
+```powershell
+python -m pip install -e ".[dev,frontend]"
+uvicorn hr_pro_platform.api.main:app --host 127.0.0.1 --port 8123
+python -m streamlit run src/hr_pro_platform/frontend/app.py --server.port 8501
+```
+
+The API is available at `http://127.0.0.1:8123` and the frontend at
+`http://127.0.0.1:8501`. The frontend uses the combined `GET /people/search`
+contract for identity, location and professional filters, including `limit` and
+`offset` pagination.
+
 ### 3. Arrancar MongoDB local
 
 ```powershell

@@ -41,7 +41,10 @@ def _request(path: str, params: dict[str, Any] | None = None) -> Any:
             pass
         raise ApiRequestError(resp.status_code, detail)
 
-    return resp.json()
+    try:
+        return resp.json()
+    except ValueError as exc:
+        raise ApiRequestError(resp.status_code, "API returned invalid JSON.") from exc
 
 
 def get_health() -> dict[str, Any]:
@@ -58,6 +61,10 @@ def search_people(  # noqa: PLR0913
     passport: str | None = None,
     first_name: str | None = None,
     last_name: str | None = None,
+    city: str | None = None,
+    address: str | None = None,
+    job: str | None = None,
+    company: str | None = None,
     limit: int = 20,
     offset: int = 0,
 ) -> list[dict[str, Any]]:
@@ -70,6 +77,9 @@ def search_people(  # noqa: PLR0913
         params["first_name"] = first_name
     if last_name is not None:
         params["last_name"] = last_name
+    for name, value in {"city": city, "address": address, "job": job, "company": company}.items():
+        if value is not None:
+            params[name] = value
     params["limit"] = min(max(limit, 1), 100)
     params["offset"] = max(offset, 0)
     return _request("/people/search", params=params)
@@ -116,15 +126,11 @@ def search_all(  # noqa: PLR0913
     limit: int = 20,
     offset: int = 0,
 ) -> list[dict[str, Any]]:
-    a = search_people(
+    return search_people(
         id=id,
         passport=passport,
         first_name=first_name,
         last_name=last_name,
-        limit=limit,
-        offset=offset,
-    )
-    b = search_by_location_profession(
         city=city,
         address=address,
         job=job,
@@ -132,5 +138,3 @@ def search_all(  # noqa: PLR0913
         limit=limit,
         offset=offset,
     )
-    ids_a = {p["id"] for p in a}
-    return [p for p in b if p["id"] in ids_a]

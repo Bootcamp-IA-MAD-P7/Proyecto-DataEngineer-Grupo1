@@ -28,6 +28,7 @@ from .people import (
     PersonSearchResult,
     search_employees,
     search_employees_by_location_or_profession,
+    search_employees_combined,
 )
 from .statistics import StatisticsResult, compute_statistics
 
@@ -80,6 +81,10 @@ def create_app() -> FastAPI:
         passport: str | None = None,
         first_name: str | None = None,
         last_name: str | None = None,
+        city: str | None = None,
+        address: str | None = None,
+        job: str | None = None,
+        company: str | None = None,
         id: Annotated[int | None, Query(alias="id")] = None,  # noqa: A002
         limit: int = 20,
         offset: int = 0,
@@ -94,15 +99,28 @@ def create_app() -> FastAPI:
             }.items()
             if value is not None
         }
+        location_filters = {
+            name: value
+            for name, value in {"city": city, "address": address}.items()
+            if value is not None
+        }
+        professional_filters = {
+            name: value
+            for name, value in {"job": job, "company": company}.items()
+            if value is not None
+        }
         # filters' keys always come from this fixed, code-controlled
         # dict literal -- never from arbitrary caller-supplied names --
         # so this assertion documents the invariant search_employees()
         # relies on rather than guarding against untrusted input.
         assert set(filters).issubset(ALLOWED_FILTERS)
-        if not filters:
+        if not filters and not location_filters and not professional_filters:
             raise HTTPException(
                 status_code=400,
-                detail="At least one of id, passport, first_name or last_name is required",
+                detail=(
+                    "At least one search filter is required: id, passport, first_name, "
+                    "last_name, city, address, job or company"
+                ),
             )
         if not 1 <= limit <= 100:
             raise HTTPException(status_code=400, detail="limit must be between 1 and 100")
@@ -110,6 +128,15 @@ def create_app() -> FastAPI:
             raise HTTPException(status_code=400, detail="offset must be non-negative")
 
         with connection.cursor() as cursor:
+            if location_filters or professional_filters:
+                return search_employees_combined(
+                    cursor,
+                    employee_filters=filters,
+                    location_filters=location_filters,
+                    professional_filters=professional_filters,
+                    limit=limit,
+                    offset=offset,
+                )
             return search_employees(cursor, filters=filters, limit=limit, offset=offset)
 
     @app.get("/people/search/by-location-profession")

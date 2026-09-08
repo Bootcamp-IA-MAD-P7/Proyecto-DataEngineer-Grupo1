@@ -56,6 +56,13 @@ class TestGetHealth:
         with pytest.raises(ApiUnavailableError):
             get_health()
 
+    @patch(f"{MODULE}.requests.get")
+    def test_invalid_json_is_a_controlled_error(self, mock_get: MagicMock) -> None:
+        mock_get.return_value = _mock_response(200)
+        mock_get.return_value.json.side_effect = ValueError
+        with pytest.raises(ApiRequestError, match="invalid JSON"):
+            get_health()
+
 
 class TestSearchPeople:
     @patch(f"{MODULE}.requests.get")
@@ -93,3 +100,14 @@ class TestGetPersonById:
     def test_not_found(self, mock_get: MagicMock) -> None:
         mock_get.return_value = _mock_response(200, [])
         assert get_person_by_id(999) is None
+
+
+class TestCombinedSearch:
+    @patch(f"{MODULE}.requests.get")
+    def test_combined_filters_use_one_api_request(self, mock_get: MagicMock) -> None:
+        mock_get.return_value = _mock_response(200, [])
+        from hr_pro_platform.frontend.api_client import search_all
+
+        search_all(first_name="Ana", city="Madrid", job="Engineer")
+        assert mock_get.call_count == 1
+        assert mock_get.call_args.kwargs["params"]["city"] == "Madrid"
