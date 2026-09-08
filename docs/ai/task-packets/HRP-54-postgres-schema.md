@@ -1,5 +1,10 @@
 # Task packet — HRP-54
 
+> Paquete histórico de preparación de tarea, no estado vigente del proyecto.
+> Reconciliado2026-09-08: consultar [la spec con evidencia de integración](../../specs/HRP-54-postgres-schema.md)
+> y [las guías actuales](../../README.md). Los estados Draft/pendiente y las casillas
+> originales se conservan como registro; no implican trabajo funcional aún pendiente.
+
 **Status:** Draft
 **Owner:** Johans
 **Human reviewer:** Miguel

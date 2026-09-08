@@ -1,11 +1,27 @@
 # HRP-47 - Group Professional Data by person
 
-**Status:** Implementation-ready; pending HRP-47 human review; global identity remains unresolved  
+**Integration status (2026-09-08):** Task changes integrated in develop; acceptance criteria not re-executed here.
+**Git evidence:** [2ead5fb](https://github.com/Bootcamp-IA-MAD-P7/Proyecto-DataEngineer-Grupo1/commit/2ead5fb) / [PR #38](https://github.com/Bootcamp-IA-MAD-P7/Proyecto-DataEngineer-Grupo1/pull/38) (2026-09-02).
+**Closeout interpretation:** Operational domain grouping is integrated. Apply HRP-96 provenance/duplicate semantics and the current ADR-0006; historical Proposed status is not current.
+
+This integration record does not assert current Jira status, reviewer approval identity
+or a new passing test run. [Current documentation](../README.md) and
+[acceptance/evidence matrix](../delivery-evidence.md) define the closeout reading.
+
+## Historical specification and task evidence
+
+The scope, criteria, checkboxes and test results below are the task's original record.
+They are not a live progress dashboard. Pending-review/merge references in this
+historical record are superseded by the integration evidence above; unresolved
+functional limitations are not automatically marked as passed.
+
+**Original recorded status:** Implementation-ready; pending HRP-47 human review; global identity remains unresolved
+
 **Owner:** Gabriela Granja
-**Jira:** HRP-47  
-**Branch:** `feature/HRP-47-group-professional-by-person`  
-**Base:** synchronized `develop` at `c87daf7`  
-**Dependencies:** HRP-24 observed contract; HRP-25 data-model boundary; HRP-43 correlation evidence; HRP-44 classification; HRP-45 validation  
+**Jira:** HRP-47
+**Branch:** `feature/HRP-47-group-professional-by-person`
+**Base:** synchronized `develop` at `c87daf7`
+**Dependencies:** HRP-24 observed contract; HRP-25 data-model boundary; HRP-43 correlation evidence; HRP-44 classification; HRP-45 validation
 **Related ADR:** `docs/adr/0006-person-correlation-key.md` (Proposed / blocked for global identity)
 
 ## Objective

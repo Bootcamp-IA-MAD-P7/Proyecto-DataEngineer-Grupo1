@@ -1,179 +1,38 @@
 # Infraestructura local
 
-Kafka es una dependencia externa suministrada por el proyecto educativo: no se
-incluye su servidor ni el generador en este repositorio. La aplicacion recibira
-su conexion mediante variables de entorno.
+El Compose canónico es [compose.dev.yml](compose.dev.yml).
+[Runbook](../docs/07-runbook.md) · [Configuración](../docs/configuration.md).
 
-## MongoDB para desarrollo
+| Servicio | Imagen / build | Puerto del host | Persistencia |
+|---|---|---|---|
+| app | Dockerfile Python 3.11-slim; usuario no root | Ninguno; métricas internas 9464 | Escribe en MongoDB |
+| mongo | mongo:7.0 | 127.0.0.1:27017 | mongo_data |
+| postgres | postgres:16 | 127.0.0.1:5432 | postgres_data |
+| redis | redis:7.2 | Ninguno | tmpfs; estado efímero |
+| prometheus | prom/prometheus:v2.55.1 | 127.0.0.1:9090 | Sin volumen persistente declarado |
+| grafana | grafana/grafana-oss:11.3.0 | 127.0.0.1:3000 | Configuración provisionada desde archivos |
 
-Este Compose comenzo como habilitador local de HRP-33 y evoluciona por specs
-acotadas: MongoDB, PostgreSQL, Redis, aplicacion y Prometheus se documentan en
-sus tareas correspondientes.
+Todos declaran restart: unless-stopped. MongoDB, PostgreSQL y Redis tienen
+healthcheck; app espera a MongoDB/PostgreSQL saludables aunque solo ejecute ingesta.
+La API y el worker ETL no son servicios de este Compose.
+Kafka permanece externo. Las imágenes tienen tags, no digests inmutables.
 
-### Requisitos
+## Arranque
 
-- Docker Desktop iniciado.
-- Docker Compose v2 (`docker compose version`).
-
-### Uso
-
-Desde la raiz del repositorio:
-
-```powershell
-Copy-Item .env.example .env
-docker compose -f infra/compose.dev.yml up -d mongo
-docker compose -f infra/compose.dev.yml ps
-```
-
-MongoDB queda disponible solo en `localhost:27017`. La URI de desarrollo es
-`mongodb://localhost:27017/hr_pro` y esta reflejada en `.env.example`.
-
-Para detenerlo y conservar el volumen:
-
-```powershell
-docker compose -f infra/compose.dev.yml down
-```
-
-Para eliminar tambien los datos locales (solo si son prescindibles):
-
-```powershell
-docker compose -f infra/compose.dev.yml down -v
-```
-
-## PostgreSQL para desarrollo
-
-Este Compose es un habilitador local de HRP-53: deja el motor PostgreSQL
-disponible y vacio para que HRP-54 pueda crear las tablas y claves diseñadas en
-HRP-52, y para que HRP-63 pueda integrar el Compose final junto con la
-aplicacion y MongoDB. No crea ninguna tabla, esquema ni dato de negocio.
-
-### Requisitos
-
-- Docker Desktop iniciado.
-- Docker Compose v2 (`docker compose version`).
-- Archivo `.env.example` versionado. El `.env` local es opcional y permite
-  sobrescribir valores sin subirlos a Git.
-
-### Uso
-
-Desde la raiz del repositorio:
-
-```powershell
-docker compose -f infra/compose.dev.yml up -d postgres
-docker compose -f infra/compose.dev.yml ps
-```
-
-PostgreSQL queda disponible solo en `localhost:5432`. El servicio lee primero
-los valores no sensibles de `.env.example` y despues, si existe, los valores
-locales de `.env`.
-
-Para detenerlo y conservar el volumen:
-
-```powershell
-docker compose -f infra/compose.dev.yml down
-```
-
-Para eliminar tambien los datos locales (solo si son prescindibles):
-
-```powershell
-docker compose -f infra/compose.dev.yml down -v
-```
-
-No se deben subir `.env`, volcados, eventos capturados ni volumenes Docker al
-repositorio.
-
-## Aplicacion, MongoDB y PostgreSQL
-
-HRP-63 integra la imagen de aplicacion existente con MongoDB y PostgreSQL en el
-mismo Compose de desarrollo. Kafka sigue siendo externo y autorizado por el
-proyecto educativo: este repositorio no incluye su broker ni su generador.
-
-El modo por defecto permite levantar solo las bases de datos:
-
-```powershell
-docker compose -f infra/compose.dev.yml up -d mongo postgres
-docker compose -f infra/compose.dev.yml ps
-```
-
-Para arrancar tambien la aplicacion, crea un `.env` local y configura los valores
-autorizados de `KAFKA_BOOTSTRAP_SERVERS`, `KAFKA_TOPICS` y
-`KAFKA_CONSUMER_GROUP`. Si Kafka corre en Docker Desktop desde el host, la app
-en contenedor normalmente debe usar una direccion alcanzable desde contenedores,
-por ejemplo `host.docker.internal:29092`, no `localhost:29092`.
-
-Despues, inicia el perfil de aplicacion:
-
-```powershell
+```bash
+docker compose -f infra/compose.dev.yml up -d mongo postgres redis prometheus grafana
 docker compose -f infra/compose.dev.yml --profile app up -d --build app
 docker compose -f infra/compose.dev.yml --profile app ps
 ```
 
-El servicio `app` sobrescribe internamente `MONGODB_URI` a
-`mongodb://mongo:27017/hr_pro`, porque dentro de Compose `localhost` seria el
-propio contenedor de la aplicacion.
+Preparar antes .env con el broker autorizado y credenciales locales.
+No copiar configuración expandida a una PR. Usar config --quiet para comprobar sintaxis.
 
-## Redis para desarrollo
+## Límites
 
-Este Compose proporciona Redis como estado temporal para la correlación futura de
-fragmentos de personas. El servicio usa la red interna de Compose y no publica el
-puerto 6379 en el host. Los consumidores dentro de Compose deben conectarse a
-`redis:6379`; el estado no se persiste en un volumen porque Redis no es la fuente de
-verdad y los datos temporales deben poder reconstruirse desde MongoDB.
+Redis tiene adapters de almacenamiento, lectura y TTL; su configuración por sí sola
+no los conecta automáticamente al consumer. Prometheus observa app:9464/metrics.
+Grafana permite lectura anónima local; no está configurado para exposición pública.
+Un restart no demuestra progreso del pipeline ni disponibilidad 24/7.
 
-Para iniciar y comprobar Redis:
-
-```powershell
-docker compose -f infra/compose.dev.yml up -d redis
-docker compose -f infra/compose.dev.yml ps
-docker compose -f infra/compose.dev.yml exec -T redis redis-cli ping
-```
-
-La última orden debe devolver `PONG`. Esta tarea solo habilita la infraestructura;
-no implementa almacenamiento de fragmentos, expiración de negocio ni integración ETL.
-
-## HRP-81 — Prometheus local
-
-HRP-81 añade Prometheus al Compose de desarrollo para recopilar las métricas de
-ingesta expuestas por HRP-80. Prometheus no crea métricas nuevas: solo scrapea el
-endpoint `/metrics` de la aplicación cuando el servicio `app` está arrancado.
-
-```powershell
-docker compose -f infra/compose.dev.yml up -d prometheus
-docker compose -f infra/compose.dev.yml ps
-```
-
-La interfaz local queda disponible en `http://localhost:9090`. El target
-`hr-pro-ingestion` apunta internamente a `app:9464/metrics`; aparecerá como `UP`
-solo cuando la aplicación esté ejecutándose con el perfil `app` y su endpoint de
-métricas esté disponible.
-
-```powershell
-docker compose -f infra/compose.dev.yml --profile app up -d --build app prometheus
-```
-
-Kafka sigue siendo externo al repositorio y debe configurarse mediante variables
-de entorno autorizadas. No se incluye ni se inspecciona el generador educativo.
-
-## HRP-82 — Dashboard Grafana local
-
-HRP-82 añade un dashboard básico de Grafana para visualizar las métricas técnicas
-de ingesta ya expuestas en Prometheus. No crea métricas nuevas ni muestra datos
-personales o payloads.
-
-```powershell
-docker compose -f infra/compose.dev.yml up -d prometheus grafana
-docker compose -f infra/compose.dev.yml ps
-```
-
-La interfaz local queda disponible en `http://localhost:3000`. El dashboard
-provisionado se llama `HR Pro Ingestion Overview`.
-
-Para ver datos reales, la aplicación debe estar ejecutándose y Prometheus debe
-poder raspar `app:9464/metrics`:
-
-```powershell
-docker compose -f infra/compose.dev.yml --profile app up -d --build app prometheus grafana
-```
-
-Si la aplicación o Kafka externo no están disponibles, el dashboard puede cargar
-correctamente pero mostrar el target de ingesta como `DOWN` o paneles sin datos.
+Parar con stop para conservar volúmenes. No usar down -v como limpieza rutinaria.

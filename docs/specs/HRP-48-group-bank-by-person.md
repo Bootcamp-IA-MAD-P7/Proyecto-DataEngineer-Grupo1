@@ -1,12 +1,28 @@
 # HRP-48 - Group Bank Data by person
 
-**Status:** Implementation-ready; pending human review  
-**Owner:** Gabriela Granja  
-**Jira:** HRP-48  
-**Branch:** `feature/HRP-48-group-bank-by-person`  
-**Base:** `2ead5fb` (`HRP-47 feat: group Professional fragments by person (#38)`)  
-**Dependencies:** HRP-44 classification; HRP-45 validation; HRP-43 correlation evidence  
-**Sibling precedent:** HRP-47 is an implementation precedent, not a runtime dependency.  
+**Integration status (2026-09-08):** Task changes integrated in develop; acceptance criteria not re-executed here.
+**Git evidence:** [481abee](https://github.com/Bootcamp-IA-MAD-P7/Proyecto-DataEngineer-Grupo1/commit/481abee) / [PR #39](https://github.com/Bootcamp-IA-MAD-P7/Proyecto-DataEngineer-Grupo1/pull/39) (2026-09-02).
+**Closeout interpretation:** Operational domain grouping is integrated. Apply HRP-96 provenance/duplicate semantics and the current ADR-0006; historical Proposed status is not current.
+
+This integration record does not assert current Jira status, reviewer approval identity
+or a new passing test run. [Current documentation](../README.md) and
+[acceptance/evidence matrix](../delivery-evidence.md) define the closeout reading.
+
+## Historical specification and task evidence
+
+The scope, criteria, checkboxes and test results below are the task's original record.
+They are not a live progress dashboard. Pending-review/merge references in this
+historical record are superseded by the integration evidence above; unresolved
+functional limitations are not automatically marked as passed.
+
+**Original recorded status:** Implementation-ready; pending human review
+
+**Owner:** Gabriela Granja
+**Jira:** HRP-48
+**Branch:** `feature/HRP-48-group-bank-by-person`
+**Base:** `2ead5fb` (`HRP-47 feat: group Professional fragments by person (#38)`)
+**Dependencies:** HRP-44 classification; HRP-45 validation; HRP-43 correlation evidence
+**Sibling precedent:** HRP-47 is an implementation precedent, not a runtime dependency.
 **Related ADR:** `docs/adr/0006-person-correlation-key.md` (Proposed / blocked for global identity)
 
 ## Objective

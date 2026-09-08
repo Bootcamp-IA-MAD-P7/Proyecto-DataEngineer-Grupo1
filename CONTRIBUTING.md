@@ -15,6 +15,7 @@ No se hacen commits directos sobre ella: todo cambio llega mediante pull request
    fix/HRP-XX-resumen-corto
    docs/HRP-XX-resumen-corto
    chore/HRP-XX-resumen-corto
+   codex/HRP-XX-resumen-corto
    ```
 
 4. Realiza cambios pequeños, coherentes y acompañados de pruebas cuando apliquen.
@@ -45,8 +46,10 @@ pre-commit run --all-files
 pytest
 ```
 
-Las pruebas de integración se añadirán cuando Docker Compose esté disponible. Si una
-prueba no aplica, debe explicarse en la PR, no silenciarse.
+Las pruebas de integración y E2E sintético ya existen. Véase
+[el arnés de pruebas](docs/05-test-harness.md) para dependencias, limpieza de fixtures
+y resultados conocidos. Si una prueba no se ejecuta o no aplica, indicarlo en la PR;
+no marcarla como pasada.
 
 ## Revisión por áreas
 
@@ -68,6 +71,7 @@ la protección de `develop` debe exigir la revisión de propietarios de código.
 
 - Nunca subas `.env`, credenciales, eventos completos capturados ni volúmenes Docker.
 - No leas ni clones el código del generador educativo.
-- Los fixtures se crean a partir de observación autorizada y se minimizan o
-  anonimizan antes de versionarse.
+- Los fixtures pueden ser sintéticos, identificados como tales y coherentes con
+  contratos autorizados; los derivados de observación se minimizan y anonimizan.
+  Ninguno debe presentarse como evidencia de identidad o payload real.
 - No marques una tarea como finalizada sin evidencia revisable.

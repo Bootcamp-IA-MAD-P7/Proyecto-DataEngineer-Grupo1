@@ -2,6 +2,10 @@
 
 ## Reference and boundary
 
+Historical comparison from 2026-08-28; the external repository was not re-inspected
+for this closeout. This is not a performance benchmark or a current feature inventory.
+Current implementation is described in [architecture](01-architecture.md).
+
 - Reference: `Bootcamp-IA-MAD-P7/Proyecto1_modulo3_DE2`, branch `dev`, reviewed on
   2026-08-28 at commit `d42023c`.
 - Purpose: compare delivery patterns and identify project-owned improvements.
@@ -25,11 +29,11 @@
 
 | Observed risk | Our guardrail |
 |---|---|
-| Kafka acknowledgement can advance after a swallowed MongoDB failure | Proposed ADR-0005, pending HRP-34 failure-path integration tests and review |
+| Kafka acknowledgement can advance after a swallowed MongoDB failure | HRP-34 integrated in PR #33; ADR-0005 separates formal status from implemented durable acknowledgement |
 | Raw documents lack complete Kafka identity and unique index | Required envelope and compound index |
-| Business classification accepts partial field overlap | HRP-43 first analyses correlation candidates; neutral variants remain until HRP-44 approves classification semantics |
+| Business classification accepts partial field overlap | HRP-44 now classifies exact key sets; ADR-0006 bounds operational correlation |
 | Dependencies are duplicated across files | `pyproject.toml` remains the Python dependency source of truth |
-| Tests and lint are not enforced remotely | Required GitHub checks on every PR to `develop` |
+| Tests and lint are not enforced remotely | Versioned workflows and review policy; current remote enforcement not rechecked |
 | Documentation and generated reports drift | Specs, evidence dates, PR references and evolving SWOT reviews |
 | Expert extras overtake the required path | Essential, Medium, Advanced and Expert remain ordered milestones |
 

@@ -6,11 +6,13 @@ Esta carpeta convierte el uso de asistentes de IA en un proceso reproducible y a
 
 Un asistente puede proponer, analizar y redactar. Una persona del equipo decide, aprueba, ejecuta acciones externas y cierra tareas.
 
-No se le da acceso ni se le pide que lea, clone, infiera o reconstruya el código del generador educativo. Los únicos datos válidos para diseño son el briefing, el README público autorizado y observaciones reales de Kafka registradas por HRP-29.
+No se le da acceso ni se le pide que lea, clone, infiera o reconstruya el código del generador educativo. Los únicos datos válidos para diseño son el briefing, el README público autorizado y observaciones autorizadas registradas (HRP-29, HRP-43 y posteriores). Las decisiones
+operacionales aprobadas se distinguen de observaciones y de ejemplos sintéticos.
 
 ## Flujo de uso
 
-1. La persona responsable crea el paquete de tarea desde [`task-packet-template.md`](task-packet-template.md) o ejecuta `./scripts/new-task-packet.ps1 -JiraKey HRP-XX -Slug resumen`.
+1. La persona responsable crea el paquete de tarea desde [`task-packet-template.md`](task-packet-template.md) o ejecuta, desde la raíz, el script descrito en [scripts](../../scripts/README.md)
+   con una clave Jira numérica real.
 2. Rellena el contexto mínimo: Jira, spec, dependencias, límites y evidencia disponible.
 3. Elige un rol de [`prompts/`](prompts/) y pide una propuesta acotada.
 4. Evalúa el resultado con la [`evaluation-rubric.md`](evaluation-rubric.md).

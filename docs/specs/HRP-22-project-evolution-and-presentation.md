@@ -1,6 +1,22 @@
 # HRP-22 — Evolve project quality, documentation and presentation evidence
 
-**Status:** In progress
+**Integration status (2026-09-08):** Task changes integrated in develop; acceptance criteria not re-executed here.
+**Git evidence:** [87d0d44](https://github.com/Bootcamp-IA-MAD-P7/Proyecto-DataEngineer-Grupo1/commit/87d0d44) / [PR #46](https://github.com/Bootcamp-IA-MAD-P7/Proyecto-DataEngineer-Grupo1/pull/46) (2026-09-02).
+**Closeout interpretation:** The rolling presentation/documentation work is reconciled by HRP-93; old snapshots do not describe the final runtime.
+
+This integration record does not assert current Jira status, reviewer approval identity
+or a new passing test run. [Current documentation](../README.md) and
+[acceptance/evidence matrix](../delivery-evidence.md) define the closeout reading.
+
+## Historical specification and task evidence
+
+The scope, criteria, checkboxes and test results below are the task's original record.
+They are not a live progress dashboard. Pending-review/merge references in this
+historical record are superseded by the integration evidence above; unresolved
+functional limitations are not automatically marked as passed.
+
+**Original recorded status:** In progress
+
 **Owner:** Miguel
 **Jira:** HRP-22
 **Dependencies:** HRP-23, HRP-24, HRP-29, HRP-30 and HRP-31 completed

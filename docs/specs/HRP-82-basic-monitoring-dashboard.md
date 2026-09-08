@@ -1,6 +1,22 @@
 # HRP-82 — Basic monitoring dashboard
 
-**Estado:** En curso; pendiente de revisión humana y merge
+**Estado de integración (2026-09-08):** Task changes integrated in develop; acceptance criteria not re-executed here.
+**Git evidence:** [2f9091f](https://github.com/Bootcamp-IA-MAD-P7/Proyecto-DataEngineer-Grupo1/commit/2f9091f) / [PR #77](https://github.com/Bootcamp-IA-MAD-P7/Proyecto-DataEngineer-Grupo1/pull/77) (2026-09-07).
+**Closeout interpretation:** Grafana dashboard is integrated with anonymous local Viewer access. No load results or new runtime screenshot are produced here.
+
+This integration record does not assert current Jira status, reviewer approval identity
+or a new passing test run. [Current documentation](../README.md) and
+[acceptance/evidence matrix](../delivery-evidence.md) define the closeout reading.
+
+## Historical specification and task evidence
+
+The scope, criteria, checkboxes and test results below are the task's original record.
+They are not a live progress dashboard. Pending-review/merge references in this
+historical record are superseded by the integration evidence above; unresolved
+functional limitations are not automatically marked as passed.
+
+**Original recorded status:** En curso; pendiente de revisión humana y merge
+
 **Responsable:** Miguel
 **Jira:** HRP-82
 **Dependencias:** HRP-77, HRP-78, HRP-79, HRP-80, HRP-81

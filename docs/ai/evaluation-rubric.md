@@ -1,6 +1,6 @@
 # Rúbrica de evaluación de salidas IA
 
-Puntuar cada criterio de 0 a 2: 0 = falla, 1 = parcial, 2 = cumple. Una salida con menos de 8/10 o con cualquier incumplimiento de seguridad se descarta o se rehace.
+Puntuar cada criterio de 0 a 2:0 = falla, 1 = parcial, 2 = cumple. Una salida con menos de 8/10 o con cualquier incumplimiento de seguridad se descarta o se rehace.
 
 | Criterio | Qué se comprueba |
 |---|---|
@@ -12,11 +12,11 @@ Puntuar cada criterio de 0 a 2: 0 = falla, 1 = parcial, 2 = cumple. Una salida c
 
 ## Fallos automáticos
 
-- Afirma conocer el payload real sin evidencia de HRP-29.
+- Afirma conocer el payload real sin evidencia de una observación autorizada versionada.
 - Solicita inspeccionar el generador educativo.
 - Recomienda merge, cierre de Jira o despliegue sin revisión humana.
 - Expone un secreto, conexión privada o mensaje completo con datos personales.
 
-## Muestra de registro
+## Muestra ficticia de formato (no aprobación registrada)
 
 `HRP-24 / analista-spec / 9 de 10 / revisó Gaby / aceptado con la condición de actualizar tras la observación Kafka`.

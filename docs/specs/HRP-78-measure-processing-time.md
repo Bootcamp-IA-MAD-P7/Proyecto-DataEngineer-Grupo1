@@ -1,6 +1,22 @@
 # HRP-78 — Measure ingestion processing duration
 
-**Status:** In progress
+**Integration status (2026-09-08):** Task changes integrated in develop; acceptance criteria not re-executed here.
+**Git evidence:** [40e74b3](https://github.com/Bootcamp-IA-MAD-P7/Proyecto-DataEngineer-Grupo1/commit/40e74b3) / [PR #73](https://github.com/Bootcamp-IA-MAD-P7/Proyecto-DataEngineer-Grupo1/pull/73) (2026-09-07).
+**Closeout interpretation:** Duration of ingestion processing is measured, not a whole Mongo-to-SQL ETL latency. Current histograms have no finite buckets for useful p95/p99.
+
+This integration record does not assert current Jira status, reviewer approval identity
+or a new passing test run. [Current documentation](../README.md) and
+[acceptance/evidence matrix](../delivery-evidence.md) define the closeout reading.
+
+## Historical specification and task evidence
+
+The scope, criteria, checkboxes and test results below are the task's original record.
+They are not a live progress dashboard. Pending-review/merge references in this
+historical record are superseded by the integration evidence above; unresolved
+functional limitations are not automatically marked as passed.
+
+**Original recorded status:** In progress
+
 **Owner:** Gabriela Granja
 **Jira:** HRP-78
 **Dependencies:** HRP-77; HRP-30/31 Kafka consumer; HRP-65 safe consumer logging; HRP-68 consumer unit tests

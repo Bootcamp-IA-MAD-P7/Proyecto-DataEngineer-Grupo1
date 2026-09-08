@@ -1,6 +1,22 @@
 # HRP-71 — Kafka to MongoDB to PostgreSQL E2E coverage
 
-**Status:** Ready for review
+**Integration status (2026-09-08):** Task changes integrated in develop; acceptance criteria not re-executed here.
+**Git evidence:** [fa156b9](https://github.com/Bootcamp-IA-MAD-P7/Proyecto-DataEngineer-Grupo1/commit/fa156b9) / [PR #65](https://github.com/Bootcamp-IA-MAD-P7/Proyecto-DataEngineer-Grupo1/pull/65) (2026-09-04).
+**Closeout interpretation:** Synthetic Kafka-equivalent events go through real MongoDB and PostgreSQL adapters with explicit transformations. No live broker, Redis or production orchestration is covered. The current CI includes MongoDB and PostgreSQL.
+
+This integration record does not assert current Jira status, reviewer approval identity
+or a new passing test run. [Current documentation](../README.md) and
+[acceptance/evidence matrix](../delivery-evidence.md) define the closeout reading.
+
+## Historical specification and task evidence
+
+The scope, criteria, checkboxes and test results below are the task's original record.
+They are not a live progress dashboard. Pending-review/merge references in this
+historical record are superseded by the integration evidence above; unresolved
+functional limitations are not automatically marked as passed.
+
+**Original recorded status:** Ready for review
+
 **Owner:** Miguel
 **Jira:** HRP-71 — Crear prueba completa Kafka → MongoDB → PostgreSQL
 **Dependencies:** HRP-30/31 consumer behaviour, HRP-34 MongoDB raw boundary, HRP-50
