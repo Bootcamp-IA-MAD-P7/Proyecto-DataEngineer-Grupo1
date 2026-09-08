@@ -6,12 +6,14 @@ la documentación de ingeniería: selecciona y resume lo que la presentación ne
 
 ## Qué subir a NotebookLM
 
-1. `00-project-story.md`: problema, alcance, equipo y niveles del briefing.
+1. `00-project-story.md`: problema, alcance, equipo y criterio de cierre.
 2. `01-architecture-story.md`: recorrido del dato y decisiones técnicas.
 3. `02-evolving-swot.md`: fortalezas, riesgos y evolución medible del proyecto.
-4. `evidence/`: capturas, enlaces de PR, resultados de pruebas y demos validadas.
-5. `daily/`: evolución cronológica, decisiones, bloqueos y logros.
-6. `manifest.md`: lista curada de fuentes y estado de actualización.
+4. `03-delivery-timeline.md`: cronología basada en commits y PRs.
+5. `04-final-acceptance.md`: matriz final y caveats de validación.
+6. `evidence/`: resultados, enlaces y evidencias verificables.
+7. `daily/`: evolución cronológica para la presentación.
+8. `manifest.md`: lista curada de fuentes y estado de actualización.
 
 ## Regla de calidad
 

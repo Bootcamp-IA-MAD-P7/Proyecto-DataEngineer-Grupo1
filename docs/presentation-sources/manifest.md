@@ -5,16 +5,19 @@
 | `00-project-story.md` | Contexto, objetivos y equipo | Inicial | Miguel |
 | `01-architecture-story.md` | Arquitectura y recorrido del dato | Inicial | Miguel |
 | `02-evolving-swot.md` | DAFO actual y evolución por hitos | Evolutivo | Miguel + equipo |
+| `03-delivery-timeline.md` | Evolución cronológica para la presentación | Actualizado al cierre | Miguel |
+| `04-final-acceptance.md` | Matriz final de aceptación y caveats | Válido para cierre HRP-93 | Miguel + validadores |
 | `daily/` | Línea temporal, decisiones y avances | Continuo | Todo el equipo |
 | `evidence/` | Evidencia de demo, pruebas y métricas | Activa: solo evidencia verificada | Responsable de cada área |
 | `evidence/2026-08-27-foundation-and-local-mongodb.md` | Hito de fundación, calidad y MongoDB local | Verificado; no es demo final | Miguel + Anahí |
 | `evidence/2026-08-28-kafka-contract-and-quality-baseline.md` | Contrato Kafka, consumer y calidad | Verificado con límites explícitos | Equipo |
 | `evidence/2026-08-31-ingestion-storage-and-quality.md` | Ingesta, MongoDB inicial, tests y CI actuales | Verificado con límites explícitos | Equipo |
+| `evidence/2026-09-08-closeout.md` | Evidencia del cierre y validación final | Válido para cierre HRP-93 | Equipo |
 | `../project-closeout.md` | Estado final, alcance entregado, limitaciones y handoff | Cierre documental HRP-93 | Miguel |
 | `../dailies/2026-09-08-project-closeout.md` | Registro de la jornada de cierre | Cierre documental HRP-93 | Equipo |
 | `../01-architecture.md` | Detalle técnico ampliado | Actualizado con cada ADR | Miguel + revisores |
 | `../05-test-harness.md` | Estrategia de calidad | Actualizado con pruebas | Miguel + Gaby |
-| `../06-observability.md` | Métricas y monitorización | Pendiente de nivel avanzado | Gaby |
+| `../06-observability.md` | Métricas y monitorización | Actualizado con HRP-76–HRP-82 | Gaby |
 
 ## Lista de carga por hito
 
@@ -44,6 +47,9 @@
 - `../dailies/2026-09-08-project-closeout.md`
 - `manifest.md`
 - `../README.md`
+- `03-delivery-timeline.md`
+- `04-final-acceptance.md`
+- `evidence/2026-09-08-closeout.md`
 
 El frontend no debe incluirse como evidencia de capacidad entregada. Si se menciona,
 debe aparecer como limitación o trabajo futuro.

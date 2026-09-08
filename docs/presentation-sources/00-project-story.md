@@ -1,10 +1,10 @@
 # HR Pro Data Platform — fuente ejecutiva
 
-**Actualización:** 2026-08-31
+**Actualización:** 2026-09-08
 
-**Estado:** nivel esencial en curso; contrato, consumo Kafka, MongoDB inicial,
-deduplicación técnica y manejo de errores ya integrados. ETL de persona completa y
-PostgreSQL ejecutable siguen pendientes.
+**Estado:** baseline backend/data-platform aceptado para cierre. Se consideran
+cumplidos los checks de condiciones de entrega, niveles esencial, medio y avanzado;
+en el nivel experto queda fuera de alcance el frontend.
 
 ## Problema
 
@@ -21,7 +21,8 @@ Construir un pipeline Dockerizado que:
 2. Conserve cada evento original y sus metadatos en MongoDB.
 3. Valide, clasifique y agrupe los fragmentos de una persona.
 4. Publique datos curados e idempotentes en PostgreSQL.
-5. Evolucione con logs, pruebas, Redis, métricas, API y un frontend accesible.
+5. Evolucione con logs, pruebas, Redis, métricas y API. El frontend queda como trabajo
+   futuro fuera del cierre.
 
 ## Equipo
 
@@ -45,8 +46,8 @@ La demo final debe evidenciar un flujo continuo y trazable desde Kafka hasta las
 consultas finales, pasando por MongoDB y PostgreSQL, con observabilidad y una interfaz
 sencilla de consulta.
 
-## Hito actual
+## Hito de cierre
 
-La plataforma ya puede conectarse, consumir de forma continua y persistir fragmentos
-iniciales en MongoDB sin exponer payloads en logs. El siguiente corte vertical es
-alinear el sobre raw definitivo y usarlo como base segura para ETL y PostgreSQL.
+La plataforma deja versionados los componentes de ingesta, raw storage, transformación,
+persistencia curada, API, Redis, observabilidad, Docker Compose y quality gates. La
+documentación de cierre, fuentes y dailies se encuentra enlazada desde el README.

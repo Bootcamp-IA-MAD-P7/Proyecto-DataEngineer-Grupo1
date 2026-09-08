@@ -3,31 +3,29 @@
 Este resumen está preparado para diapositivas. La fuente técnica canónica es
 `docs/09-evolving-swot.md` y debe actualizarse cuando cambie la evidencia.
 
-## Fotografía actual — 2026-08-31
+## Fotografía de cierre — 2026-09-08
 
 ### Fortalezas
 
 - Contrato Kafka derivado de observación real, no del generador.
 - SDD, ADRs, CI, revisión humana y trazabilidad Jira desde el inicio.
-- Consumer configurable, seguro en logs, con MongoDB inicial y duplicados técnicos
-  controlados.
+- Consumer configurable, seguro en logs, con MongoDB raw, duplicados técnicos
+  controlados y persistencia trazable.
 - Separación explícita entre raw, transformación y datos curados.
+- Redis, PostgreSQL, API, métricas, Prometheus, Grafana y Docker Compose versionados.
 
 ### Debilidades
 
-- El pipeline esencial aún no agrupa personas ni publica en PostgreSQL.
-- Hay 17 tests, pero todavía faltan pruebas de integración E2E del flujo completo.
-- HRP-43 todavía debe determinar si los candidatos observados aportan evidencia
-  suficiente para una correlación segura. La clasificación de HRP-44 y la
-  validación/limpieza de HRP-45 también siguen pendientes de aprobación.
-- Parte del trabajo previo llegó en PRs con más de una historia y generó conflictos.
+- La validación E2E y de carga depende del entorno disponible para el release.
+- El frontend queda fuera del cierre.
+- La ejecución local en Windows está afectada por el bloqueo de la extensión nativa de
+  `confluent-kafka`; se documenta como caveat de entorno.
 
 ### Oportunidades
 
-- Convertir la persistencia raw en el primer corte vertical demostrable.
-- Elevar gradualmente la cobertura y añadir contrato, integración y E2E.
+- Ejecutar validación prolongada y de carga en un entorno Linux/CI preparado.
 - Usar las fuentes versionadas para generar presentación y relato de evolución.
-- Introducir métricas después de que exista un flujo esencial estable.
+- Implementar el frontend como una futura tarea independiente.
 
 ### Amenazas
 
@@ -40,8 +38,8 @@ Este resumen está preparado para diapositivas. La fuente técnica canónica es
 
 | Momento | Debilidad que se reduce | Evidencia esperada |
 |---|---|---|
-| Próximo hito | Raw aún no usado por ETL | Sobre raw alineado y preparado para transformación |
-| Nivel esencial | Sin perfil curado | Persona agrupada y persistida en PostgreSQL |
-| Nivel medio | Operación manual | Stack Docker, logs y tests de integración |
-| Nivel avanzado | Sin visibilidad de rendimiento | Redis, Prometheus y API medidos |
-| Nivel experto | Sin experiencia de consulta | Pipeline continuo y frontend demostrable |
+| Fundaciones | Contrato y gobernanza iniciales | Observación Kafka, SDD, CI y raw storage |
+| Nivel esencial | Fragmentos dispersos | Agrupación, consolidación y PostgreSQL |
+| Nivel medio | Operación sin señales | Docker, logs y quality gates |
+| Nivel avanzado | Sin visibilidad de rendimiento | Redis, Prometheus, Grafana y API |
+| Nivel experto | Producto incompleto | Frontend explícitamente fuera de alcance |

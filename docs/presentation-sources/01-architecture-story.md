@@ -1,8 +1,8 @@
 # Arquitectura — fuente narrativa
 
-**Lectura del diagrama:** representa la arquitectura objetivo. A 2026-08-31 están
-validados Kafka, el consumer, MongoDB local y una persistencia inicial de fragmentos.
-El sobre raw definitivo aún debe revisarse antes de usarlo como contrato del ETL.
+**Lectura del diagrama:** representa el baseline entregado al cierre de 2026-09-08.
+Los componentes están versionados y documentados; la ejecución prolongada con servicios
+reales depende del entorno de validación disponible.
 
 ## Idea principal
 
@@ -32,14 +32,15 @@ Todos los componentes emiten logs y métricas para Prometheus.
 | Prometheus | Observabilidad | Mide volumen, latencia y errores |
 | FastAPI + frontend accesible | Consulta y demo | Hace visible el valor final sin acoplar la UI al almacenamiento |
 
-## Invariantes objetivo y propuestas pendientes
+## Invariantes del baseline
 
 - El evento raw se persiste antes de transformarse.
 - ADR-0005 guía la confirmación Kafka después de persistencia raw o reconocimiento de
-  duplicado técnico; su aplicación debe quedar alineada con el sobre raw final.
+  duplicado técnico.
 - Reprocesar el mismo evento no duplica información.
 - Un mensaje erróneo no detiene la ingesta.
 - Redis no es fuente de verdad y sus datos expiran.
 - El contrato se basa en mensajes observados, no en el código del productor.
 
-La documentación técnica completa está en `docs/01-architecture.md`.
+La documentación técnica completa está en `docs/01-architecture.md`. El frontend no
+forma parte de la capacidad entregada en este cierre.
