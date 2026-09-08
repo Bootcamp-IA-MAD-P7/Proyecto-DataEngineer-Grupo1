@@ -164,18 +164,16 @@ normalización. Las cinco variantes A–E siguen siendo etiquetas técnicas neut
 La evidencia completa, sin valores de payload, está en
 [docs/observations/2026-08-27-HRP-29-kafka.md](docs/observations/2026-08-27-HRP-29-kafka.md).
 
-## Estado frente al briefing — snapshot histórico
+## Estado frente al briefing — corte de cierre
 
-**Última revisión del snapshot:** 2026-08-31
+**Última revisión:** 2026-09-08
+**Base revisada:** `develop` hasta `f3a952b`
 
-> Esta matriz conserva el corte de evaluación inicial y no representa por sí sola el
-> estado final de `develop`. Para el cierre del proyecto, usa
-> [project-closeout.md](docs/project-closeout.md), que incorpora los cambios
-> posteriores de Redis, API, observabilidad y runtime.
-
-Esta matriz reproduce todos los requisitos de entrega. Un requisito solo figura como
-completado cuando existe evidencia versionada o una demostración reproducible. Un
-servicio arrancado, una spec o un diseño por sí solos cuentan como trabajo en curso.
+Esta matriz distingue entre implementación versionada, validación reproducible y cierre
+humano. Un requisito solo figura como completado cuando la evidencia disponible permite
+defenderlo; tener una spec o un módulo no equivale por sí solo a una demo completa.
+Los fallos locales de `confluent-kafka` en Windows y los servicios no levantados se
+detallan en [project-closeout.md](docs/project-closeout.md).
 
 ### Resumen visual
 
@@ -183,8 +181,8 @@ servicio arrancado, una spec o un diseño por sí solos cuentan como trabajo en 
 |---|---:|---:|---|
 | Condiciones de entrega | `████░░░░░░` | 2/5 | [![En curso][status-active]][status-active-link] |
 | Nivel esencial | `█████░░░░░` | 3/6 | [![En curso][status-active]][status-active-link] |
-| Nivel medio | `███░░░░░░░` | 1/3 | [![En curso][status-active]][status-active-link] |
-| Nivel avanzado | `░░░░░░░░░░` | 0/3 | [![Pendiente][status-pending]][status-pending-link] |
+| Nivel medio | `███████░░░` | 2/3 | [![En curso][status-active]][status-active-link] |
+| Nivel avanzado | `██████████` | 3/3 | [![Completado][status-done]][status-done-link] |
 | Nivel experto | `░░░░░░░░░░` | 0/2 | [![Pendiente][status-pending]][status-pending-link] |
 
 > Los contadores solo incluyen requisitos completamente demostrados. Los requisitos
@@ -195,19 +193,19 @@ servicio arrancado, una spec o un diseño por sí solos cuentan como trabajo en 
 | Check literal | Estado | Evidencia disponible | Qué falta |
 |---|---|---|---|
 | Repositorio en GitHub con código fuente documentado | [![Completado][status-done]][status-done-link] | Repositorio, README, specs, ADRs, CI y gobernanza | Mantenerlo actualizado hasta la entrega |
-| Programa Dockerizado conectado a Kafka, con procesamiento, MongoDB y SQL | [![En curso][status-active]][status-active-link] | Consumer Kafka y MongoDB local | Integrar persistencia raw, ETL, PostgreSQL y Compose completo |
+| Programa Dockerizado conectado a Kafka, con procesamiento, MongoDB y SQL | [![En curso][status-active]][status-active-link] | Dockerfile, Compose y servicios de datos versionados | Validar el recorrido completo con Kafka y servicios levantados |
 | Demo en vivo de la aplicación | [![En curso][status-active]][status-active-link] | Demo parcial de Kafka, consumer y MongoDB local | Demostrar el recorrido completo hasta consulta final |
-| Presentación técnica de objetivos, desarrollo y tecnologías | [![En curso][status-active]][status-active-link] | [`docs/presentation-sources/`](docs/presentation-sources/README.md) y DAFO evolutivo | Preparar deck final y ensayar la exposición |
+| Presentación técnica de objetivos, desarrollo y tecnologías | [![En curso][status-active]][status-active-link] | [`docs/presentation-sources/`](docs/presentation-sources/README.md), DAFO y cierre documental | Adjuntar el deck final y registrar el ensayo |
 | Tablero Kanban para gestionar el proyecto | [![Completado][status-done]][status-done-link] | [Proyecto HRP en Jira](https://redondonunezmiguel.atlassian.net/jira/software/projects/HRP/boards/1) | Mantener estados, dependencias y cierres al día |
 
 ### Nivel esencial
 
 | Check literal | Estado | Evidencia actual | Próxima prueba de cierre |
 |---|---|---|---|
-| Consumer Kafka en tiempo real y miles de mensajes por segundo | [![En curso][status-active]][status-active-link] | HRP-30 y HRP-31: consumer configurable y continuo validado | Medición de carga sostenida y tasa de mensajes |
-| Persistir los mensajes Kafka en MongoDB | [![Completado][status-done]][status-done-link] | HRP-34 y pruebas unitarias/integración MongoDB real | Revisión humana antes del merge |
-| Agrupar Personal, Location, Professional, Bank y Net Data por persona | [![En curso][status-active]][status-active-link] | Contrato HRP-24; análisis HRP-43 activo | Analizar candidatos en HRP-43; solo después, y si hay evidencia, definir correlación; HRP-44 clasifica y HRP-45 valida/limpia |
-| Persistir los datos agrupados en una base SQL | [![En curso][status-active]][status-active-link] | Diseño PostgreSQL HRP-25 activo | Esquema, migración, upsert y consulta de validación |
+| Consumer Kafka en tiempo real y miles de mensajes por segundo | [![En curso][status-active]][status-active-link] | HRP-30/31 y consumer continuo versionados | Falta una medición de carga sostenida; no se afirma “miles/segundo” |
+| Persistir los mensajes Kafka en MongoDB | [![Completado][status-done]][status-done-link] | HRP-34, repositorio raw, idempotencia y tests versionados | Confirmar ejecución con MongoDB disponible |
+| Agrupar Personal, Location, Professional, Bank y Net Data por persona | [![En curso][status-active]][status-active-link] | Groupers, consolidación, Redis y ADR-0006 documentados | Cerrar la revisión de identidad y demostrar el recorrido completo |
+| Persistir los datos agrupados en una base SQL | [![En curso][status-active]][status-active-link] | Esquema, repositorio, mapeo, API y tests versionados | Validar el flujo completo Kafka → MongoDB → ETL → PostgreSQL |
 | Ramas organizadas y commits limpios | [![Completado][status-done]][status-done-link] | `develop`, PRs, CODEOWNERS, ruleset y títulos con Jira | Mantener la política en todas las contribuciones |
 | Código documentado y README en GitHub | [![Completado][status-done]][status-done-link] | README, arquitectura, runbook, specs, dailies y fuentes de presentación | Actualización continua con cada hito funcional |
 
@@ -215,23 +213,23 @@ servicio arrancado, una spec o un diseño por sí solos cuentan como trabajo en 
 
 | Check literal | Estado | Evidencia actual | Próxima prueba de cierre |
 |---|---|---|---|
-| Sistema de logs | [![En curso][status-active]][status-active-link] | Logs técnicos seguros del consumer y política de observabilidad | Logs estructurados del pipeline completo y errores de persistencia |
-| Tests unitarios | [![Completado][status-done]][status-done-link] | Snapshot: 17 tests y 80.10 %; baseline actual: 307 tests colectables y umbral CI del 75 % | Registrar el resultado de la ejecución final |
-| Aplicación Dockerizada con Docker Compose | [![En curso][status-active]][status-active-link] | Compose de MongoDB validado en CI | Añadir aplicación, PostgreSQL y configuración integral |
+| Sistema de logs | [![Completado][status-done]][status-done-link] | Logging de consumer, ETL y base de datos documentado y versionado | Validar el comportamiento en runtime completo |
+| Tests unitarios | [![En curso][status-active]][status-active-link] | 307 tests colectados, 82.91 % de cobertura calculada | Resolver/validar 21 fallos de importación en Windows |
+| Aplicación Dockerizada con Docker Compose | [![Completado][status-done]][status-done-link] | Compose versionado para app, MongoDB, PostgreSQL, Redis, Prometheus y Grafana | Validar el stack completo en entorno disponible |
 
 ### Nivel avanzado
 
 | Check literal | Estado | Evidencia actual | Próxima prueba de cierre |
 |---|---|---|---|
-| Redis como almacenamiento intermedio en caché | [![Completado][status-done]][status-done-link] | HRP-73–HRP-76, estado parcial, TTL y pruebas | Ampliaciones futuras según necesidad |
-| Monitorización de consumo, velocidad, procesamiento y persistencia | [![Completado][status-done]][status-done-link] | HRP-77–HRP-82, Prometheus y dashboard | Carga de producción fuera de alcance |
+| Redis como almacenamiento intermedio en caché | [![Completado][status-done]][status-done-link] | HRP-73–HRP-76, estado parcial, TTL y tests | Integración prolongada fuera del cierre |
+| Monitorización de consumo, velocidad, procesamiento y persistencia | [![Completado][status-done]][status-done-link] | HRP-77–HRP-82, Prometheus, Grafana y dashboard | Carga de producción fuera del alcance |
 | API de consulta sobre la base SQL | [![Completado][status-done]][status-done-link] | HRP-83–HRP-86 y tests de endpoints | Frontend fuera de alcance |
 
 ### Nivel experto
 
 | Check literal | Estado | Evidencia actual | Próxima prueba de cierre |
 |---|---|---|---|
-| Actualización continua de las bases mientras Kafka publica | [![En curso][status-active]][status-active-link] | Runtime continuo y componentes integrados en `develop` | Validación prolongada con broker real fuera del cierre |
+| Actualización continua de las bases mientras Kafka publica | [![En curso][status-active]][status-active-link] | Consumer continuo y componentes de almacenamiento versionados | Falta demostrar el recorrido prolongado sin intervención |
 | Frontend sencillo para consultar clientes | [![Pendiente][status-pending]][status-pending-link] | React + TypeScript + Vite es la dirección preferida; Streamlit solo fallback de demo | Buscador, resultados, métricas accesibles y conexión exclusiva mediante API |
 
 ### Tecnologías del briefing
@@ -239,12 +237,12 @@ servicio arrancado, una spec o un diseño por sí solos cuentan como trabajo en 
 | Tecnología recomendada | Adopción | Uso actual |
 |---|---|---|
 | Git / GitHub | [![Completado][status-done]][status-done-link] | Repositorio, PRs, revisión, CI, tags y gobernanza |
-| Docker / Docker Compose | [![En curso][status-active]][status-active-link] | MongoDB local; stack de aplicación pendiente |
+| Docker / Docker Compose | [![Completado][status-done]][status-done-link] | Stack de aplicación, MongoDB, PostgreSQL, Redis, Prometheus y Grafana versionado |
 | Python | [![Completado][status-done]][status-done-link] | Consumer y arnés en Python 3.11 |
 | Kafka | [![En curso][status-active]][status-active-link] | Conexión, consumo continuo y persistencia raw HRP-34 | Rendimiento y E2E con broker real pendientes |
 | Pandas | [![Opcional][status-optional]][status-optional-link] | No se añade hasta que una necesidad ETL justifique la dependencia |
-| MongoDB | [![En curso][status-active]][status-active-link] | Servicio local y persistencia raw HRP-34 disponibles | Evolución posterior del pipeline pendiente |
-| PostgreSQL | [![En curso][status-active]][status-active-link] | Modelo HRP-25 en desarrollo; servicio y persistencia pendientes |
+| MongoDB | [![Completado][status-done]][status-done-link] | Servicio local, persistencia raw e idempotencia versionados |
+| PostgreSQL | [![En curso][status-active]][status-active-link] | Servicio, esquema, persistencia, consultas y API versionados; recorrido E2E pendiente |
 | Jira | [![Completado][status-done]][status-done-link] | Backlog, responsables, estados y dependencias del proyecto |
 
 ```mermaid
