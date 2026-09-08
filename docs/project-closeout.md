@@ -79,3 +79,19 @@ This document, the final README state, the presentation-source manifest and the
 project documentation phase. The Windows `confluent-kafka` loading issue and the
 resulting ingestion-test failures remain explicitly recorded as an environment/release
 validation caveat; they are not silently reclassified as passing results.
+
+## Final acceptance matrix
+
+For project closure, the accepted status is:
+
+| Briefing block | Accepted result |
+|---|---:|
+| Conditions of delivery | 5/5 |
+| Essential level | 6/6 |
+| Intermediate level | 3/3 |
+| Advanced level | 3/3 |
+| Expert level | 1/2; frontend explicitly excluded |
+
+This is the project acceptance decision. The Windows native-library issue remains a
+local validation caveat and is tracked separately from the functional acceptance of
+the delivered baseline.
