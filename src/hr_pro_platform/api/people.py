@@ -122,6 +122,58 @@ def search_employees(
     return _assemble_results(cursor, cursor.fetchall())
 
 
+def search_employees_combined(
+    cursor: psycopg.Cursor[Any],
+    *,
+    employee_filters: Mapping[str, object],
+    location_filters: Mapping[str, object],
+    professional_filters: Mapping[str, object],
+    limit: int,
+    offset: int,
+) -> list[PersonSearchResult]:
+    """Apply identity, location and professional filters in one SQL query."""
+    conditions: list[sql.Composed] = []
+    values: list[object] = []
+    for name, value in employee_filters.items():
+        conditions.append(
+            sql.SQL("{column} = {placeholder}").format(
+                column=sql.Identifier(name), placeholder=sql.Placeholder()
+            )
+        )
+        values.append(value)
+    for table, filters in (
+        ("locations", location_filters),
+        ("professional_profiles", professional_filters),
+    ):
+        if filters:
+            subconditions = [
+                sql.SQL("{column} = {placeholder}").format(
+                    column=sql.Identifier(name), placeholder=sql.Placeholder()
+                )
+                for name in filters
+            ]
+            conditions.append(
+                sql.SQL(
+                    "EXISTS (SELECT 1 FROM {table} WHERE employee_id = employees.id "
+                    "AND {conditions})"
+                ).format(
+                    table=sql.Identifier(table), conditions=sql.SQL(" AND ").join(subconditions)
+                )
+            )
+            values.extend(filters.values())
+    query = sql.SQL(
+        "SELECT {columns} FROM employees WHERE {conditions} ORDER BY id "
+        "LIMIT {limit} OFFSET {offset}"
+    ).format(
+        columns=sql.SQL(", ").join(sql.Identifier(column) for column in _EMPLOYEE_COLUMNS),
+        conditions=sql.SQL(" AND ").join(conditions),
+        limit=sql.Placeholder(),
+        offset=sql.Placeholder(),
+    )
+    cursor.execute(query, [*values, limit, offset])
+    return _assemble_results(cursor, cursor.fetchall())
+
+
 def search_employees_by_location_or_profession(
     cursor: psycopg.Cursor[Any],
     *,

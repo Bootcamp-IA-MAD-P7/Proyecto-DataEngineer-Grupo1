@@ -158,6 +158,21 @@ En PowerShell, `.\.venv\Scripts\Activate.ps1`.
 Completar `.env` localmente: broker, topics y credenciales de desarrollo.
 No sobrescribir una configuración existente ni copiarla a documentación.
 
+### Frontend Streamlit
+
+El frontend es de solo lectura y consume exclusivamente FastAPI. Instala sus
+dependencias y levanta los servicios en este orden:
+
+```powershell
+python -m pip install -e ".[dev,frontend]"
+python -m uvicorn hr_pro_platform.api.main:app --host 127.0.0.1 --port 8123
+python -m streamlit run src/hr_pro_platform/frontend/app.py --server.port 8501
+```
+
+La API queda disponible en `http://127.0.0.1:8123` y el frontend en
+`http://127.0.0.1:8501`. La búsqueda combinada usa `GET /people/search` con
+`limit` y `offset`.
+
 ### Iniciar datos y observabilidad
 
 ```bash

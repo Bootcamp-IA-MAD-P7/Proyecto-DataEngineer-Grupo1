@@ -36,6 +36,21 @@ def test_health_returns_ok_when_the_database_dependency_succeeds() -> None:
     assert response.json() == {"status": "ok"}
 
 
+def test_cors_allows_only_the_local_streamlit_origins() -> None:
+    app = create_app()
+    response = TestClient(app).options(
+        "/health",
+        headers={
+            "Origin": "http://127.0.0.1:8501",
+            "Access-Control-Request-Method": "GET",
+        },
+    )
+
+    assert response.status_code == 200
+    assert response.headers["access-control-allow-origin"] == "http://127.0.0.1:8501"
+    assert "*" not in response.headers.get("access-control-allow-origin", "")
+
+
 def test_health_returns_a_safe_unavailable_response_when_the_database_is_down(
     caplog: pytest.LogCaptureFixture,
 ) -> None:
