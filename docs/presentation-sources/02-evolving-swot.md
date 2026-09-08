@@ -2,7 +2,7 @@
 
 | Fortalezas | Debilidades |
 |---|---|
-| Raw y procedencia preservados; correlación explícita; specs y PRs | No hay worker productivo completo; no hay benchmark; resultado local no verde |
+| Raw y procedencia preservados; runtime continuo hasta SQL/API; specs y PRs | Un worker ETL local; no hay benchmark ni alta disponibilidad; resultado local histórico no verde |
 | Componentes SQL, API y métricas con pruebas versionadas | API sin autenticación; Redis efímero; frontend excluido |
 
 | Oportunidades | Amenazas |

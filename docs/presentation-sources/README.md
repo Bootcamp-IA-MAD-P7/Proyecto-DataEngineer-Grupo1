@@ -24,7 +24,7 @@ ni capturas. Frontend excluido. La matriz mide aceptación, no verificación té
 
 ## Comprobación del resultado generado
 
-Comprobar que diga «HRP-71 sintético», «ingesta continua» y «aceptación del responsable»;
-que conserve la ausencia de worker productivo SQL y el resultado local no verde;
+Comprobar que diga «HRP-71 sintético», «pipeline continuo» y «aceptación del responsable»;
+que muestre `app`, `etl` y `api` como procesos separados y conserve el resultado local histórico;
 que no enseñe PII, credenciales o un frontend ficticio. No sumar resultados de tests
 de fechas distintas. No presentar fuentes históricas como pruebas nuevas.

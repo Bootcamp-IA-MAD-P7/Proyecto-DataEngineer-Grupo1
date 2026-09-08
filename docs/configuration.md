@@ -17,6 +17,8 @@ take precedence where python-dotenv is used.
 | POSTGRES_DB / POSTGRES_USER / POSTGRES_PASSWORD | SQL, API and postgres container; required |
 | REDIS_URL | Redis adapter when no client/URL is supplied explicitly |
 | HRP_REDIS_PARTIAL_STATE_TTL_SECONDS | Positive integer; default 3600 |
+| HRP_ETL_BATCH_SIZE | ETL documents per bounded MongoDB read; positive integer; default 250 |
+| HRP_ETL_POLL_SECONDS | ETL idle polling interval; non-negative number; default 1 |
 | INGESTION_METRICS_HOST / INGESTION_METRICS_PORT | Metrics module; defaults 0.0.0.0 / 9464 |
 | LOG_LEVEL | Template placeholder; current shared logger fixes INFO and does not read it |
 
@@ -29,9 +31,9 @@ Do not document stronger validation than the code implements.
 |---|---|---|
 | MongoDB | localhost:27017 | mongo:27017 |
 | PostgreSQL | localhost:5432 | postgres:5432 |
-| Redis | Not published by current Compose | redis:6379 |
+| Redis | Not published by current Compose | redis:6379; used by `etl` |
 | Metrics | Set bind address for the host explicitly | app:9464 from Prometheus |
-| Kafka | Authorized published address | Authorized address reachable from container |
+| Kafka | Authorized published address | Authorized address reachable from `app` |
 
 The template REDIS_URL uses internal DNS; a host process cannot use it without an
 appropriate network route. Redis integration tests require HRP74_REDIS_URL explicitly;

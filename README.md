@@ -69,7 +69,7 @@ entorno como si fueran trabajo funcional no realizado.
 | Redis temporal | Integrado | HRP-73 a HRP-76 | Estado efímero con TTL; no fuente de verdad |
 | API SQL | Integrada | HRP-83 a HRP-86 | Sin autenticación y sin frontend |
 | Observabilidad | Integrada | HRP-77 a HRP-82, Prometheus y Grafana | Tres métricas de ingesta; sin SLO ni percentiles reales finitos |
-| Pipeline completo | Parcialmente orquestado | HRP-71 sintético y componentes versionados | No hay worker continuo MongoDB -> SQL en producción |
+| Pipeline completo | Orquestado en Compose | HRP-87 y worker ETL | Correlación operacional exacta; Redis es temporal |
 | Presentación y cierre | Preparado | Dailies, fuentes NotebookLM y auditoría HRP-93 | Fuentes listas; no deck final generado en este repo |
 
 ### Detalle literal por nivel
@@ -77,7 +77,7 @@ entorno como si fueran trabajo funcional no realizado.
 | Nivel | Check | Estado de cierre | Evidencia | Límite |
 |---|---|---|---|---|
 | Entrega | Repositorio GitHub documentado | Aceptado | README, docs, specs, ADRs y CI | Debe revisarse tras cada merge |
-| Entrega | Programa Dockerizado con Kafka, MongoDB y SQL | Aceptado | Dockerfile y Compose | SQL no se alimenta por un worker continuo del servicio `app` |
+| Entrega | Programa Dockerizado con Kafka, MongoDB y SQL | Aceptado | Dockerfile y Compose | Kafka permanece como runtime educativo externo |
 | Entrega | Demo en vivo | Aceptado | Runbook y fuentes de demo | No se adjunta grabación |
 | Entrega | Presentación técnica | Aceptado | `docs/presentation-sources/` | NotebookLM debe generar el deck |
 | Entrega | Tablero Kanban | Aceptado | Jira HRP | Estados remotos no modificados por esta revisión |
@@ -89,24 +89,22 @@ entorno como si fueran trabajo funcional no realizado.
 | Esencial | Código documentado y README | Aceptado | HRP-26/93 | Documentación viva |
 | Medio | Sistema de logs | Aceptado | HRP-65 a HRP-67 | Logs genéricos no tienen filtro universal de excepciones |
 | Medio | Tests unitarios | Aceptado | 307 tests colectados; cobertura 82,91 % | Último intento local no está verde |
-| Medio | Docker Compose | Aceptado | `infra/compose.dev.yml` | No incluye broker Kafka ni API como servicio |
+| Medio | Docker Compose | Aceptado | `infra/compose.dev.yml` | Kafka permanece como runtime educativo externo |
 | Avanzado | Redis como caché intermedia | Aceptado | HRP-73 a HRP-76 | No persistente |
 | Avanzado | Monitorización | Aceptado | HRP-77 a HRP-82 | Sin métricas SQL/API/errores de negocio |
 | Avanzado | API SQL | Aceptado | HRP-83 a HRP-86 | Sin auth ni frontend |
-| Experto | Actualización continua mientras Kafka publica | Aceptado | Ingesta continua y componentes de almacenamiento | Continuidad extremo a extremo queda limitada |
+| Experto | Actualización continua mientras Kafka publica | Aceptado | Servicios `app` y `etl`; consulta SQL/API | Sin benchmark ni alta disponibilidad |
 | Experto | Frontend sencillo | Excluido | Decisión de cierre | Trabajo futuro |
 
 ### Lo que esta revisión técnica permite afirmar
 
 - El proceso Docker `app` ejecuta **Kafka → MongoDB**, con métricas de ingesta.
-- Clasificación, groupers, consolidación, Redis y persistencia SQL existen como
-  componentes reutilizables con pruebas.
+- El proceso Docker `etl` lee RAW pendiente por lotes, correlaciona estado temporal
+  mediante claves opacas en Redis y actualiza PostgreSQL continuamente.
 - HRP-71 enlaza MongoDB → transformación → PostgreSQL con eventos **sintéticos
   equivalentes a Kafka**; no ejecuta un broker Kafka real.
-- En el checkout revisado no existe un worker de producción que lea continuamente
-  MongoDB y ejecute toda la transformación hasta SQL. HRP-87 documenta continuidad
-  de **ingesta**; `storage.main` crea el esquema y termina.
-- La API se arranca separadamente; no tiene un servicio propio en Compose.
+- El servicio `api` publica FastAPI en `127.0.0.1:8000` y consulta PostgreSQL.
+- `storage.main` continúa siendo solo el inicializador idempotente del esquema.
 - No se aporta aquí una medición de miles de mensajes/segundo, una grabación de demo
   ni un deck final. Las fuentes de NotebookLM están preparadas para producirlo.
 
@@ -121,17 +119,17 @@ flowchart LR
     K["Kafka externo"] --> I["app · ingesta continua"]
     I --> M[("MongoDB · raw / inválidos")]
     I --> O["Prometheus → Grafana"]
-    M -. "lectura y orquestación en prueba HRP-71" .-> T["Clasificar → validar → agrupar → consolidar"]
-    T -. "adapter disponible; fuera de HRP-71" .-> R[("Redis · estado temporal")]
+    M --> T["etl · clasificar → validar → correlacionar → consolidar"]
+    T <--> R[("Redis · estado temporal")]
     T --> P["Mapeo + PersonRepository"]
     P --> S[("PostgreSQL · curado y auditoría")]
-    S --> A["FastAPI · proceso separado"]
+    S --> A["api · FastAPI"]
     A -. "fuera de alcance" .-> F["Frontend"]
 ```
 
-Las líneas discontinuas señalan integración de prueba, componentes no conectados
-por el proceso principal o trabajo excluido. El diagrama no representa un despliegue
-completo ejecutado por Compose. [Detalle y contratos](docs/01-architecture.md).
+La única línea discontinua señala el frontend excluido. Los servicios `app`, `etl`
+y `api` sí se ejecutan mediante el perfil Compose `app`; Kafka se ejecuta desde
+el proyecto educativo externo. [Detalle y contratos](docs/01-architecture.md).
 
 ## Inicio rápido
 
@@ -176,17 +174,19 @@ Las variables `POSTGRES_*` de `.env` deben apuntar al puerto del host.
 Con Kafka accesible desde Docker y los topics autorizados configurados:
 
 ```bash
-docker compose -f infra/compose.dev.yml --profile app up -d --build app
+docker compose -f infra/compose.dev.yml --profile app up -d --build app etl api
 docker compose -f infra/compose.dev.yml --profile app ps
 ```
 
 `localhost` dentro de un contenedor no es el host. En Docker Desktop, un broker
 publicado en el host puede requerir `host.docker.internal`; usar la dirección
-real autorizada. El proceso conserva raw, no inicia automáticamente la carga SQL.
+real autorizada. `app` conserva RAW; `etl` procesa pendientes y alimenta SQL; `api`
+expone los datos curados sin incorporar un frontend.
 
-### Iniciar API
+### API
 
-En otra terminal con el entorno Python activado y el esquema SQL creado:
+El perfil `app` inicia la API en Docker. Para desarrollo aislado también puede
+arrancarse en otra terminal:
 
 ```bash
 python -m uvicorn hr_pro_platform.api.main:app --host 127.0.0.1 --port 8000
@@ -217,7 +217,12 @@ de negocio. [Diccionario, relaciones y trazabilidad](docs/03-data-model.md).
 
 ## Calidad y resultados conocidos
 
-El último intento local documentado en esta conversación, sobre el código
+La extensión de runtime se validó el 8 de septiembre con Ruff, formato, mypy,
+270 pruebas unitarias y ejecución real en Docker. El recorrido produjo RAW en
+MongoDB, claves temporales Redis, registros en las seis tablas PostgreSQL y
+respuestas no vacías de FastAPI.
+
+Como referencia histórica, el intento anterior sobre el código
 `f3a952b`, produjo:
 
 | Resultado | Cantidad |
@@ -235,8 +240,8 @@ mocks son síntomas secundarios; no demuestran 21 defectos independientes del
 consumer. El resultado **no es una suite en verde**. Las omisiones correspondían
 a servicios MongoDB/PostgreSQL no disponibles y Redis sin configurar.
 
-Esta revisión modifica documentación; no repite pruebas de aplicación ni cambia
-seguridad de Windows. [Estrategia y comandos](docs/05-test-harness.md).
+La validación nueva no modifica la seguridad de Windows ni convierte el intento
+histórico completo en verde. [Estrategia y comandos](docs/05-test-harness.md).
 
 ### Controles de calidad
 
@@ -244,12 +249,13 @@ seguridad de Windows. [Estrategia y comandos](docs/05-test-harness.md).
 |---|---|---|
 | Spec validator | Local, pre-commit y CI | 60 specs válidas en esta revisión |
 | `git diff --check` | Antes de commit | 0 errores en esta revisión |
-| Ruff lint y format | Local y CI | Sin cambios Python en HRP-93 |
-| mypy strict | Local y CI | Sin cambios Python en HRP-93 |
-| pytest + coverage | Local y CI | Último intento: 246 pasan, 21 fallan, 40 omitidos |
-| Compose config | CI | Stack versionado para datos y observabilidad |
+| Ruff lint y format | Local y CI | Correcto en la extensión de runtime |
+| mypy strict | Local y CI | 36 archivos fuente correctos |
+| pytest unitario | Local y CI | 270 pasan |
+| Suite histórica completa | Local y CI | 246 pasan, 21 fallan, 40 omitidos |
+| Compose config | Local y CI | Correcto; ocho servicios definidos |
 | PR governance | Cada PR | Título debe cumplir `HRP-XX tipo: resumen` |
-| CODEOWNERS/revisión | Antes de merge | Gaby y Johans como revisores designados |
+| Revisión | Antes de merge | Miguel autoriza y realiza el merge directo |
 
 ## Seguridad y límites
 
@@ -274,8 +280,8 @@ seguridad de Windows. [Estrategia y comandos](docs/05-test-harness.md).
 | Gaby | Contrato, transformación, Redis y observabilidad |
 | Johans | PostgreSQL y API |
 
-Gaby y Johans fueron designados revisores de la PR. Miguel autoriza esta revisión
-documental y no requiere una nueva aprobación para editar documentos.
+Miguel, responsable del proyecto, autoriza y realiza el merge sin validadores ni
+una aprobación adicional para este cambio.
 Las protecciones remotas siguen siendo propiedades de GitHub, no de este README.
 
 ### Tecnologías del briefing

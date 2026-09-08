@@ -16,8 +16,7 @@ recorrido y visible la incertidumbre, no prometer identidad perfecta.
 
 Miguel coordina plataforma, Git, calidad y documentación; Anahí ingesta Kafka y
 MongoDB; Gaby contrato, transformación, Redis y observabilidad; Johans PostgreSQL
-y API. Gaby y Johans fueron designados revisores de PR: no se afirma aquí que hayan
-emitido una aprobación. Miguel autoriza el cierre documental.
+y API. Miguel, responsable, autoriza el cierre y el merge sin revisores adicionales.
 
 ## 2. Resultado aceptado frente a evidencia
 
@@ -40,9 +39,9 @@ y API. Experto: continuidad de actualización y frontend.
 
 Límites que deben acompañar la aceptación: no hay benchmark que acredite miles de
 mensajes/segundo; esta revisión no aporta grabación de demo ni deck terminado.
-Tampoco hay worker productivo integrado que actualice automáticamente SQL desde
-MongoDB. La aceptación del requisito de continuidad no demuestra por sí sola
-continuidad SQL. Estos límites son independientes del problema Windows de tests.
+El runtime continuo hasta SQL está integrado localmente, pero no acredita alta
+disponibilidad ni recuperación ante desastres. Estos límites son independientes
+del problema Windows de tests.
 
 ## 3. Arquitectura: qué se conecta realmente
 
@@ -58,10 +57,11 @@ adapter Redis de estado parcial, mapper y repositorio SQL. La prueba HRP-71 cone
 MongoDB → transformación → PostgreSQL explícitamente con eventos sintéticos equivalentes
 a Kafka. No ejecuta un broker Kafka ni integra Redis en ese recorrido.
 
-La API FastAPI consulta PostgreSQL y se inicia como proceso separado. El comando
-storage.main crea el esquema y termina; no es un worker ETL.
-Compose incluye app, mongo, postgres, redis, prometheus y grafana. No incluye API
-ni frontend. Una API saludable puede consultar una base vacía.
+La API FastAPI consulta PostgreSQL como servicio `api`. El comando `storage.main`
+crea el esquema y termina; el proceso continuo es `transformation.main`/`etl`.
+Compose incluye app, etl, api, mongo, postgres, redis, prometheus y grafana. No
+incluye el Kafka educativo ni frontend. Una API saludable aún puede consultar una
+base vacía, por lo que la demo comprueba también conteos y una persona correlacionada.
 
 Visual: separar en dos bandas «ingesta continua» y «componentes/prueba sintética»;
 dibujar discontinuas las conexiones no orquestadas por el proceso productivo.
@@ -248,11 +248,11 @@ Límite: HRP-71 conecta MongoDB, transformación y PostgreSQL con eventos sinté
 
 TTL Redis, contador de consumo y duraciones de procesamiento/persistencia MongoDB; endpoint Prometheus, scraper y dashboard Grafana. HRP-87/88 documentan ingesta continua y reinicios.
 
-Límite: No hay worker productivo continuo hasta SQL, métricas SQL/Redis/API ni benchmark. Los histogramas tienen solo bucket +Inf; no ofrecen p95/p99 útiles.
+Límite histórico a 7 de septiembre: todavía no había worker continuo hasta SQL. La extensión del día 8 lo incorpora; siguen sin existir métricas Prometheus de SQL/Redis/API ni benchmark. Los histogramas tienen solo bucket +Inf; no ofrecen p95/p99 útiles.
 
 ### 2026-09-08: Cierre y reconciliación documental
 
-PR #80 integra la primera documentación. La revisión posterior reconcilia README, contrato, runtime, specs, dailies y fuentes NotebookLM con el código; mantiene 18/19 aceptados y frontend excluido.
+PR #80 integra la primera documentación. La revisión posterior reconcilia README, contrato, runtime, specs, dailies y fuentes NotebookLM; incorpora `etl` y `api` al Compose, mantiene 18/19 aceptados y frontend excluido.
 
 Límite: Resultados locales anteriores: 246 pasan, 21 fallan, 40 omitidos, cobertura 82,91 %. No son una suite verde ni una prueba ejecutada en esta revisión.
 
@@ -290,7 +290,7 @@ No asignar fechas/promesas ni abrir tareas automáticamente.
 | 8 / 0:55 | Medir lo que realmente se emite | Tres métricas; no curvas inventadas; P1/R5/R8 | Persistencia Mongo, no SQL; medias sí, p95 no acreditado. |
 | 9 / 1:10 | Calidad con resultados transparentes | Barras 246/21/40 y cobertura separada; P4/P8/R9 | HRP-71 es sintético; resultado Windows no verde y no reejecutado ahora. |
 | 10 / 1:00 | Evolución por evidencia | Timeline de nueve jornadas; P6 | Fechas de integración, no reuniones reconstruidas ficticiamente. |
-| 11 / 0:55 | Decisiones, riesgos y aprendizaje | DAFO 2×2; P1/P7 | La madurez incluye reconocer orquestación y mediciones que faltan. |
+| 11 / 0:55 | Decisiones, riesgos y aprendizaje | DAFO 2×2; P1/P7 | La madurez incluye reconocer benchmark, HA y recuperación que faltan. |
 | 12 / 1:10 | Qué entregamos y cómo continuarlo | README/runbook/NotebookLM y bibliografía; P5/P7 | Cierre documental autorizado; nuevas funciones pertenecen a trabajo posterior. |
 
 Total orientativo12 minutos. Mantener una idea por slide y no más de 4 bullets.
@@ -312,8 +312,8 @@ sintéticas realizan limpieza. No eliminar volúmenes para preparar una demo.
 
 ## 14. Preguntas difíciles: respuestas defendibles
 
-**¿Está conectado todo en un único proceso?** No. La ingesta está orquestada;
-transformación y SQL se unen en la prueba sintética. Falta worker productivo completo.
+**¿Está conectado todo en un único proceso?** Son tres procesos desacoplados:
+`app` ingiere, `etl` transforma y persiste, y `api` consulta. Compose los orquesta.
 
 **¿Son personas reales identificadas de forma única?** No se demuestra; hay correlación
 operacional exacta con ambigüedad explícita.
@@ -380,8 +380,8 @@ No dibujes series temporales de rendimiento sin muestras reales.
 
 Distingue siempre aceptación del responsable, implementación en código, prueba
 sintética, resultado local reportado y trabajo futuro. Mantén el frontend excluido,
-la ausencia de worker productivo Mongo→ETL→SQL, HRP-71 sin broker real ni Redis,
-y el resultado 246/21/40 no verde. No conviertas cobertura en porcentaje de éxito.
+el worker continuo Mongo→Redis→SQL, HRP-71 sin broker real ni Redis, y el resultado
+246/21/40 como evidencia histórica. No conviertas cobertura en porcentaje de éxito.
 
 No inventes demo, interfaz, CI verde, benchmark, auth, p95/p99, métricas SQL,
 exactly-once ni identidad universal. No incluyas PII, secretos, payloads reales

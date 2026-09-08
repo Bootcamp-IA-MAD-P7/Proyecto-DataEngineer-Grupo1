@@ -25,6 +25,66 @@ services:
       postgres:
         condition: service_healthy
 
+  etl:
+    build:
+      context: ..
+      dockerfile: Dockerfile
+    image: hr-pro-data-platform:dev
+    container_name: hr-pro-etl-dev
+    profiles:
+      - app
+    restart: unless-stopped
+    command: ["python", "-m", "hr_pro_platform.transformation.main"]
+    env_file:
+      - path: ../.env.example
+        required: true
+      - path: ../.env
+        required: false
+    environment:
+      MONGODB_URI: mongodb://mongo:27017/hr_pro
+      POSTGRES_HOST: postgres
+      REDIS_URL: redis://redis:6379/0
+      HRP_ETL_BATCH_SIZE: 250
+      HRP_ETL_POLL_SECONDS: 1
+    depends_on:
+      mongo:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  api:
+    build:
+      context: ..
+      dockerfile: Dockerfile
+    image: hr-pro-data-platform:dev
+    container_name: hr-pro-api-dev
+    profiles:
+      - app
+    restart: unless-stopped
+    command:
+      - python
+      - -m
+      - uvicorn
+      - hr_pro_platform.api.main:app
+      - --host
+      - 0.0.0.0
+      - --port
+      - "8000"
+    env_file:
+      - path: ../.env.example
+        required: true
+      - path: ../.env
+        required: false
+    environment:
+      POSTGRES_HOST: postgres
+    ports:
+      - "127.0.0.1:8000:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
   mongo:
     image: mongo:7.0
     container_name: hr-pro-mongo-dev

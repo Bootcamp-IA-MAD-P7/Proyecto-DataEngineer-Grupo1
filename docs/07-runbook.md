@@ -23,29 +23,32 @@ No es un migrador de versiones ni un worker ETL. Un healthcheck de PostgreSQL
 no prueba existencia de tablas o registros. Las contraseñas de un volumen PostgreSQL
 existente no cambian por editar el archivo de entorno.
 
-## 3. Ingesta continua
+## 3. Pipeline continuo
 
 Configurar Kafka para ser accesible desde Docker. El Compose incluye env_file de
 ejemplo y .env opcional; las variables explícitas de app fijan MongoDB interno.
 
 ```bash
-docker compose -f infra/compose.dev.yml --profile app up -d --build app prometheus grafana
+docker compose -f infra/compose.dev.yml --profile app up -d --build app etl api prometheus grafana
 docker compose -f infra/compose.dev.yml --profile app ps
 ```
 
-Este comando mantiene Kafka → MongoDB, no ejecuta continuamente MongoDB → SQL.
-HRP-87 no añadió ese worker. `restart: unless-stopped` es una política de reinicio
-del contenedor, no una garantía de salud, progreso, reconciliación o ausencia de pérdida.
+`app` mantiene Kafka → MongoDB. `etl` toma RAW `pending` en lotes acotados,
+clasifica, valida, mantiene correlación temporal en Redis y persiste componentes
+curados en PostgreSQL. `api` consulta PostgreSQL en `127.0.0.1:8000`.
+`restart: unless-stopped` es una política de reinicio, no una garantía de ausencia
+de pérdida ni una afirmación de identidad real.
 
 ## 4. Consultas
 
-```bash
-python -m uvicorn hr_pro_platform.api.main:app --host 127.0.0.1 --port 8000
-```
+Abrir /docs, /health y /statistics. La API arranca con el perfil `app` y consulta
+las tablas que el worker ETL actualiza. Consultar únicamente datos sintéticos en
+presentaciones. [Contrato de endpoints](api-reference.md).
 
-Abrir /docs y /health. /statistics consulta agregados de tablas existentes.
-Una API saludable puede devolver cero registros. Consultar únicamente datos sintéticos
-en presentaciones. [Contrato de endpoints](api-reference.md).
+```bash
+curl http://127.0.0.1:8000/health
+curl http://127.0.0.1:8000/statistics
+```
 
 ## 5. Observabilidad
 
@@ -82,7 +85,7 @@ No se ejecutaron estas pruebas de datos en la revisión exclusivamente documenta
 | DLL cimpl bloqueada en Windows | Import aislado de confluent_kafka; política de Control de aplicaciones |
 | AttributeError al parchear consumer en tests | El ImportError original puede estar oculto por unittest.mock |
 | API 503 | PostgreSQL configurado, conexión y esquema; no publicar detalles de excepción |
-| API vacía | Datos curados no cargados; el arranque de app solo guarda raw |
+| API vacía | `etl` activo, RAW pending, Redis accesible y credenciales PostgreSQL |
 | Target Prometheus DOWN | app activo y endpoint interno 9464; comprobar reinicios |
 | Grafana sin series | Target UP, tráfico y ventana de consulta suficiente |
 | Redis inaccesible desde host | No publica puerto; usar cliente en red Compose o endpoint de test explícito |
@@ -95,7 +98,7 @@ puede permitir otra validación, pero no se presupone que haya pasado.
 ## 8. Parada y conservación
 
 ```bash
-docker compose -f infra/compose.dev.yml stop app
+docker compose -f infra/compose.dev.yml --profile app stop app etl api
 ```
 
 O detener todos los servicios HR Pro:
@@ -111,10 +114,48 @@ en esta entrega; no afirmar recuperación ante desastres.
 ## 9. Guion de demo controlada
 
 1. Explicar el problema y el límite del productor externo.
-2. Mostrar servicios y métricas sin abrir payloads ni .env.
-3. Explicar durabilidad raw y correlación con ejemplos sintéticos.
-4. Mostrar evidencia de HRP-71 indicando “Kafka equivalente, sintético”.
-5. Consultar API/estadísticas sobre una base de demo preparada.
-6. Mostrar aceptación de cierre, límite del frontend y siguientes pasos.
+2. Mostrar cinco mensajes sintéticos directamente desde Kafka:
+
+```bash
+docker exec kafka kafka-console-consumer --bootstrap-server kafka:9092 --topic probando --max-messages 5 --timeout-ms 15000 --property print.partition=true --property print.offset=true
+```
+
+3. Mostrar RAW persistido en MongoDB con procedencia:
+
+```bash
+docker compose -f infra/compose.dev.yml exec -T mongo mongosh --quiet --eval 'db.getSiblingDB("hr_pro").raw_events.find({}, {_id:0, topic:1, partition:1, offset:1, received_at:1, payload:1}).sort({received_at:-1}).limit(5).toArray()'
+```
+
+4. Demostrar que el worker procesa lotes y que Redis mantiene estado temporal:
+
+```bash
+docker compose -f infra/compose.dev.yml logs --tail=100 etl
+docker compose -f infra/compose.dev.yml exec -T redis redis-cli DBSIZE
+```
+
+5. Consultar las seis tablas PostgreSQL:
+
+```bash
+docker compose -f infra/compose.dev.yml exec -T postgres psql -U hr_pro -d hr_pro -c "SELECT 'employees' AS tabla, COUNT(*) AS registros FROM employees UNION ALL SELECT 'locations', COUNT(*) FROM locations UNION ALL SELECT 'professional_profiles', COUNT(*) FROM professional_profiles UNION ALL SELECT 'bank_accounts', COUNT(*) FROM bank_accounts UNION ALL SELECT 'network_data', COUNT(*) FROM network_data UNION ALL SELECT 'processing_audit', COUNT(*) FROM processing_audit;"
+```
+
+6. Mostrar un cliente que tenga los cinco dominios correlacionados:
+
+```bash
+docker compose -f infra/compose.dev.yml exec -T postgres psql -U hr_pro -d hr_pro -c "SELECT e.id, e.first_name, e.last_name, e.passport, l.city, l.address, p.company, p.job, b.iban, b.salary, n.ip_v4 FROM employees e JOIN locations l ON l.employee_id=e.id JOIN professional_profiles p ON p.employee_id=e.id JOIN bank_accounts b ON b.employee_id=e.id JOIN network_data n ON n.employee_id=e.id ORDER BY e.id DESC LIMIT 1;"
+```
+
+7. Consultar `/health`, `/statistics` y sustituir `ID` por el mostrado antes:
+
+```bash
+curl http://127.0.0.1:8000/health
+curl http://127.0.0.1:8000/statistics
+curl "http://127.0.0.1:8000/people/search?id=ID"
+```
+
+8. Mostrar consumo, velocidad y latencias en Prometheus/Grafana. La consulta de
+velocidad es `rate(hr_pro_platform_ingestion_messages_consumed_total[1m])`.
+9. Cerrar con límites: datos sintéticos, correlación operacional, backlog,
+sin benchmark/HA y frontend excluido.
 
 Fuentes y guion de exposición: [NotebookLM](presentation-sources/README.md).

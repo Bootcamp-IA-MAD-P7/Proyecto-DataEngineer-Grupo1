@@ -1,5 +1,14 @@
 # Daily — 2026-09-08 — Cierre y reconciliación documental
 
+## Extensión de runtime posterior al cierre documental
+
+La demo reveló que la ingesta Kafka → MongoDB funcionaba, pero las tablas SQL
+permanecían vacías porque no existía un proceso continuo que invocara las piezas
+ETL ya implementadas. Se añadió `transformation.main` y los servicios Compose
+`etl` y `api`. La validación en vivo confirmó eventos RAW, estado Redis, tablas
+curadas no vacías, una persona con cinco dominios, API saludable y métricas de
+ingesta. El frontend no se ejecutó ni se incorporó al recorrido.
+
 ## Naturaleza del registro
 
 Reconstrucción retrospectiva el 2026-09-08 basada en integraciones Git; no es un acta de reunión ni una reconstrucción de horas trabajadas.
@@ -26,6 +35,5 @@ Consultar la [siguiente jornada disponible y el índice](README.md).
 Las tareas y estados actuales de Jira no se han consultado en esta revisión.
 El historial acredita commits, no asistencia a una daily ni validación de cada criterio.
 
-Miguel autoriza esta revisión documental sin una nueva aprobación para editar. Gaby y
-Johans son los revisores designados de PR, sin atribuirles aprobación ya realizada.
+Miguel autoriza esta revisión y el merge directo, sin revisores adicionales.
 Véanse [cierre](../project-closeout.md) y [auditoría](../documentation-audit.md).

@@ -1,8 +1,33 @@
 # HRP-87 — Continuous pipeline runtime
 
-**Estado de integración (2026-09-08):** Task changes integrated in develop; acceptance criteria not re-executed here.
+**Estado actual (2026-09-08):** Extensión funcional implementada en
+`codex/HRP-87-continuous-etl-runtime`; pendiente de integración en `develop`.
 **Git evidence:** [b0b6db6](https://github.com/Bootcamp-IA-MAD-P7/Proyecto-DataEngineer-Grupo1/commit/b0b6db6) / [PR #78](https://github.com/Bootcamp-IA-MAD-P7/Proyecto-DataEngineer-Grupo1/pull/78) (2026-09-07).
-**Closeout interpretation:** Integrated scope is continuous ingestion Kafka → MongoDB, not an automatic MongoDB → ETL → SQL worker.
+**Current interpretation:** `app` mantiene Kafka → MongoDB y el nuevo servicio
+`etl` mantiene MongoDB → Redis → PostgreSQL; `api` expone el resultado curado.
+
+## Extensión funcional del runtime
+
+El worker procesa exclusivamente documentos RAW con `processing_status=pending` en
+lotes acotados. Clasifica y valida cada payload, deriva solo las cuatro relaciones
+exactas de ADR-0006 y convierte sus valores en identificadores SHA-256 antes de
+usarlos como claves Redis. Una búsqueda por cierre transitivo recupera fragmentos
+que llegaron fuera de orden; los groupers y el consolidador existentes producen el
+mapping que `PersonRepository` inserta o enriquece idempotentemente.
+
+MongoDB RAW no se elimina. Cada documento recibe clasificación, estado y fecha de
+procesamiento. Redis sigue siendo efímero y conserva Sets con TTL; PostgreSQL sigue
+siendo la capa curada. El worker no modifica offsets Kafka ni accede al generador.
+
+Compose incorpora tres procesos de aplicación sobre la misma imagen:
+
+- `app`: Kafka → MongoDB y métricas;
+- `etl`: MongoDB → Redis → PostgreSQL;
+- `api`: FastAPI sobre PostgreSQL en localhost:8000.
+
+Evidencia local previa a integración: 250 RAW procesados, 52 empleados insertados,
+34 enriquecimientos y 0 errores en el primer lote; 24 registros alcanzaron los cinco
+dominios. Estas cifras son una ejecución local, no un benchmark garantizado.
 
 This integration record does not assert current Jira status, reviewer approval identity
 or a new passing test run. [Current documentation](../README.md) and
