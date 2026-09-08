@@ -1,7 +1,8 @@
 # Especificaciones — índice de integración y alcance
 
 Corte 2026-09-08. Las59 specs históricas tienen evidencia de integración o de su
-artefacto observado; HRP-93 añade la revisión documental actual (60 en total).
+artefacto observado; HRP-93 añade la revisión documental actual y HRP-89 documenta
+la interfaz de demo acotada (61 en total).
 Las cabeceras vigentes separan integración Git de aprobación/Jira y pruebas.
 Los criterios y resultados originales se conservan como historial, no se marcan
 todos como pasados por el mero hecho de existir un merge.
@@ -71,6 +72,8 @@ todos como pasados por el mero hecho de existir un merge.
 | [HRP-94](HRP-94-accessibility-sustainability-policy.md) | [0ec4fef](https://github.com/Bootcamp-IA-MAD-P7/Proyecto-DataEngineer-Grupo1/commit/0ec4fef) / [PR #26](https://github.com/Bootcamp-IA-MAD-P7/Proyecto-DataEngineer-Grupo1/pull/26) (2026-08-31) | Accessibility/sustainability policy is integrated; it is not measured WCAG conformance, deployed frontend or quantified energy savings. |
 | [HRP-96](HRP-96-consolidation-contract-hardening.md) | [3045a11](https://github.com/Bootcamp-IA-MAD-P7/Proyecto-DataEngineer-Grupo1/commit/3045a11) / [PR #44](https://github.com/Bootcamp-IA-MAD-P7/Proyecto-DataEngineer-Grupo1/pull/44) (2026-09-02) | Contract hardening is integrated by PR #44; previous HRP-50 limitations about missing shared provenance are historical. |
 | [HRP-93](HRP-93-project-documentation-closeout.md) | Revisión documental local posterior a PR #80 | Autorizada por Miguel; no implica publicación |
+
+| [HRP-89](HRP-89-frontend-stabilization.md) | PR #82 / `fix/frontend-stabilization` (2026-09-08) | Bounded Streamlit demonstration interface; final/product frontend promotion remains subject to explicit scope approval. |
 
 ## Reglas
 
