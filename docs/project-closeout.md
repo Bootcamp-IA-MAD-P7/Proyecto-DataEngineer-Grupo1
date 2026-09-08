@@ -71,3 +71,11 @@ state, attaches the final presentation or its link, records the validation resul
 decides whether the 21 ingestion-test failures are accepted as a separate follow-up.
 Follow-up work should be opened as new Jira tasks rather than leaving the closeout task
 open for the deferred frontend.
+
+## Closure documentation decision
+
+This document, the final README state, the presentation-source manifest and the
+2026-09-08 closeout daily are the valid documentation set for closing HRP-93 and the
+project documentation phase. The Windows `confluent-kafka` loading issue and the
+resulting ingestion-test failures remain explicitly recorded as an environment/release
+validation caveat; they are not silently reclassified as passing results.
