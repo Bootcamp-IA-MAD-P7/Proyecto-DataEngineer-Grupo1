@@ -11,6 +11,8 @@ fuente de estado de las tareas.
   calidad y siguiente corte raw.
 - `2026-08-31-global-closeout.md`: estado global tras integrar ingesta, MongoDB,
   modelo SQL, CI, accesibilidad y fuentes de presentación.
+- `2026-09-08-project-closeout.md`: cierre documental de HRP-93, estado final revisado,
+  limitaciones y handoff.
 
 ## Norma
 

@@ -10,6 +10,8 @@
 | `evidence/2026-08-27-foundation-and-local-mongodb.md` | Hito de fundación, calidad y MongoDB local | Verificado; no es demo final | Miguel + Anahí |
 | `evidence/2026-08-28-kafka-contract-and-quality-baseline.md` | Contrato Kafka, consumer y calidad | Verificado con límites explícitos | Equipo |
 | `evidence/2026-08-31-ingestion-storage-and-quality.md` | Ingesta, MongoDB inicial, tests y CI actuales | Verificado con límites explícitos | Equipo |
+| `../project-closeout.md` | Estado final, alcance entregado, limitaciones y handoff | Cierre documental HRP-93 | Miguel |
+| `../dailies/2026-09-08-project-closeout.md` | Registro de la jornada de cierre | Cierre documental HRP-93 | Equipo |
 | `../01-architecture.md` | Detalle técnico ampliado | Actualizado con cada ADR | Miguel + revisores |
 | `../05-test-harness.md` | Estrategia de calidad | Actualizado con pruebas | Miguel + Gaby |
 | `../06-observability.md` | Métricas y monitorización | Pendiente de nivel avanzado | Gaby |
@@ -35,3 +37,13 @@
 - Capturas o enlaces de Prometheus, API y frontend accesible.
 - Resultado de pruebas y tag de release.
 - Dailies que contengan decisiones relevantes, no necesariamente todas.
+
+### Closeout HRP-93
+
+- `../project-closeout.md`
+- `../dailies/2026-09-08-project-closeout.md`
+- `manifest.md`
+- `../README.md`
+
+El frontend no debe incluirse como evidencia de capacidad entregada. Si se menciona,
+debe aparecer como limitación o trabajo futuro.
