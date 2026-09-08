@@ -1,6 +1,22 @@
 # HRP-52 — Design PostgreSQL tables and relationships
 
-**Status:** Draft; documentary implementation authorised
+**Integration status (2026-09-08):** Task changes integrated in develop; acceptance criteria not re-executed here.
+**Git evidence:** [cb2855a](https://github.com/Bootcamp-IA-MAD-P7/Proyecto-DataEngineer-Grupo1/commit/cb2855a) (2026-08-31).
+**Closeout interpretation:** Design-only task integrated as cb2855a; do not invent a PR number. SQL schema followed in HRP-54. ADR-0006 now permits operational correlation, not business-key uniqueness.
+
+This integration record does not assert current Jira status, reviewer approval identity
+or a new passing test run. [Current documentation](../README.md) and
+[acceptance/evidence matrix](../delivery-evidence.md) define the closeout reading.
+
+## Historical specification and task evidence
+
+The scope, criteria, checkboxes and test results below are the task's original record.
+They are not a live progress dashboard. Pending-review/merge references in this
+historical record are superseded by the integration evidence above; unresolved
+functional limitations are not automatically marked as passed.
+
+**Original recorded status:** Draft; documentary implementation authorised
+
 **Owner:** Johans
 **Human reviewer:** Miguel
 **Jira:** HRP-52

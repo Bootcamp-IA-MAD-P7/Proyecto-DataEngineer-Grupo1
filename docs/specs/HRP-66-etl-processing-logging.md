@@ -1,6 +1,22 @@
 # HRP-66 — Add ETL processing logs
 
-**Status:** Ready for review
+**Integration status (2026-09-08):** Task changes integrated in develop; acceptance criteria not re-executed here.
+**Git evidence:** [3192c5f](https://github.com/Bootcamp-IA-MAD-P7/Proyecto-DataEngineer-Grupo1/commit/3192c5f) / [PR #59](https://github.com/Bootcamp-IA-MAD-P7/Proyecto-DataEngineer-Grupo1/pull/59) (2026-09-04).
+**Closeout interpretation:** ETL logging helpers are integrated, including non-finite-duration rejection in PR #59. JSON log messages do not make the entire logger output JSON.
+
+This integration record does not assert current Jira status, reviewer approval identity
+or a new passing test run. [Current documentation](../README.md) and
+[acceptance/evidence matrix](../delivery-evidence.md) define the closeout reading.
+
+## Historical specification and task evidence
+
+The scope, criteria, checkboxes and test results below are the task's original record.
+They are not a live progress dashboard. Pending-review/merge references in this
+historical record are superseded by the integration evidence above; unresolved
+functional limitations are not automatically marked as passed.
+
+**Original recorded status:** Ready for review
+
 **Owner:** Miguel
 **Jira:** HRP-66
 **Dependencies:** HRP-43, HRP-44, HRP-45, HRP-46, HRP-47, HRP-48, HRP-49 and HRP-50

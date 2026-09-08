@@ -1,7 +1,22 @@
 # HRP-33 — Preparar MongoDB local para desarrollo
 
-**Jira:** HRP-33  
-**Tipo:** habilitador de desarrollo para la persistencia raw  
+**Integration status (2026-09-08):** Task changes integrated in develop; acceptance criteria not re-executed here.
+**Git evidence:** [9373626](https://github.com/Bootcamp-IA-MAD-P7/Proyecto-DataEngineer-Grupo1/commit/9373626) / [PR #27](https://github.com/Bootcamp-IA-MAD-P7/Proyecto-DataEngineer-Grupo1/pull/27) (2026-08-31).
+**Closeout interpretation:** See current architecture, runbook and test harness for subsequent changes and runtime limits.
+
+This integration record does not assert current Jira status, reviewer approval identity
+or a new passing test run. [Current documentation](../README.md) and
+[acceptance/evidence matrix](../delivery-evidence.md) define the closeout reading.
+
+## Historical specification and task evidence
+
+The scope, criteria, checkboxes and test results below are the task's original record.
+They are not a live progress dashboard. Pending-review/merge references in this
+historical record are superseded by the integration evidence above; unresolved
+functional limitations are not automatically marked as passed.
+
+**Jira:** HRP-33
+**Tipo:** habilitador de desarrollo para la persistencia raw
 **Dependencias:** Docker Desktop local; no depende de conocer el generador educativo.
 
 ## Objetivo

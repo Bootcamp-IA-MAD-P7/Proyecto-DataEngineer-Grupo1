@@ -1,6 +1,22 @@
 # HRP-43 — Empirical person-correlation discovery
 
-**Status:** Investigation complete; global outcome insufficient evidence; pending human review
+**Integration status (2026-09-08):** Investigation integrated; identity evidence remains insufficient.
+**Git evidence:** [96926bd](https://github.com/Bootcamp-IA-MAD-P7/Proyecto-DataEngineer-Grupo1/commit/96926bd) / [PR #34](https://github.com/Bootcamp-IA-MAD-P7/Proyecto-DataEngineer-Grupo1/pull/34) (2026-09-01).
+**Closeout interpretation:** Investigation outcome remains insufficient evidence for real-world identity. ADR-0006 later accepted controlled operational correlation via PR #42; do not rewrite the observation as proof of uniqueness.
+
+This integration record does not assert current Jira status, reviewer approval identity
+or a new passing test run. [Current documentation](../README.md) and
+[acceptance/evidence matrix](../delivery-evidence.md) define the closeout reading.
+
+## Historical specification and task evidence
+
+The scope, criteria, checkboxes and test results below are the task's original record.
+They are not a live progress dashboard. Pending-review/merge references in this
+historical record are superseded by the integration evidence above; unresolved
+functional limitations are not automatically marked as passed.
+
+**Original recorded status:** Investigation complete; global outcome insufficient evidence; pending human review
+
 **Owner:** Gabriela
 **Jira:** HRP-43
 **Branch:** `investigation/HRP-43-person-correlation`

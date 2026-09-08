@@ -1,6 +1,22 @@
 # HRP-54 — Create tables, primary keys, foreign keys and indexes
 
-**Status:** Draft; implementation authorised
+**Integration status (2026-09-08):** Task changes integrated in develop; acceptance criteria not re-executed here.
+**Git evidence:** [9eef089](https://github.com/Bootcamp-IA-MAD-P7/Proyecto-DataEngineer-Grupo1/commit/9eef089) / [PR #32](https://github.com/Bootcamp-IA-MAD-P7/Proyecto-DataEngineer-Grupo1/pull/32) (2026-08-31).
+**Closeout interpretation:** Schema initialization exists and terminates; it is not a migration framework or ETL worker. See the current schema dictionary.
+
+This integration record does not assert current Jira status, reviewer approval identity
+or a new passing test run. [Current documentation](../README.md) and
+[acceptance/evidence matrix](../delivery-evidence.md) define the closeout reading.
+
+## Historical specification and task evidence
+
+The scope, criteria, checkboxes and test results below are the task's original record.
+They are not a live progress dashboard. Pending-review/merge references in this
+historical record are superseded by the integration evidence above; unresolved
+functional limitations are not automatically marked as passed.
+
+**Original recorded status:** Draft; implementation authorised
+
 **Owner:** Johans
 **Human reviewer:** Miguel
 **Jira:** HRP-54

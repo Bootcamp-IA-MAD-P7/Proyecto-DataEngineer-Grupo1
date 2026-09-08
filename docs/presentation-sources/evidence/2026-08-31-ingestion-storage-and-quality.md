@@ -1,5 +1,11 @@
 # Evidence — 2026-08-31 ingestion, storage and quality baseline
 
+> Evidencia histórica del momento registrado, no inventario actual.
+> No se han reejecutado aquí los comandos originales.
+> Para el cierre usar [evidencia 2026-09-08](2026-09-08-closeout.md).
+> Corrección del corte intradía: PostgreSQL local y esquema se integraron al final
+> del 31 de agosto en PR #31/#32. Su ausencia descrita abajo no representa el final del día.
+
 ## Purpose
 
 This evidence source records the current demonstrable state after the latest ingestion

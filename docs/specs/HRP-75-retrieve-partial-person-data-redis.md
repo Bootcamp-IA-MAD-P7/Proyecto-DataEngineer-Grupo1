@@ -1,6 +1,22 @@
 # HRP-75 — Retrieve partial person data from Redis for the ETL
 
-**Status:** Implemented — pending merge
+**Integration status (2026-09-08):** Task changes integrated in develop; acceptance criteria not re-executed here.
+**Git evidence:** [a0929b6](https://github.com/Bootcamp-IA-MAD-P7/Proyecto-DataEngineer-Grupo1/commit/a0929b6) / [PR #67](https://github.com/Bootcamp-IA-MAD-P7/Proyecto-DataEngineer-Grupo1/pull/67) (2026-09-04).
+**Closeout interpretation:** Read-only retrieval is integrated. Reads do not refresh TTL; HRP-76 refreshes expiration on writes.
+
+This integration record does not assert current Jira status, reviewer approval identity
+or a new passing test run. [Current documentation](../README.md) and
+[acceptance/evidence matrix](../delivery-evidence.md) define the closeout reading.
+
+## Historical specification and task evidence
+
+The scope, criteria, checkboxes and test results below are the task's original record.
+They are not a live progress dashboard. Pending-review/merge references in this
+historical record are superseded by the integration evidence above; unresolved
+functional limitations are not automatically marked as passed.
+
+**Original recorded status:** Implemented — pending merge
+
 **Jira:** HRP-75
 **Dependencies:** HRP-74, HRP-73, ADR-0006
 

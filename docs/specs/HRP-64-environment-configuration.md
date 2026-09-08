@@ -1,6 +1,22 @@
 # HRP-64 — Configure environment variables
 
-**Status:** Draft; documentary implementation authorised
+**Integration status (2026-09-08):** Task changes integrated in develop; acceptance criteria not re-executed here.
+**Git evidence:** [e9e379f](https://github.com/Bootcamp-IA-MAD-P7/Proyecto-DataEngineer-Grupo1/commit/e9e379f) / [PR #20](https://github.com/Bootcamp-IA-MAD-P7/Proyecto-DataEngineer-Grupo1/pull/20) (2026-08-31).
+**Closeout interpretation:** See current architecture, runbook and test harness for subsequent changes and runtime limits.
+
+This integration record does not assert current Jira status, reviewer approval identity
+or a new passing test run. [Current documentation](../README.md) and
+[acceptance/evidence matrix](../delivery-evidence.md) define the closeout reading.
+
+## Historical specification and task evidence
+
+The scope, criteria, checkboxes and test results below are the task's original record.
+They are not a live progress dashboard. Pending-review/merge references in this
+historical record are superseded by the integration evidence above; unresolved
+functional limitations are not automatically marked as passed.
+
+**Original recorded status:** Draft; documentary implementation authorised
+
 **Owner:** Miguel
 **Jira:** HRP-64
 **Dependencies:** ADR-0004 accepted; no runtime service implementation is required

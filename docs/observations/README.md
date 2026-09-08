@@ -26,3 +26,11 @@ el generador educativo.
 3. Ejecutar los checks de calidad y abrir una PR o hacer un commit trazable.
 4. Enlazar el documento y commit/PR en HRP-29.
 5. Gaby usa solo ese documento como base para actualizar HRP-24.
+
+## Alcance histórico y decisiones posteriores
+
+Las observaciones son evidencia fechada: no se reescriben para convertir una muestra
+limitada en verdad universal. HRP-29 describe formas; HRP-43 no probó identidad global.
+ADR-0006 fue integrado posteriormente por PR #42, con una decisión operacional
+controlada. Véanse [contrato vigente](../02-data-contract.md) y
+[ADR-0006](../adr/0006-person-correlation-key.md).

@@ -1,75 +1,93 @@
-# Data model
+# Data model and field dictionary
 
-The detailed design—collections, tables, proposed columns, and the raw/curated
-boundary—lives in [the HRP-25 specification](specs/HRP-25-modelo-datos.md). This
-document is a concise summary. If there is a discrepancy, the HRP-25 specification
-is the source of truth until an implementation task is approved.
+**Reviewed:** 2026-09-08. Runtime truth: [schema](../src/hr_pro_platform/storage/postgres.py),
+[mapper](../src/hr_pro_platform/storage/person_mapper.py) and
+[repository](../src/hr_pro_platform/storage/person_repository.py).
+HRP-25/52 preserve the original design, not a current “SQL not implemented” status.
 
-## MongoDB: raw zone
+## MongoDB
 
-Planned collections:
+Two implemented collections, configurable through `MONGODB_COLLECTION` and
+`MONGODB_INVALID_COLLECTION`, use `raw_events` and `invalid_events` in .env.example; ingestion requires
+both configuration values rather than silently supplying runtime defaults.
 
-- `raw_events`: original event, Kafka metadata, receipt time, and processing state.
-- `invalid_events`: an event that fails technical validation (not structural
-  `non-conforming/unknown` classification), together with its reason.
-- `processing_audit`: raw-side transformation and loading traceability.
+| Field | Shape / meaning |
+|---|---|
+| `payload` | Original JSON object; technical-invalid payload uses original binary or null |
+| `topic`, `partition`, `offset` | Technical Kafka identity |
+| `received_at` | UTC receipt timestamp |
+| `processing_status` | Initial state `pending` for raw; `invalid` for technical-invalid; not Jira status |
+| Invalid reason | `missing_value`, `invalid_utf8`, `invalid_json`, `non_object_json` |
 
-The proposed technical duplicate-prevention index is `topic + partition + offset`.
+Each collection has the compound technical unique index. The adapter checks
+opposite-collection conflicts. No MongoDB `processing_audit` collection is
+implemented by this boundary; operational SQL auditing is a separate table.
+Unknown structural JSON objects remain raw, not technical-invalid events.
 
-Minimum proposed raw-event document:
+## PostgreSQL structure
 
-| Field | Type | Purpose |
-|---|---|---|
-| `payload` | JSON object | Original evidence, without renaming or normalisation |
-| `topic` | string | Kafka technical metadata |
-| `partition` | integer | Kafka technical metadata |
-| `offset` | integer | Kafka technical metadata |
-| `received_at` | UTC datetime | Time at which the platform received the event |
-| `processing_status` | technical string | Operational status, not a business classification |
+```mermaid
+erDiagram
+    employees ||--o{ locations : owns
+    employees ||--o{ professional_profiles : owns
+    employees ||--o{ bank_accounts : owns
+    employees ||--o{ network_data : owns
+    employees o|--o{ processing_audit : traces
+```
 
-Structural classification (A–E or `non-conforming/unknown`, as defined in
-`docs/02-data-contract.md`) is not persisted as a `raw_events` field in this
-design. It is a processing result, not a raw fact. The location for auditing that
-classification remains pending (see HRP-25).
+| Table | Columns beyond primary key |
+|---|---|
+| employees | first_name, last_name, sex, telephone_number, email, passport, created_at, updated_at |
+| locations | employee_id, full_name, city, address, ip_v4 |
+| professional_profiles | employee_id, full_name, company, company_address, company_email, company_telephone_number, job |
+| bank_accounts | employee_id, iban, passport, salary |
+| network_data | employee_id, ip_v4 |
+| processing_audit | employee_id (nullable), stage, status, raw_event_ref, occurred_at |
 
-ADR-0005 proposes that the compound index be unique and that offset acknowledgement
-occur only after a successful insertion or when MongoDB proves that the same
-coordinates already exist. HRP-34 must validate this design with tests before the
-proposal may be accepted; HRP-35 and HRP-36 must follow the final approved decision.
-See [ADR-0005](adr/0005-kafka-acknowledgement-after-raw-persistence.md).
+Primary keys are BIGSERIAL; foreign keys are BIGINT. Business fields are nullable
+TEXT, except `sex` (JSONB). Timestamps are TIMESTAMPTZ.
+Dependent rows use `ON DELETE CASCADE`; audit ownership uses `ON DELETE SET NULL`.
+Ownership columns and audit timestamps have the required constraints in the schema.
 
-## HRP-34 raw boundary
+A partial unique index protects non-null `processing_audit.raw_event_ref`.
+There is no business unique index on passport, name, address or IBAN.
+The schema initializer uses `CREATE ... IF NOT EXISTS`; it is not a versioned
+migration framework and does not reconcile incompatible existing table definitions.
 
-JSON objects are stored before classification; `unknown` and `non-conforming` remain
-in `raw_events`. Technical-invalid values use `invalid_events` with the closed codes
-`missing_value`, `invalid_utf8`, `invalid_json` and `non_object_json`. Missing values
-use `payload: null`; present invalid bytes are BSON Binary only inside MongoDB.
-Collection names are configured with `MONGODB_COLLECTION` and
-`MONGODB_INVALID_COLLECTION`, and identity is `topic + partition + offset`.
+## Observed-to-curated mapping
 
-## PostgreSQL: curated zone
+| Domain | Observed field → curated field |
+|---|---|
+| Personal | name → first_name; last_name → last_name; sex → sex; telfnumber → telephone_number; email → email; passport → passport |
+| Location | fullname → full_name; city → city; address → address |
+| Professional | fullname → full_name; company → company; company address → company_address; company_email → company_email; company_telfnumber → company_telephone_number; job → job |
+| Bank | IBAN → iban; passport → passport; salary → salary |
+| Net | IPv4 → ip_v4; address participates in correlation, not a network_data column |
 
-Planned tables, with candidate columns detailed in
-[the HRP-25 specification](specs/HRP-25-modelo-datos.md) and candidate primary keys,
-foreign keys, indexes and naming conventions detailed in
-[the HRP-52 specification](specs/HRP-52-tablas-relaciones.md):
+The mapper also supports Location `IPv4 → ip_v4`, but the current exact
+Location classifier accepts only fullname/city/address. The column must not be
+advertised as normally populated by the observed Location contract.
+Salary remains TEXT; there is no currency conversion or numeric salary validation.
 
-- `employees`
-- `locations`
-- `professional_profiles`
-- `bank_accounts`
-- `network_data`
-- `processing_audit`
+## Transformation and persistence semantics
 
-No table currently includes a business unique constraint (for example, on
-`passport`). `passport`, `fullname`, and `address` are correlation candidates
-observed by HRP-29, not approved keys. The person correlation key, the cardinality
-between `employees` and dependent tables, and the idempotent-upsert policy remain
-pending in [ADR-0006](adr/0006-person-correlation-key.md), which stays `Proposed`
-until additional evidence has received human review.
+The consolidated record carries domain contributions, correlation rules,
+provenance and status (complete/incomplete/ambiguous). Mapping preserves candidate
+rows and source references. Repository insert/update operations enforce their own
+rejection and idempotency policy; consult HRP-56/57/58 for ambiguous or unresolved
+ownership cases. Repeated payload with different source reference is not equivalent
+to repeating the same exact payload/reference pair.
 
-The final design will be approved in the relational-data-model Jira task after the
-real-event contract is validated. HRP-25 does not authorise SQL, migrations, Docker,
-ETL, or API code. Those are the responsibility of future Jira tasks—raw persistence,
-ETL-to-PostgreSQL integration, and table creation—once the design has received human
-review.
+## Redis
+
+Keys use `hrp:partial:<opaque component identifier>`. Members contain classification,
+payload and source_reference serialized deterministically. Set membership deduplicates
+identical serialized fragments; conflicts remain distinct. Default TTL is 3600s,
+renewed after every storage call, including duplicates. Retrieval does not refresh TTL.
+Redis is internal to Compose without a host port or durable volume.
+
+## Privacy and consumers
+
+Search API returns employee, location and professional data, not bank accounts.
+Statistics may count bank rows but do not expose IBAN or salary.
+Use synthetic examples only. [API contract](api-reference.md).

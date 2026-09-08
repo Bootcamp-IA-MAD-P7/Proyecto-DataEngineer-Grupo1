@@ -1,111 +1,78 @@
-# Arnés de validación
+# Test harness and evidence
 
-El arnés permite demostrar que el pipeline cumple el briefing sin depender del
-generador educativo ni de un entorno manual irrepetible. Es un contrato ejecutable:
-fixtures autorizados + pruebas + datos de salida esperados + métricas.
+## Layers actually present
 
-## Mapa del harness
-
-No se añade una capa documental distinta para cada concepto: este repositorio usa las
-guías existentes para prevenir errores y los sensores para detectarlos antes del merge.
-
-| Capa | Artefactos canónicos | Función |
+| Layer | Location | Boundary |
 |---|---|---|
-| Guías | `AGENTS.md`, arquitectura, contrato, SDD, ADRs y specs | Delimitan contexto, reglas y alcance antes de trabajar |
-| Sandbox | Rama de tarea + entorno local + Docker Compose cuando exista | Aísla cambios y servicios de desarrollo |
-| Sensores | Pre-commit, `validate_specs.py`, Ruff, mypy, pytest, CI y revisión humana | Rechazan errores y desviaciones comprobables |
-| Evidencia persistente | Spec, pruebas, PR, daily y comentario Jira | Mantiene el estado fuera de la conversación del agente |
+| Unit | tests/unit | Fakes, pure transformations, repositories, API and metrics |
+| Integration | tests/integration | Real MongoDB/PostgreSQL or explicitly configured Redis |
+| E2E synthetic | tests/e2e/test_kafka_mongodb_postgresql_flow.py | Synthetic Kafka-equivalent events, real MongoDB and PostgreSQL |
+| Fixtures | tests/fixtures and inline test fixtures | Sanitized/synthetic values; no generator inspection |
 
-La regla es deliberadamente simple: no se añade RAG, un servicio extra o una librería
-de guardrails mientras las guías y sensores actuales sean suficientes.
+There is no separate tests/contract directory or implemented load-test runner in this
+checkout. Contract checks live in the unit suites. Unit tests still need installed
+Python dependencies: “no external services” does not mean “no native dependencies”.
 
-## Pirámide de pruebas
+## Recorded local attempt
 
-| Capa | Objetivo | Dependencias | Ejecución |
-|---|---|---|---|
-| Unitarias | Reglas puras de clasificación, validación y correlación | Ninguna | Cada commit |
-| Contrato | Validar eventos contra el contrato observado | Fixtures JSON | Cada PR |
-| Integración | MongoDB, Redis y PostgreSQL reales | Docker Compose/test containers | Cada PR relevante |
-| E2E | Kafka fixture → raw → curado | Stack local completo | Antes de demo/release |
-| Carga | Medir volumen, latencia y errores | Reproductor de fixtures | Sprint de rendimiento |
+Code baseline f3a952b, 2026-09-08, Windows/Python 3.11:
+246 passed + 21 failed + 40 skipped = 307 tests; calculated coverage 82.91%.
+The threshold in pyproject.toml is 75%. This is a failed test run, not a green release.
 
-## Política de fixtures
+An isolated import diagnosed a Windows Application Control block loading
+confluent-kafka's cimpl extension. Secondary unittest.mock errors hid that ImportError.
+MongoDB/PostgreSQL absence and missing HRP74_REDIS_URL caused integration skips.
+This explains the observed environment but does not substitute for a successful
+rerun or certify every failure independently.
 
-1. HRP-29 observa datos desde Kafka sin inspeccionar el generador.
-2. Se extrae el mínimo ejemplo estructural necesario.
-3. Se eliminan o reemplazan valores que no sean esenciales para probar el esquema.
-4. El fixture referencia la spec y la fecha de observación en un comentario o README.
-5. Nunca se comitean capturas de tráfico completas, secretos o datos locales.
+## CI definition versus result
 
-## Matriz mínima de comportamiento
+The supplied quality workflow runs on Ubuntu, installs .[dev], then checks specs,
+pre-commit, Ruff, mypy, pytest and Compose syntax. It provisions PostgreSQL and MongoDB,
+not Redis or a Kafka broker. A versioned workflow is evidence of configuration;
+a claim that a run passed needs its specific run URL and commit.
 
-| ID | Caso | Nivel | Resultado esperado |
-|---|---|---|---|
-| H-01 | Evento válido por categoría | Unitario/contrato | Clasificación correcta |
-| H-02 | Campo obligatorio ausente | Unitario | Error aislado y auditado |
-| H-03 | Payload no parseable | Unitario/integración | Consumer continúa |
-| H-04 | Repetición de topic-partition-offset | Integración | Un único raw event |
-| H-05 | Fragmentos de una persona desordenados | Integración | Persona correcta al completarse |
-| H-06 | Claves de correlación inconsistentes | Unitario/integración | No se mezcla información |
-| H-07 | Redis expira estado parcial | Integración | Sin corrupción; reproceso posible |
-| H-08 | Reinicio del worker | E2E | Sin duplicados ni pérdida observable |
-| H-09 | Falla MongoDB/PostgreSQL transitoria | Integración | Reintento/registro y métrica |
-| H-10 | Carga sostenida de fixtures | Carga | Métricas de consumo y latencia |
-| H-11 | MongoDB falla antes de persistir | Integración prevista para HRP-34 | La propuesta ADR-0005 impide confirmar el offset |
+## Commands
 
-## Convención de nombres
+Run from the repository root:
 
-```text
-tests/unit/test_classifier.py
-tests/contract/test_kafka_event_contract.py
-tests/integration/test_raw_event_repository.py
-tests/e2e/test_kafka_to_postgres.py
-tests/fixtures/observed/<categoria>-valid.json
-tests/fixtures/invalid/<caso>.json
-```
-
-Cada prueba tiene nombre de comportamiento: `test_duplicate_offset_is_not_persisted_twice`,
-no `test_case_1`.
-
-Cuando una spec tenga varios criterios de aceptación que afecten comportamiento, estos
-se identifican como `AC-01`, `AC-02`, etc. El nombre o docstring de la prueba debe
-referenciar ese identificador. No se exige esta convención a las specs de diseño ya
-existentes ni se inventan pruebas antes de que exista implementación.
-
-## Accessibility and sustainable-delivery evidence
-
-When a task introduces a user-facing flow, the harness includes an automated
-accessibility check against the rendered interface and a documented keyboard-only
-manual check. Advanced widgets, dynamic updates, dialogs and charts also require
-screen-reader validation when applicable. Charts and status indicators need an
-equivalent textual or tabular alternative.
-
-Tasks affecting APIs, frontend delivery, Docker or AWS document the applicable
-efficiency evidence: for example bounded API responses, request count, transfer size,
-query cost, container resources or retained data. No carbon score, energy saving or
-deployment claim is accepted without measured evidence and its boundary.
-
-## Comandos de calidad
-
-```powershell
-pre-commit run --all-files
+```bash
 python scripts/validate_specs.py
+pre-commit run --all-files
 ruff check .
 ruff format --check .
 mypy src
-pytest
-```
-
-La cobertura de línea parte de un umbral exigible del 75 %. Es un suelo inicial: no
-se reduce para hacer pasar una PR y debe elevarse gradualmente cuando crezca el código.
-La cobertura no sustituye las pruebas de comportamiento ni demuestra por sí sola que
-el pipeline sea correcto.
-
-La configuración de Compose de desarrollo también se valida sin arrancar servicios:
-
-```powershell
+python -m pytest
 docker compose -f infra/compose.dev.yml config --quiet
 ```
 
-Los comandos de integración, E2E y carga se documentarán en `docs/07-runbook.md`
-cuando sus servicios existan. Una tarea no puede afirmar que están ejecutados antes.
+For a bounded unit run:
+`python -m pytest tests/unit -q --no-cov`.
+For collection without writing coverage:
+`python -m pytest --collect-only -q --no-cov`.
+Integration fixtures perform writes and cleanup; use only dedicated test databases,
+as explained in the [runbook](07-runbook.md).
+
+## What a check establishes
+
+- Spec validation checks filename, Jira metadata, objective and checklist structure.
+  It does not approve meaning, accuracy, links or implementation completeness.
+- Coverage is executed-line coverage, not a percentage of accepted briefing checks.
+- A healthcheck is availability, not data correctness.
+- HRP-71 is not a live-broker throughput, restart or sustained-runtime benchmark.
+- Documentation edits require consistency/link checks; no application rerun is
+  implied when no code or runtime behaviour changes.
+
+## Fixtures and future evidence
+
+Retain only minimum structural evidence and synthetic values. Accessibility,
+load, disaster recovery and public API security need their own applicable evidence;
+a policy or architecture direction is not a measured result.
+
+## Unverified operational boundaries
+
+The consumer's durable-prefix helper evaluates one batch at a time; there is no
+cross-batch unresolved-gap ledger. Per-batch tests do not establish that a later
+commit cannot overtake an earlier unpersisted event. Generic consumer exception
+logging also lacks a universal redaction filter. These code boundaries were identified
+read-only; no regression fix or new functional test is claimed by this documentation.

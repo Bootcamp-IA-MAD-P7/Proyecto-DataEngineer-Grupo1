@@ -1,4 +1,50 @@
-# Daily — 2026-08-31
+# Daily — 2026-08-31 — Persistencia inicial e infraestructura
+
+## Naturaleza del registro
+
+Registro original conservado abajo, acompañado de una reconciliación retrospectiva del historial.
+La fecha es la de integración en develop; puede diferir de la fecha de autoría.
+No se atribuyen conversaciones, aprobaciones personales ni bloqueos sin evidencia.
+
+## Resultado de la jornada
+
+Modelo SQL, configuración, Dockerfile, logging y CI; MongoIngestionClient. Al final de la jornada se integran PostgreSQL local (PR #31) y esquema SQL (PR #32).
+
+## Evidencia integrada
+
+| Commit | Integración registrada |
+|---|---|
+| [9eef089](https://github.com/Bootcamp-IA-MAD-P7/Proyecto-DataEngineer-Grupo1/commit/9eef089) | HRP-54 feat: create tables, primary keys, foreign keys and indexes (#32) |
+| [58b6bbc](https://github.com/Bootcamp-IA-MAD-P7/Proyecto-DataEngineer-Grupo1/commit/58b6bbc) | HRP-53 feat: create PostgreSQL via Docker (#31) |
+| [a0d085d](https://github.com/Bootcamp-IA-MAD-P7/Proyecto-DataEngineer-Grupo1/commit/a0d085d) | Merge pull request #30 from Bootcamp-IA-MAD-P7/docs/HRP-22-project-closeout-2026-08-31 |
+| [0942230](https://github.com/Bootcamp-IA-MAD-P7/Proyecto-DataEngineer-Grupo1/commit/0942230) | HRP-34 feat: integrate detect_topic and validate into consumer batch loop (#29) |
+| [9373626](https://github.com/Bootcamp-IA-MAD-P7/Proyecto-DataEngineer-Grupo1/commit/9373626) | HRP-33 feat: add MongoIngestionClient (#27) |
+| [cb2855a](https://github.com/Bootcamp-IA-MAD-P7/Proyecto-DataEngineer-Grupo1/commit/cb2855a) | HRP-52 docs: design PostgreSQL tables and relationships |
+| [c6e325c](https://github.com/Bootcamp-IA-MAD-P7/Proyecto-DataEngineer-Grupo1/commit/c6e325c) | Merge pull request #21 from Bootcamp-IA-MAD-P7/feature/HRP-62-application-dockerfile |
+| [e9e379f](https://github.com/Bootcamp-IA-MAD-P7/Proyecto-DataEngineer-Grupo1/commit/e9e379f) | Merge pull request #20 from Bootcamp-IA-MAD-P7/feature/HRP-64-environment-configuration |
+| [71aa78d](https://github.com/Bootcamp-IA-MAD-P7/Proyecto-DataEngineer-Grupo1/commit/71aa78d) | HRP-72 docs: record CI evidence (#24) |
+| [cdefded](https://github.com/Bootcamp-IA-MAD-P7/Proyecto-DataEngineer-Grupo1/commit/cdefded) | HRP-65 chore: add safe Kafka consumer logging (#23) |
+| [0ec4fef](https://github.com/Bootcamp-IA-MAD-P7/Proyecto-DataEngineer-Grupo1/commit/0ec4fef) | HRP-94 docs: define accessibility and sustainability policy (#26) |
+| [a33c5fd](https://github.com/Bootcamp-IA-MAD-P7/Proyecto-DataEngineer-Grupo1/commit/a33c5fd) | Merge pull request #22 from Bootcamp-IA-MAD-P7/feature/HRP-72-ci-test-automation |
+| [ba774b8](https://github.com/Bootcamp-IA-MAD-P7/Proyecto-DataEngineer-Grupo1/commit/ba774b8) | Merge pull request #19 from Bootcamp-IA-MAD-P7/docs/HRP-25-english-data-model |
+| [d3986a2](https://github.com/Bootcamp-IA-MAD-P7/Proyecto-DataEngineer-Grupo1/commit/d3986a2) | Merge pull request #18 from Bootcamp-IA-MAD-P7/feature/HRP-25-modelo-datos |
+
+## Límites y decisiones
+
+El registro original era un corte intradía: sus frases «PostgreSQL pendiente» no representan el final de la jornada. La frontera raw inicial HRP-34 se corrige después en PR #33.
+
+## Continuidad
+
+Consultar la [siguiente jornada disponible y el índice](README.md).
+Las tareas y estados actuales de Jira no se han consultado en esta revisión.
+El historial acredita commits, no asistencia a una daily ni validación de cada criterio.
+
+
+## Registro original de la jornada (histórico)
+
+Las afirmaciones de estado que siguen pertenecen al momento original, no al cierre.
+
+### Daily — 2026-08-31
 
 ## Trabajo realizado hasta ahora
 

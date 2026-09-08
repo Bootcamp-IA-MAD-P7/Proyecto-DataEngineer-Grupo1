@@ -1,6 +1,21 @@
 # HRP-86 — Statistics endpoint
 
-**Status:** Draft; implementation authorised — the metrics-list open decision
+**Integration status (2026-09-08):** Task changes integrated in develop; acceptance criteria not re-executed here.
+**Git evidence:** [444f47a](https://github.com/Bootcamp-IA-MAD-P7/Proyecto-DataEngineer-Grupo1/commit/444f47a) / [PR #69](https://github.com/Bootcamp-IA-MAD-P7/Proyecto-DataEngineer-Grupo1/pull/69) (2026-09-04).
+**Closeout interpretation:** SQL aggregate statistics are integrated with explicit response models; no person-level values are returned.
+
+This integration record does not assert current Jira status, reviewer approval identity
+or a new passing test run. [Current documentation](../README.md) and
+[acceptance/evidence matrix](../delivery-evidence.md) define the closeout reading.
+
+## Historical specification and task evidence
+
+The scope, criteria, checkboxes and test results below are the task's original record.
+They are not a live progress dashboard. Pending-review/merge references in this
+historical record are superseded by the integration evidence above; unresolved
+functional limitations are not automatically marked as passed.
+
+**Original recorded status:** Draft; implementation authorised — the metrics-list open decision
 below was confirmed by Johans Salas (task owner) on 2026-09-04, adopting the
 proposed minimal default as-is. Revised on 2026-09-04 after Gabriela Granja's
 review of PR #69 (`CHANGES_REQUESTED`): the aggregation model changed from
@@ -9,6 +24,7 @@ to a new, dedicated PostgreSQL aggregate query
 (`count_employees_missing_each_domain()`), and the response contract changed
 from `dict[str, int]` to explicit Pydantic models. See "Design" and
 "Decisions confirmed after review" below.
+
 **Owner:** Johans Salas
 **Human reviewer:** Miguel or Gaby
 **Jira:** HRP-86 — Crear endpoint de estadísticas

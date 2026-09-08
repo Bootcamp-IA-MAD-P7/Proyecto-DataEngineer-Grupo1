@@ -1,6 +1,22 @@
 # HRP-21 — Configurar ramas, pull requests y norma de commits
 
-**Estado:** Lista para implementar
+**Estado de integración (2026-09-08):** Task changes integrated in develop; acceptance criteria not re-executed here.
+**Git evidence:** [963a7c3](https://github.com/Bootcamp-IA-MAD-P7/Proyecto-DataEngineer-Grupo1/commit/963a7c3) / [PR #1](https://github.com/Bootcamp-IA-MAD-P7/Proyecto-DataEngineer-Grupo1/pull/1) (2026-08-27).
+**Closeout interpretation:** Workflows and CODEOWNERS are versioned; remote protection settings and latest check results were not re-queried.
+
+This integration record does not assert current Jira status, reviewer approval identity
+or a new passing test run. [Current documentation](../README.md) and
+[acceptance/evidence matrix](../delivery-evidence.md) define the closeout reading.
+
+## Historical specification and task evidence
+
+The scope, criteria, checkboxes and test results below are the task's original record.
+They are not a live progress dashboard. Pending-review/merge references in this
+historical record are superseded by the integration evidence above; unresolved
+functional limitations are not automatically marked as passed.
+
+**Original recorded status:** Lista para implementar
+
 **Responsable:** Miguel Redondo Núñez
 **Jira:** HRP-21
 **Dependencia:** HRP-20 (finalizada)

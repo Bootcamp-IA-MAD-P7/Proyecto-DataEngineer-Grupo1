@@ -1,6 +1,22 @@
 # HRP-45 - Validation and cleaning boundary
 
-**Status:** Implemented - PR #36; pending final approval or merge
+**Integration status (2026-09-08):** Task changes integrated in develop; acceptance criteria not re-executed here.
+**Git evidence:** [f608156](https://github.com/Bootcamp-IA-MAD-P7/Proyecto-DataEngineer-Grupo1/commit/f608156) / [PR #36](https://github.com/Bootcamp-IA-MAD-P7/Proyecto-DataEngineer-Grupo1/pull/36) (2026-09-02).
+**Closeout interpretation:** Technical validation is implemented; no semantic cleaning/normalization is added. ADR-0006 was subsequently integrated via PR #42.
+
+This integration record does not assert current Jira status, reviewer approval identity
+or a new passing test run. [Current documentation](../README.md) and
+[acceptance/evidence matrix](../delivery-evidence.md) define the closeout reading.
+
+## Historical specification and task evidence
+
+The scope, criteria, checkboxes and test results below are the task's original record.
+They are not a live progress dashboard. Pending-review/merge references in this
+historical record are superseded by the integration evidence above; unresolved
+functional limitations are not automatically marked as passed.
+
+**Original recorded status:** Implemented - PR #36; pending final approval or merge
+
 **Owner:** Gabriela
 **Jira:** HRP-45
 **Dependencies:** HRP-34 raw persistence boundary; HRP-44 domain-classification contract

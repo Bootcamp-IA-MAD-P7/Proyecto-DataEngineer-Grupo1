@@ -22,8 +22,9 @@ alwaysApply: true
 - Never inspect the educational generator's source code.
 - Never commit credentials, `.env`, private broker addresses, full raw payloads,
   personal data, banking data or screenshots containing them.
-- Only create test fixtures from authorised Kafka observation; minimise and sanitise
-  them first.
+- Use explicitly synthetic fixtures for approved contracts, or minimise and sanitise
+  authorised observation-derived fixtures. Synthetic examples are never observations
+  or proof of business semantics. See `tests/fixtures/README.md`.
 - Preserve the raw/temporary/curated boundaries: MongoDB is raw evidence, Redis is
   temporary correlation state, and PostgreSQL is curated query data.
 

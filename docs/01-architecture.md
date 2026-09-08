@@ -1,129 +1,105 @@
-# Arquitectura de referencia
+# Arquitectura y límites de ejecución
 
-## Propósito y límite
+**Corte:** 2026-09-08 · código `f3a952b`. Esta guía describe componentes existentes
+y cómo se conectan realmente. [Aceptación del proyecto](delivery-evidence.md).
 
-La plataforma integra eventos de RR. HH. generados externamente. Nuestro sistema
-empieza en el broker Kafka: no contiene ni controla al productor y no inspecciona el
-código que crea los eventos. La arquitectura debe soportar una ingesta alta, conservar
-la evidencia original, tolerar repeticiones y producir datos consultables.
+## Procesos ejecutables
+
+| Proceso | Entrada | Trabajo real | Fin |
+|---|---|---|---|
+| `ingestion.main` / Compose `app` | Kafka autorizado | Polling, persistencia raw, confirmaciones y métricas | Señal o error con reintentos acotados |
+| `storage.main` | Configuración PostgreSQL | Conectar y crear esquema | Termina; no hace ETL |
+| `uvicorn ...api.main:app` | HTTP | Consultas PostgreSQL | Servidor independiente |
+
+El Dockerfile define solo el primer entrypoint. No existe un servicio API ni un
+`process-worker` en Compose. Las funciones ETL y el repositorio SQL existen como
+bibliotecas; el encadenamiento está ejercitado por pruebas.
+
+## Recorrido del dato
 
 ```mermaid
-flowchart LR
-    K[Kafka externo] -->|evento + topic/partición/offset| I[ingest-worker]
-    I -->|raw inmutable| M[(MongoDB raw_events)]
-    I -->|métrica/log| O[Prometheus + logs]
-    M -->|evento pendiente| P[process-worker]
-    P <-->|estado temporal / TTL| R[(Redis)]
-    P -->|upsert curado| SQL[(PostgreSQL)]
-    P --> O
-    SQL --> A[FastAPI]
-    A --> UI[Frontend SPA]
-    A --> O
+flowchart TD
+    K["Kafka externo"] --> I["Consumer"]
+    I --> V{"¿JSON object?"}
+    V -->|Sí| M[("MongoDB raw_events")]
+    V -->|No| X[("MongoDB invalid_events")]
+    M --> D["Resultado durable por coordenada"]
+    X --> D
+    D --> C["Commit del prefijo durable por partición"]
+    M -. "orquestación explícita en HRP-71" .-> T["Clasificar y validar"]
+    T --> G["Cinco groupers"]
+    G --> U["Consolidar con ADR-0006"]
+    U --> P["Mapear y persistir"]
+    P --> S[("PostgreSQL")]
+    S --> A["API"]
 ```
 
-## Responsabilidades y contratos
+HRP-71 usa coordenadas y datos sintéticos; llama directamente al adaptador MongoDB
+y luego a las funciones ETL y SQL. No prueba el transporte desde un broker,
+el ciclo de vida de un worker ETL ni Redis.
 
-| Componente | Responsabilidad | Entrada | Salida | No responsabilidad |
-|---|---|---|---|---|
-| Kafka externo | Publicar eventos | — | Eventos | Garantizar el esquema final |
-| `ingest-worker` | Leer, validar mínimamente y persistir raw | Evento Kafka | Documento raw y métrica | Agrupar personas |
-| MongoDB | Conservación inmutable y reproceso | Evento + metadatos técnicos | `raw_events` | Consultas de negocio |
-| `process-worker` | Clasificar, correlacionar, normalizar y hacer upsert | Eventos raw | Registro curado / auditoría | Exponer HTTP |
-| Redis | Estado parcial con TTL | Fragmentos correlacionados | Estado temporal | Ser fuente de verdad |
-| PostgreSQL | Datos curados, consistentes y consultables | Registro integrado | Tablas e índices | Retener payload raw |
-| API | Consultas controladas a datos curados | HTTP | JSON | Transformar eventos |
-| Frontend SPA | Experiencia de consulta y métricas | API / Prometheus | Vista web | Acceso directo a bases |
+## Contratos entre componentes
 
-## Flujo lógico de datos
-
-1. Kafka entrega un registro identificado técnicamente por `topic`, `partition` y
-   `offset`.
-2. El worker de ingesta añade la fecha de recepción y persiste el payload sin mutarlo
-   en MongoDB. Un índice único técnico hace la operación idempotente.
-   ADR-0005 propone confirmar Kafka solo cuando MongoDB informe de una inserción
-   correcta o de que esas mismas coordenadas ya estaban persistidas. HRP-34 debe
-   validar esta política antes de convertirla en invariante.
-3. El worker de proceso recupera o recibe el evento raw, lo clasifica según el
-   contrato validado y registra errores de validación sin detener la ingesta.
-4. Redis guarda únicamente fragmentos necesarios para completar una persona y expira
-   según una política explícita.
-5. El worker publica un upsert de la persona en PostgreSQL y un registro de auditoría.
-6. API y dashboard consumen PostgreSQL; jamás acceden a `raw_events` para presentar
-   una consulta de negocio.
-
-## Zonas de datos y propiedad
-
-| Zona | Tecnología | Propietario lógico | Retención / uso |
-|---|---|---|---|
-| Transporte | Kafka externo | Proveedor educativo | Solo consumo |
-| Raw | MongoDB | Ingesta | Auditoría, trazabilidad y reproceso |
-| Temporal | Redis | Proceso ETL | Correlación de fragmentos, con TTL |
-| Curada | PostgreSQL | Proceso ETL | Consultas y API |
-| Operativa | Prometheus/logs | Plataforma | Métricas y diagnóstico; sin payload sensible |
-
-## Invariantes de diseño
-
-- Un evento raw conserva payload original y metadatos Kafka antes de transformarse.
-- `topic + partition + offset` identifica unívocamente la lectura de un evento.
-- Redis no puede ser necesaria para reconstruir la verdad de negocio: MongoDB y
-  PostgreSQL permiten recuperar/reprocesar.
-- Reprocesar un evento no puede crear una segunda persona ni duplicar una operación.
-- Errores de un mensaje se aíslan, registran y miden; no detienen el consumer.
-- Los nombres raw proceden de la evidencia HRP-29 y no se normalizan por intuición;
-  la clave final de correlación sigue pendiente de aprobación.
-
-## Límite propuesto de confirmación Kafka y persistencia raw
-
-Esta política está **propuesta, no aprobada**. ADR-0005 plantea que la confirmación de
-Kafka forme parte del contrato entre ingesta y el repositorio raw, no de la
-transformación posterior. El repositorio devolvería las coordenadas realmente
-persistidas y el consumer confirmaría únicamente esas lecturas. Un fallo de MongoDB
-dejaría el offset sin confirmar; una colisión con el índice único podría considerarse
-una persistencia ya realizada. HRP-34 debe aportar pruebas y revisión de pares antes de
-adoptar este límite como invariante.
-
-La decisión y sus consecuencias están registradas en
-[ADR-0005](adr/0005-kafka-acknowledgement-after-raw-persistence.md).
-
-## Escalabilidad y tolerancia a fallos
-
-| Riesgo | Respuesta de diseño | Métrica / prueba |
+| Componente | Contrato | Límite |
 |---|---|---|
-| Ráfaga de eventos | Consumer por grupo, lotes y persistencia idempotente | Mensajes/s y lag |
-| Mensaje duplicado | Índice único raw y upsert curado | Duplicados descartados |
-| Orden variable | Estado parcial en Redis y reglas de correlación | Fixture reordenado |
-| Base temporal caída | Reintento acotado; evento raw recuperable | Errores de persistencia |
-| Esquema inesperado | Envío a `invalid_events` / auditoría | Conteo de inválidos |
-| Reinicio del worker | Relectura segura desde offset y deduplicación | Prueba de reinicio |
+| MongoDB | Payload original, coordenadas y estado técnico | No clasifica negocios |
+| Clasificador | Igualdad exacta del conjunto de claves | Ignora valores; extra/missing key → `unknown` |
+| Validador | Mapping soportado y clasificación coherente | No limpia ni normaliza valores |
+| Groupers | Grupos por clave operacional y procedencia | Conservan conflictos y no resueltos |
+| Consolidación | Componentes conectados por cuatro reglas exactas | No prueba identidad real |
+| Redis | Set de fragmentos clasificados bajo identificador opaco | El llamador decide el identificador y cuándo usar el adapter |
+| SQL | Mapeo, transacción y auditoría de referencias | Idempotencia de procedencia, no unicidad de pasaporte |
+| API | Consultas exactas parametrizadas y paginadas | No ingiere ni consolida |
 
-## Despliegue progresivo
+## Correlación y conservación de evidencia
 
-| Nivel del briefing | Servicios habilitados | Evidencia de aceptación |
-|---|---|---|
-| Esencial | Kafka, ingest-worker, MongoDB, process-worker, PostgreSQL | Kafka → raw → persona curada |
-| Medio | Docker Compose, logs, tests, CI | `docker compose` y arnés en verde |
-| Avanzado | Redis, Prometheus, API | Métricas y consultas HTTP |
-| Experto | Reinicio automático y frontend accesible | Pipeline continuo y demo navegable |
+ADR-0006 admite relaciones exactas Personal–Bank por pasaporte,
+Personal–Location por nombre concatenado, Location–Professional por nombre y
+Location–Net por dirección. No se usa fuzzy matching ni normalización.
+La consolidación conserva grupos originales, reglas aplicadas y referencias.
 
-## Frontend and deployment direction
+`complete` significa que el componente tiene contribuciones de los cinco dominios
+sin ambigüedad detectada; no significa persona real verificada.
+`incomplete`, `ambiguous` y `unresolved` no se ocultan con valores inventados.
+[Contrato vigente de consolidación](specs/HRP-96-consolidation-contract-hardening.md).
 
-For the expert-level interface, the preferred future implementation is a React +
-TypeScript + Vite static SPA consuming FastAPI. The intended AWS delivery shape is a
-private S3 origin served through CloudFront with Origin Access Control (OAC); API and
-workers remain separately deployable containers when that delivery task is approved.
+## Durabilidad y recuperación
 
-This is an architectural direction, not deployed infrastructure or a claim of AWS
-readiness. Streamlit remains an acceptable fallback only for a constrained demo if a
-dedicated frontend implementation cannot be completed. All implemented user-facing
-flows must follow ADR-0007.
+La implementación de HRP-34 reconoce resultados durables por coordenada y confirma
+solo el prefijo contiguo por topic-partition. Un conflicto o fallo no autoriza
+avanzar sobre esa coordenada. Esto evita confirmar escrituras no reconocidas,
+pero no constituye una garantía exactly-once global ni una prueba de tolerancia
+a cualquier carrera entre procesos.
 
-## Decisiones asociadas
+Redis renueva TTL al almacenar. No hay transacción atómica conjunta `SADD+EXPIRE`
+en el adapter; los errores se propagan. Su uso es temporal, con posibilidad de
+reconstrucción diseñada desde raw, no un procedimiento automático de recuperación
+demostrado en esta revisión.
 
-- [ADR-0001](adr/0001-monolito-modular.md): monolito modular con workers.
-- [ADR-0002](adr/0002-raw-and-curated-storage.md): datos raw y curados separados.
-- [ADR-0003](adr/0003-evidence-first-data-contract.md): contrato basado en evidencia.
-- [ADR-0004](adr/0004-configuration-and-secrets.md): configuración y secretos externos.
-- [ADR-0005](adr/0005-kafka-acknowledgement-after-raw-persistence.md): propuesta de
-  confirmación Kafka después de persistir raw; pendiente de HRP-34.
-- [ADR-0007](adr/0007-accessibility-and-sustainable-delivery.md): accessibility and
-  sustainable-delivery policy for future user-facing and deployment work.
+## Observabilidad
+
+El proceso de ingesta expone tres familias de métricas a Prometheus.
+Grafana visualiza consumo y duraciones de ingesta/MongoDB. No hay instrumentación
+Prometheus de SQL, Redis o API en el código revisado.
+[Catálogo exacto](06-observability.md).
+
+## Decisiones y alcance futuro
+
+- [ADR-0001](adr/0001-monolito-modular.md): monolito modular.
+- [ADR-0002](adr/0002-raw-and-curated-storage.md): raw y curado.
+- [ADR-0003](adr/0003-evidence-first-data-contract.md): evidencia antes de semántica.
+- [ADR-0004](adr/0004-configuration-and-secrets.md): configuración externa.
+- [ADR-0005](adr/0005-kafka-acknowledgement-after-raw-persistence.md): política de confirmación.
+- [ADR-0006](adr/0006-person-correlation-key.md): correlación operacional.
+- [ADR-0007](adr/0007-accessibility-and-sustainable-delivery.md): accesibilidad y sostenibilidad.
+
+Frontend y AWS son direcciones futuras, no despliegues entregados. El cierre
+documental no implementa el worker ETL ni añade servicios.
+
+## Límite adicional del acknowledgement
+
+El helper de prefijo durable opera por lote y partición. No mantiene un registro
+de huecos pendientes entre lotes. Tras un resultado no persistido, un lote posterior
+puede permitir un commit más avanzado: esta revisión no acredita ausencia global
+de pérdida ni recovery completo. No convertir las pruebas locales del helper en
+una garantía extremo a extremo. Corregir esta condición requeriría trabajo funcional.

@@ -1,6 +1,22 @@
 # HRP-87 — Continuous pipeline runtime
 
-**Estado:** En curso; pendiente de revisión humana y merge
+**Estado de integración (2026-09-08):** Task changes integrated in develop; acceptance criteria not re-executed here.
+**Git evidence:** [b0b6db6](https://github.com/Bootcamp-IA-MAD-P7/Proyecto-DataEngineer-Grupo1/commit/b0b6db6) / [PR #78](https://github.com/Bootcamp-IA-MAD-P7/Proyecto-DataEngineer-Grupo1/pull/78) (2026-09-07).
+**Closeout interpretation:** Integrated scope is continuous ingestion Kafka → MongoDB, not an automatic MongoDB → ETL → SQL worker.
+
+This integration record does not assert current Jira status, reviewer approval identity
+or a new passing test run. [Current documentation](../README.md) and
+[acceptance/evidence matrix](../delivery-evidence.md) define the closeout reading.
+
+## Historical specification and task evidence
+
+The scope, criteria, checkboxes and test results below are the task's original record.
+They are not a live progress dashboard. Pending-review/merge references in this
+historical record are superseded by the integration evidence above; unresolved
+functional limitations are not automatically marked as passed.
+
+**Original recorded status:** En curso; pendiente de revisión humana y merge
+
 **Responsable:** Miguel
 **Jira:** HRP-87
 **Dependencias:** HRP-30, HRP-31, HRP-34, HRP-50, HRP-55, HRP-63, HRP-80, HRP-81, HRP-82

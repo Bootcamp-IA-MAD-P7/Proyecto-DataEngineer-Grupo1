@@ -1,6 +1,22 @@
 # HRP-80 — Expose ingestion metrics for Prometheus
 
-**Status:** In progress
+**Integration status (2026-09-08):** Task changes integrated in develop; acceptance criteria not re-executed here.
+**Git evidence:** [ac9e872](https://github.com/Bootcamp-IA-MAD-P7/Proyecto-DataEngineer-Grupo1/commit/ac9e872) / [PR #75](https://github.com/Bootcamp-IA-MAD-P7/Proyecto-DataEngineer-Grupo1/pull/75) (2026-09-07).
+**Closeout interpretation:** Three ingestion metrics are exposed. Metrics host/port are read during module import; process environment must be set before startup.
+
+This integration record does not assert current Jira status, reviewer approval identity
+or a new passing test run. [Current documentation](../README.md) and
+[acceptance/evidence matrix](../delivery-evidence.md) define the closeout reading.
+
+## Historical specification and task evidence
+
+The scope, criteria, checkboxes and test results below are the task's original record.
+They are not a live progress dashboard. Pending-review/merge references in this
+historical record are superseded by the integration evidence above; unresolved
+functional limitations are not automatically marked as passed.
+
+**Original recorded status:** In progress
+
 **Owner:** Gabriela Granja
 **Jira:** HRP-80
 **Branch:** `feature/HRP-80-expose-prometheus-metrics`

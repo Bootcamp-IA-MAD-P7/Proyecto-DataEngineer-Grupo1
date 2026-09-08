@@ -1,4 +1,41 @@
-# Daily — 2026-08-28
+# Daily — 2026-08-28 — Contrato y consumo continuo
+
+## Naturaleza del registro
+
+Registro original conservado abajo, acompañado de una reconciliación retrospectiva del historial.
+La fecha es la de integración en develop; puede diferir de la fecha de autoría.
+No se atribuyen conversaciones, aprobaciones personales ni bloqueos sin evidencia.
+
+## Resultado de la jornada
+
+Integración HRP-24 y HRP-31; el contrato conserva las cinco formas observadas sin deducir identidad. README, DAFO y gobierno de la evidencia evolucionan.
+
+## Evidencia integrada
+
+| Commit | Integración registrada |
+|---|---|
+| [0beff9f](https://github.com/Bootcamp-IA-MAD-P7/Proyecto-DataEngineer-Grupo1/commit/0beff9f) | HRP-22 docs: make correlation strategy evidence-gated (#17) |
+| [bf88233](https://github.com/Bootcamp-IA-MAD-P7/Proyecto-DataEngineer-Grupo1/commit/bf88233) | HRP-22 docs: add visual briefing compliance matrix (#16) |
+| [1cc13a9](https://github.com/Bootcamp-IA-MAD-P7/Proyecto-DataEngineer-Grupo1/commit/1cc13a9) | Merge pull request #15 from Bootcamp-IA-MAD-P7/feature/HRP-22-project-evolution-readme |
+| [69a51ce](https://github.com/Bootcamp-IA-MAD-P7/Proyecto-DataEngineer-Grupo1/commit/69a51ce) | Merge pull request #14 from Bootcamp-IA-MAD-P7/feature/HRP-31-continuous-ingestion |
+| [3085244](https://github.com/Bootcamp-IA-MAD-P7/Proyecto-DataEngineer-Grupo1/commit/3085244) | Merge pull request #12 from Bootcamp-IA-MAD-P7/feature/HRP-24-contrato-datos |
+
+## Límites y decisiones
+
+No se había demostrado un pipeline completo hasta SQL ni rendimiento de miles de mensajes por segundo.
+
+## Continuidad
+
+Consultar la [siguiente jornada disponible y el índice](README.md).
+Las tareas y estados actuales de Jira no se han consultado en esta revisión.
+El historial acredita commits, no asistencia a una daily ni validación de cada criterio.
+
+
+## Registro original de la jornada (histórico)
+
+Las afirmaciones de estado que siguen pertenecen al momento original, no al cierre.
+
+### Daily — 2026-08-28
 
 ## Objetivo de la jornada
 

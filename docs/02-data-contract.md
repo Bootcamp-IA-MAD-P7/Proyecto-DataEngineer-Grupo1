@@ -12,8 +12,8 @@ esa evidencia permanece pendiente.
 
 ## Tipos de información publicados
 
-Estos grupos proceden del contexto público autorizado. No existe todavía un mapping
-aprobado entre ellos y las variantes estructurales observadas A–E.
+Estos grupos proceden del contexto público autorizado. El mapping runtime fue
+incorporado en HRP-44 (PR #35, 2026-09-01); A–E se conservan como etiquetas históricas.
 
 The mapping from exact observed shapes to business domains is defined by HRP-44:
 [`docs/specs/HRP-44-domain-classification.md`](specs/HRP-44-domain-classification.md).
@@ -54,7 +54,7 @@ La evidencia no demuestra si los campos son requeridos, opcionales o nullable. Q
 campo no aparezca en otras variantes no lo convierte en opcional, y que no se haya
 observado JSON `null` no demuestra que esté prohibido.
 
-## Conformidad estructural provisional
+## Conformidad de la observación histórica (no algoritmo runtime)
 
 Un objeto puede clasificarse técnicamente y de forma provisional como A, B, C, D o E
 solo si su conjunto de campos y sus tipos aparentes coinciden exactamente con la
@@ -77,8 +77,10 @@ no lo haya definido.
 sus nombres raw aparecen en más de una variante. HRP-29 no comparó valores ni demostró
 igualdad, unicidad, normalización, prioridad o significado de negocio.
 
-No existe una clave de correlación definitiva ni reglas aprobadas de resolución de
-conflictos, completitud o agrupación de personas. La ausencia de coordenadas Kafka
+HRP-29 no estableció una clave definitiva. Posteriormente ADR-0006 fue integrado
+mediante PR #42 el 2026-09-02: admite cuatro relaciones exactas para correlación
+operacional, sin probar identidad real. HRP-50/51/96 definen consolidación,
+incertidumbre y duplicados. No hay una clave de negocio universal. La ausencia de coordenadas Kafka
 repetidas en la muestra no establece detección de duplicados de negocio.
 
 ## Reglas arquitectónicas vigentes
@@ -100,15 +102,41 @@ requiere evidencia adicional y revisión humana, además de la documentación y 
 pruebas correspondientes. También requiere una ADR cuando resulte apropiada por el
 alcance y la relevancia de la decisión.
 
-## Incógnitas y decisiones pendientes
+## Incógnitas que la observación HRP-29 no resolvió
 
-- Mapping entre A–E y los grupos de información publicados.
+- Mapping: resuelto operacionalmente por HRP-44; no inferido de HRP-29 por sí solo.
 - Semántica, formatos, rangos y nombres canónicos de los campos.
 - Propiedades required, optional y nullable.
 - Evolución y versionado ante nuevas estructuras.
-- Clave de correlación, normalización, unicidad y resolución de conflictos.
-- Condiciones de completitud y agrupación de una persona.
+- Identidad real y unicidad universal siguen sin demostrarse; las reglas operativas
+  exactas y la ausencia de normalización están decididas en ADR-0006.
+- Completitud operacional implementada en HRP-50/51/96; no prueba completitud real.
 - Ordering entre variantes, particiones o entidades de negocio.
 - Detección de duplicados de negocio.
 - Tratamiento downstream definitivo de estructuras `non-conforming/unknown`.
 - Configuración operativa de topics fuera de la muestra observada en `probando`.
+
+## Contrato runtime vigente — 2026-09-08
+
+La clasificación HRP-44 usa **conjunto exacto de claves**, no los tipos observados
+en la muestra. Campos extra o ausentes producen `unknown`; cambiar el valor a null
+o a otro tipo no cambia por sí solo la clasificación. HRP-45 comprueba coherencia
+técnica de la entrada y clasificación, no sanea semánticamente todos los campos.
+
+| Etiqueta histórica | Dominio runtime | Claves exactas |
+|---|---|---|
+| E | Personal | name, last_name, sex, telfnumber, passport, email |
+| D | Location | fullname, city, address |
+| B | Professional | fullname, company, company address, company_telfnumber, company_email, job |
+| C | Bank | passport, IBAN, salary |
+| A | Net | address, IPv4 |
+
+No confundir la regla descriptiva de conformidad observada (claves y tipos aparentes)
+con el clasificador implementado (solo claves). Un objeto reconocido no implica
+que todos sus valores sean utilizables para correlación o persistencia.
+
+Todo objeto JSON se conserva raw antes de clasificar. Ausencia de valor, UTF-8
+inválido, JSON inválido y JSON no objeto se guardan como inválidos técnicos con
+su razón. Un error de persistencia no autoriza confirmar el offset.
+Ver [arquitectura](01-architecture.md), [modelo](03-data-model.md) y
+[ADR-0006](adr/0006-person-correlation-key.md).

@@ -1,5 +1,10 @@
 # HRP-43 — Authorised empirical person-correlation observation — 2026-09-01
 
+> Observación histórica: los resultados y límites se conservan sin atribuir pruebas nuevas.
+> Al2026-09-08, la decisión operacional posterior está integrada por PR #42;
+> [ADR-0006](../adr/0006-person-correlation-key.md) distingue esa aceptación
+> de la evidencia insuficiente para identidad real.
+
 **Observed by:** Gabriela
 **Reviewer:** Pending human review
 **Authorised environment:** Kafka through the HR Pro consumer and MongoDB RAW

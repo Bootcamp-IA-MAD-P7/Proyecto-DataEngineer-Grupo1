@@ -1,554 +1,323 @@
 # HR Pro Data Platform
 
-Plataforma de ingeniería de datos en tiempo real para convertir eventos heterogéneos
-de RR. HH. en información trazable, integrada y consultable. El proyecto conserva la
-evidencia original en MongoDB, construye una vista curada en PostgreSQL y evoluciona
-por niveles hasta ofrecer monitorización, API y frontend.
+**De eventos fragmentados a información trazable y consultable.**
+
+Plataforma educativa de ingeniería de datos para RR. HH.: ingesta Kafka, conservación
+raw en MongoDB, clasificación y consolidación de cinco dominios, persistencia
+PostgreSQL, estado temporal Redis y consultas FastAPI. Prometheus y Grafana hacen
+visible el comportamiento de la ingesta.
 
 [![Quality](https://github.com/Bootcamp-IA-MAD-P7/Proyecto-DataEngineer-Grupo1/actions/workflows/ci.yml/badge.svg?branch=develop)](https://github.com/Bootcamp-IA-MAD-P7/Proyecto-DataEngineer-Grupo1/actions/workflows/ci.yml)
-[![PR governance](https://github.com/Bootcamp-IA-MAD-P7/Proyecto-DataEngineer-Grupo1/actions/workflows/pr-governance.yml/badge.svg?branch=develop)](https://github.com/Bootcamp-IA-MAD-P7/Proyecto-DataEngineer-Grupo1/actions/workflows/pr-governance.yml)
-[![Python 3.11](https://img.shields.io/badge/Python-3.11-3776AB)](pyproject.toml)
-[![Integration branch](https://img.shields.io/badge/integration-develop-2563EB)](https://github.com/Bootcamp-IA-MAD-P7/Proyecto-DataEngineer-Grupo1/tree/develop)
-[![SDD](https://img.shields.io/badge/delivery-SDD-6D28D9)](docs/04-sdd-workflow.md)
-[![Briefing level](https://img.shields.io/badge/briefing-Essential%20in%20progress-D97706)](#estado-frente-al-briefing)
+[![Python](https://img.shields.io/badge/Python-3.11%2B-3776AB)](pyproject.toml)
+[![Documentación](https://img.shields.io/badge/documentación-cierre_HRP--93-167D7F)](docs/README.md)
 
-> Convertimos evidencia de Kafka en contratos, contratos en software comprobable y
-> software comprobable en una demo que puede explicarse de principio a fin.
+**Corte documental:** 8 de septiembre de 2026.
+**Referencia remota comprobada:** `275131a` en `develop`; implementación técnica
+hasta `f3a952b`. La PR #80 integró la primera documentación de cierre; esta revisión
+la completa. El badge de CI es dinámico, no una certificación de esta revisión.
 
-## Estado de entrega — cierre documental HRP-93
+[Inicio rápido](#inicio-rápido) · [Arquitectura](#arquitectura-y-ejecución-real) ·
+[API](docs/api-reference.md) · [Documentación](docs/README.md) ·
+[NotebookLM](docs/presentation-sources/README.md) · [Cierre](docs/project-closeout.md)
 
-El baseline de `develop` queda documentado para el cierre del proyecto. Incluye
-ingesta Kafka, persistencia raw en MongoDB, transformación y estado parcial con
-Redis, persistencia y consulta PostgreSQL, API, métricas Prometheus/Grafana, Docker
-Compose, quality gates y gobernanza Git. La evidencia y el alcance final están
-consolidados en [project-closeout.md](docs/project-closeout.md) y en la [daily de
-cierre](docs/dailies/2026-09-08-project-closeout.md).
+## Qué resuelve
 
-El frontend queda fuera de este cierre y no debe presentarse como capacidad terminada.
-Las futuras ampliaciones deben abrirse como tareas independientes.
+Los eventos llegan por fragmentos: Personal, Location, Professional, Bank y Net.
+La solución conserva su procedencia, identifica estructuras conocidas y construye
+componentes operativos de persona sin ocultar ambigüedades. Una coincidencia entre
+campos no se presenta como prueba de identidad real.
 
-## Resumen ejecutivo
-
-HR Pro necesita unificar cinco tipos de información que llegan de forma fragmentada:
-datos personales, ubicación, información profesional, bancaria y de red. La solución
-se diseña como un flujo continuo y recuperable:
-
-1. Kafka transporta los eventos producidos por el entorno educativo externo.
-2. El worker de ingesta conserva cada mensaje original y sus metadatos en MongoDB.
-3. El proceso ETL clasifica, valida y agrupa fragmentos sin perder trazabilidad.
-4. PostgreSQL publica el modelo curado para consultas, API y frontend.
-5. Redis y Prometheus se incorporan cuando el flujo esencial ya es correcto.
-
-El proyecto no presupone el contenido de los mensajes. El contrato inicial se obtuvo
-mediante observación limitada y revisada del broker, sin consultar el código del
-generador y sin versionar datos personales.
-
-## Estado verificable — 31 de agosto de 2026 (corte histórico)
-
-| Capacidad | Estado | Evidencia | Límite actual |
-|---|---|---|---|
-| Gobernanza Git y CI | Operativa | Ruleset, CODEOWNERS y workflows; último `quality` verde en `develop` | Toda PR sigue necesitando revisión humana |
-| Observación Kafka | Completada | HRP-29 y documento de observación seguro | Muestra acotada; no demuestra semántica |
-| Contrato inicial | Completado | HRP-24, integrada mediante PR #12 | Correlación y reglas de negocio pendientes |
-| Consumer configurable | Completado | HRP-30, tests unitarios y configuración por entorno | No persiste ni transforma payloads |
-| Consumo continuo | Completado | HRP-31, integrada mediante PR #14 | Validación de runtime, no prueba E2E |
-| MongoDB local | Completado | HRP-33 y PR #27 | Servicio local, cliente MongoDB e índices técnicos disponibles |
-| Persistencia raw | Implementada en la rama HRP-34, revisión pendiente | HRP-34 y pruebas unitarias/integración MongoDB real | No está mergeada; Kafka real-broker E2E no ejecutado |
-| Duplicados técnicos | Completado | HRP-36, índice único y tests de `BulkWriteError` | Es deduplicación Kafka, no deduplicación de personas |
-| Errores técnicos | Completado | HRP-37, manejo de errores permanentes/transitorios | Falta observabilidad completa del pipeline |
-| Análisis de correlación | En curso | HRP-43 | Debe analizar candidatos y decidir si existe evidencia suficiente |
-| Clasificación de variantes | En curso | HRP-44 | Debe formalizar el mapping sin inventar semántica |
-| Validación y limpieza | En curso | HRP-45 | Reglas de negocio y normalización pendientes |
-| Modelo PostgreSQL | Completado como diseño | HRP-25, HRP-52, PRs #18, #19 y #28 | La implementación SQL aún no existe |
-| Pipeline completo | Pendiente | — | No debe presentarse todavía como funcional |
-
-En ese corte histórico, la suite contenía **17 tests** y alcanzaba **80.10 % de
-cobertura de línea**. El baseline actual recoge **307 tests** y mantiene un umbral
-automático del **75 %**; el resultado de la ejecución final debe registrarse desde el
-entorno de release.
-
-## Lo que ya puede verse funcionando
-
-Hoy se puede demostrar, de manera honesta y reproducible:
-
-- carga de configuración Kafka desde variables de entorno;
-- suscripción a una lista autorizada de topics;
-- polling continuo, manejo de errores y cierre limpio;
-- logs técnicos sin payloads ni datos personales;
-- MongoDB local aislado y saludable mediante Docker Compose;
-- cliente MongoDB con `ping`, índices técnicos y control de duplicados por coordenadas;
-- persistencia inicial de fragmentos válidos en MongoDB desde el consumer;
-- lint, formato, tipos, tests, cobertura, validación de specs y de Compose en CI;
-- trazabilidad `Jira -> spec -> código/documento -> PR -> revisión -> evidencia`.
-
-La implementación integrada ya cubre almacenamiento raw, estado parcial, persistencia
-curada, API y observabilidad en el alcance documentado. La capacidad de frontend queda
-fuera de este cierre. La implementación de HRP-34 preserva el topic Kafka original,
-partición, offset,
-payload y estado de procesamiento sin confundirlos con la clasificación del fragmento;
-la revisión humana de la corrección sigue pendiente.
-
-## Arquitectura
-
-```mermaid
-flowchart LR
-    K[Kafka educativo externo] -->|topic, partition, offset, payload| I[Ingest worker]
-    I -->|raw inmutable| M[(MongoDB)]
-    M -->|evento pendiente| T[Process worker / ETL]
-    T <-->|estado parcial con TTL| R[(Redis)]
-    T -->|upsert curado| P[(PostgreSQL)]
-    P --> A[API]
-    A --> U[Frontend SPA]
-    I -. logs y métricas .-> O[Prometheus / dashboard]
-    T -. logs y métricas .-> O
-    A -. logs y métricas .-> O
-
-    classDef current fill:#DCFCE7,stroke:#15803D,color:#14532D;
-    classDef active fill:#FEF3C7,stroke:#D97706,color:#78350F;
-    classDef planned fill:#DBEAFE,stroke:#2563EB,color:#1E3A8A;
-    class K,I current;
-    class M,T active;
-    class R,P,A,U,O planned;
-```
-
-### Seguridad del dato y seguimiento pendiente
-
-ADR-0005 propone que el consumer no confirme un offset solo por haber recibido el
-mensaje. La implementación de HRP-34/36 ya introduce persistencia MongoDB, índice
-único y comportamiento idempotente inicial. Antes de aceptar esta política como
-invariante final del pipeline, el equipo debe comprobar que MongoDB:
-
-- inserte el documento raw, o
-- demuestre que ese mismo `topic + partition + offset` ya estaba persistido.
-
-Un fallo de MongoDB debe dejar el offset sin confirmar para permitir reentrega. La
-política pretende evitar pérdida silenciosa. El seguimiento técnico vive en
-[ADR-0005](docs/adr/0005-kafka-acknowledgement-after-raw-persistence.md) y en las
-ADR-0005 permanece `Proposed` hasta la revisión humana de Miguel.
-
-### Sobre raw mínimo
-
-```json
-{
-  "payload": "<objeto original sin normalizar>",
-  "topic": "<metadato Kafka>",
-  "partition": 0,
-  "offset": 0,
-  "received_at": "<UTC>",
-  "processing_status": "pending"
-}
-```
-
-El ejemplo expresa la propuesta de estructura, no datos reales. La combinación
-`topic + partition + offset` se utiliza como identidad técnica e índice único en HRP-34;
-la política definitiva sigue sujeta a revisión humana.
-
-## Evidencia Kafka disponible
-
-La observación autorizada de HRP-29 registró únicamente estructura agregada:
-
-| Dimensión | Resultado observado |
+| Decisión | Aplicación |
 |---|---|
-| Topic de la muestra | `probando` |
-| Particiones | 1 |
-| Mensajes analizados en memoria | 20 |
-| Objetos JSON válidos | 20 |
-| Variantes estructurales | 5 |
-| Errores técnicos | 0 |
+| Conservar antes de interpretar | MongoDB mantiene payload y coordenadas Kafka |
+| Separar identidad técnica y de negocio | El offset identifica el evento; ADR-0006 limita la correlación |
+| Preservar incertidumbre | Consolidación `complete`, `incomplete`, `ambiguous` y entradas no resueltas |
+| Consultar datos curados | FastAPI consulta PostgreSQL; búsquedas sin datos bancarios |
+| Explicar con evidencia | Specs, PRs, pruebas, dailies y bibliografía enlazadas |
 
-Se observaron diferencias relevantes respecto a nombres provisionales, entre ellas
-`last_name`, `company address`, `company_email` e `IPv4`. `sex` apareció como array y
-`salary` como string. Esto describe forma aparente, no formato de negocio ni reglas de
-normalización. Las cinco variantes A–E siguen siendo etiquetas técnicas neutrales.
+## Estado frente al briefing
 
-La evidencia completa, sin valores de payload, está en
-[docs/observations/2026-08-27-HRP-29-kafka.md](docs/observations/2026-08-27-HRP-29-kafka.md).
+La siguiente matriz registra la **aceptación de cierre comunicada por Miguel,
+responsable del proyecto**: todos los checks salvo el frontend.
+Estos porcentajes describen aceptación, no cobertura de tests, throughput ni
+certificación independiente de funcionamiento.
 
-## Estado frente al briefing — snapshot histórico
+| Bloque | Aceptados | Progreso de aceptación | Alcance |
+|---|---:|---|---|
+| Condiciones de entrega | 5/5 | ██████████ 100 % | Aceptación del responsable |
+| Esencial | 6/6 | ██████████ 100 % | Aceptación del responsable |
+| Medio | 3/3 | ██████████ 100 % | Aceptación del responsable |
+| Avanzado | 3/3 | ██████████ 100 % | Aceptación del responsable |
+| Experto | 1/2 | █████░░░░░ 50 % | Frontend excluido del cierre |
 
-**Última revisión del snapshot:** 2026-08-31
+**18 de 19 checks aceptados; un check excluido.**
+La [matriz detallada](docs/delivery-evidence.md) enumera los 19 requisitos,
+sus artefactos y los límites de verificación. No se descuentan incidencias de
+entorno como si fueran trabajo funcional no realizado.
 
-> Esta matriz conserva el corte de evaluación inicial y no representa por sí sola el
-> estado final de `develop`. Para el cierre del proyecto, usa
-> [project-closeout.md](docs/project-closeout.md), que incorpora los cambios
-> posteriores de Redis, API, observabilidad y runtime.
+### Capacidades verificables
 
-Esta matriz reproduce todos los requisitos de entrega. Un requisito solo figura como
-completado cuando existe evidencia versionada o una demostración reproducible. Un
-servicio arrancado, una spec o un diseño por sí solos cuentan como trabajo en curso.
-
-### Resumen visual
-
-| Bloque evaluado | Progreso | Cumplidos | Situación |
-|---|---:|---:|---|
-| Condiciones de entrega | `████░░░░░░` | 2/5 | [![En curso][status-active]][status-active-link] |
-| Nivel esencial | `█████░░░░░` | 3/6 | [![En curso][status-active]][status-active-link] |
-| Nivel medio | `███░░░░░░░` | 1/3 | [![En curso][status-active]][status-active-link] |
-| Nivel avanzado | `░░░░░░░░░░` | 0/3 | [![Pendiente][status-pending]][status-pending-link] |
-| Nivel experto | `░░░░░░░░░░` | 0/2 | [![Pendiente][status-pending]][status-pending-link] |
-
-> Los contadores solo incluyen requisitos completamente demostrados. Los requisitos
-> en curso aparecen detallados abajo y no se redondean como terminados.
-
-### Condiciones de entrega
-
-| Check literal | Estado | Evidencia disponible | Qué falta |
+| Capacidad | Estado de cierre | Evidencia principal | Límite declarado |
 |---|---|---|---|
-| Repositorio en GitHub con código fuente documentado | [![Completado][status-done]][status-done-link] | Repositorio, README, specs, ADRs, CI y gobernanza | Mantenerlo actualizado hasta la entrega |
-| Programa Dockerizado conectado a Kafka, con procesamiento, MongoDB y SQL | [![En curso][status-active]][status-active-link] | Consumer Kafka y MongoDB local | Integrar persistencia raw, ETL, PostgreSQL y Compose completo |
-| Demo en vivo de la aplicación | [![En curso][status-active]][status-active-link] | Demo parcial de Kafka, consumer y MongoDB local | Demostrar el recorrido completo hasta consulta final |
-| Presentación técnica de objetivos, desarrollo y tecnologías | [![En curso][status-active]][status-active-link] | [`docs/presentation-sources/`](docs/presentation-sources/README.md) y DAFO evolutivo | Preparar deck final y ensayar la exposición |
-| Tablero Kanban para gestionar el proyecto | [![Completado][status-done]][status-done-link] | [Proyecto HRP en Jira](https://redondonunezmiguel.atlassian.net/jira/software/projects/HRP/boards/1) | Mantener estados, dependencias y cierres al día |
+| Gobernanza Git y CI | Operativa | Workflows, CODEOWNERS, plantillas y reglas de PR | Revisión humana y checks remotos siguen siendo obligatorios |
+| Observación Kafka | Completada | HRP-29, observaciones y contrato inicial | Muestra acotada; no demuestra semántica universal |
+| Contrato de datos | Integrado | HRP-24, HRP-44, HRP-45 y ADR-0003 | Clasificador por claves, no por significado de negocio |
+| Consumer Kafka | Integrado | HRP-30/31, configuración y pruebas | Requiere broker autorizado; no se adjunta benchmark de throughput |
+| Persistencia raw MongoDB | Integrada | HRP-34, repositorios e índices técnicos | Deduplicación por coordenadas/evento, no por persona |
+| Clasificación y agrupación | Integrada | HRP-43 a HRP-51, ADR-0006 | Correlación conservadora; mantiene ambigüedad |
+| Persistencia SQL | Integrada | HRP-52 a HRP-60, esquema y repositorio | Inicializador no es framework de migraciones |
+| Redis temporal | Integrado | HRP-73 a HRP-76 | Estado efímero con TTL; no fuente de verdad |
+| API SQL | Integrada | HRP-83 a HRP-86 | Sin autenticación y sin frontend |
+| Observabilidad | Integrada | HRP-77 a HRP-82, Prometheus y Grafana | Tres métricas de ingesta; sin SLO ni percentiles reales finitos |
+| Pipeline completo | Parcialmente orquestado | HRP-71 sintético y componentes versionados | No hay worker continuo MongoDB -> SQL en producción |
+| Presentación y cierre | Preparado | Dailies, fuentes NotebookLM y auditoría HRP-93 | Fuentes listas; no deck final generado en este repo |
 
-### Nivel esencial
+### Detalle literal por nivel
 
-| Check literal | Estado | Evidencia actual | Próxima prueba de cierre |
-|---|---|---|---|
-| Consumer Kafka en tiempo real y miles de mensajes por segundo | [![En curso][status-active]][status-active-link] | HRP-30 y HRP-31: consumer configurable y continuo validado | Medición de carga sostenida y tasa de mensajes |
-| Persistir los mensajes Kafka en MongoDB | [![Completado][status-done]][status-done-link] | HRP-34 y pruebas unitarias/integración MongoDB real | Revisión humana antes del merge |
-| Agrupar Personal, Location, Professional, Bank y Net Data por persona | [![En curso][status-active]][status-active-link] | Contrato HRP-24; análisis HRP-43 activo | Analizar candidatos en HRP-43; solo después, y si hay evidencia, definir correlación; HRP-44 clasifica y HRP-45 valida/limpia |
-| Persistir los datos agrupados en una base SQL | [![En curso][status-active]][status-active-link] | Diseño PostgreSQL HRP-25 activo | Esquema, migración, upsert y consulta de validación |
-| Ramas organizadas y commits limpios | [![Completado][status-done]][status-done-link] | `develop`, PRs, CODEOWNERS, ruleset y títulos con Jira | Mantener la política en todas las contribuciones |
-| Código documentado y README en GitHub | [![Completado][status-done]][status-done-link] | README, arquitectura, runbook, specs, dailies y fuentes de presentación | Actualización continua con cada hito funcional |
+| Nivel | Check | Estado de cierre | Evidencia | Límite |
+|---|---|---|---|---|
+| Entrega | Repositorio GitHub documentado | Aceptado | README, docs, specs, ADRs y CI | Debe revisarse tras cada merge |
+| Entrega | Programa Dockerizado con Kafka, MongoDB y SQL | Aceptado | Dockerfile y Compose | SQL no se alimenta por un worker continuo del servicio `app` |
+| Entrega | Demo en vivo | Aceptado | Runbook y fuentes de demo | No se adjunta grabación |
+| Entrega | Presentación técnica | Aceptado | `docs/presentation-sources/` | NotebookLM debe generar el deck |
+| Entrega | Tablero Kanban | Aceptado | Jira HRP | Estados remotos no modificados por esta revisión |
+| Esencial | Consumer Kafka en tiempo real | Aceptado | HRP-30/31 | Sin benchmark de miles de mensajes por segundo |
+| Esencial | Persistir mensajes Kafka en MongoDB | Aceptado | HRP-34 | Requiere MongoDB disponible |
+| Esencial | Agrupar cinco dominios por persona | Aceptado | HRP-43 a HRP-51 | No prueba identidad real universal |
+| Esencial | Persistir agrupados en SQL | Aceptado | HRP-52 a HRP-60 | Modelo curado técnico, no enriquecimiento externo |
+| Esencial | Ramas organizadas y commits limpios | Aceptado | Gobernanza Git | La PR debe seguir checks remotos |
+| Esencial | Código documentado y README | Aceptado | HRP-26/93 | Documentación viva |
+| Medio | Sistema de logs | Aceptado | HRP-65 a HRP-67 | Logs genéricos no tienen filtro universal de excepciones |
+| Medio | Tests unitarios | Aceptado | 307 tests colectados; cobertura 82,91 % | Último intento local no está verde |
+| Medio | Docker Compose | Aceptado | `infra/compose.dev.yml` | No incluye broker Kafka ni API como servicio |
+| Avanzado | Redis como caché intermedia | Aceptado | HRP-73 a HRP-76 | No persistente |
+| Avanzado | Monitorización | Aceptado | HRP-77 a HRP-82 | Sin métricas SQL/API/errores de negocio |
+| Avanzado | API SQL | Aceptado | HRP-83 a HRP-86 | Sin auth ni frontend |
+| Experto | Actualización continua mientras Kafka publica | Aceptado | Ingesta continua y componentes de almacenamiento | Continuidad extremo a extremo queda limitada |
+| Experto | Frontend sencillo | Excluido | Decisión de cierre | Trabajo futuro |
 
-### Nivel medio
+### Lo que esta revisión técnica permite afirmar
 
-| Check literal | Estado | Evidencia actual | Próxima prueba de cierre |
-|---|---|---|---|
-| Sistema de logs | [![En curso][status-active]][status-active-link] | Logs técnicos seguros del consumer y política de observabilidad | Logs estructurados del pipeline completo y errores de persistencia |
-| Tests unitarios | [![Completado][status-done]][status-done-link] | Snapshot: 17 tests y 80.10 %; baseline actual: 307 tests colectables y umbral CI del 75 % | Registrar el resultado de la ejecución final |
-| Aplicación Dockerizada con Docker Compose | [![En curso][status-active]][status-active-link] | Compose de MongoDB validado en CI | Añadir aplicación, PostgreSQL y configuración integral |
+- El proceso Docker `app` ejecuta **Kafka → MongoDB**, con métricas de ingesta.
+- Clasificación, groupers, consolidación, Redis y persistencia SQL existen como
+  componentes reutilizables con pruebas.
+- HRP-71 enlaza MongoDB → transformación → PostgreSQL con eventos **sintéticos
+  equivalentes a Kafka**; no ejecuta un broker Kafka real.
+- En el checkout revisado no existe un worker de producción que lea continuamente
+  MongoDB y ejecute toda la transformación hasta SQL. HRP-87 documenta continuidad
+  de **ingesta**; `storage.main` crea el esquema y termina.
+- La API se arranca separadamente; no tiene un servicio propio en Compose.
+- No se aporta aquí una medición de miles de mensajes/segundo, una grabación de demo
+  ni un deck final. Las fuentes de NotebookLM están preparadas para producirlo.
 
-### Nivel avanzado
+Estas precisiones describen la evidencia del repositorio y no modifican la
+decisión de aceptación del responsable. Son esenciales para reproducir la demo
+sin atribuir a un comando comportamientos que no ejecuta.
 
-| Check literal | Estado | Evidencia actual | Próxima prueba de cierre |
-|---|---|---|---|
-| Redis como almacenamiento intermedio en caché | [![Completado][status-done]][status-done-link] | HRP-73–HRP-76, estado parcial, TTL y pruebas | Ampliaciones futuras según necesidad |
-| Monitorización de consumo, velocidad, procesamiento y persistencia | [![Completado][status-done]][status-done-link] | HRP-77–HRP-82, Prometheus y dashboard | Carga de producción fuera de alcance |
-| API de consulta sobre la base SQL | [![Completado][status-done]][status-done-link] | HRP-83–HRP-86 y tests de endpoints | Frontend fuera de alcance |
-
-### Nivel experto
-
-| Check literal | Estado | Evidencia actual | Próxima prueba de cierre |
-|---|---|---|---|
-| Actualización continua de las bases mientras Kafka publica | [![En curso][status-active]][status-active-link] | Runtime continuo y componentes integrados en `develop` | Validación prolongada con broker real fuera del cierre |
-| Frontend sencillo para consultar clientes | [![Pendiente][status-pending]][status-pending-link] | React + TypeScript + Vite es la dirección preferida; Streamlit solo fallback de demo | Buscador, resultados, métricas accesibles y conexión exclusiva mediante API |
-
-### Tecnologías del briefing
-
-| Tecnología recomendada | Adopción | Uso actual |
-|---|---|---|
-| Git / GitHub | [![Completado][status-done]][status-done-link] | Repositorio, PRs, revisión, CI, tags y gobernanza |
-| Docker / Docker Compose | [![En curso][status-active]][status-active-link] | MongoDB local; stack de aplicación pendiente |
-| Python | [![Completado][status-done]][status-done-link] | Consumer y arnés en Python 3.11 |
-| Kafka | [![En curso][status-active]][status-active-link] | Conexión, consumo continuo y persistencia raw HRP-34 | Rendimiento y E2E con broker real pendientes |
-| Pandas | [![Opcional][status-optional]][status-optional-link] | No se añade hasta que una necesidad ETL justifique la dependencia |
-| MongoDB | [![En curso][status-active]][status-active-link] | Servicio local y persistencia raw HRP-34 disponibles | Evolución posterior del pipeline pendiente |
-| PostgreSQL | [![En curso][status-active]][status-active-link] | Modelo HRP-25 en desarrollo; servicio y persistencia pendientes |
-| Jira | [![Completado][status-done]][status-done-link] | Backlog, responsables, estados y dependencias del proyecto |
+## Arquitectura y ejecución real
 
 ```mermaid
 flowchart LR
-    E[Esencial<br/>3 de 6] --> M[Medio<br/>1 de 3]
-    M --> A[Avanzado<br/>0 de 3]
-    A --> X[Experto<br/>0 de 2]
-
-    classDef done fill:#DCFCE7,stroke:#15803D,color:#14532D;
-    classDef active fill:#FEF3C7,stroke:#D97706,color:#78350F;
-    classDef planned fill:#E5E7EB,stroke:#64748B,color:#334155;
-    class E,M active;
-    class A,X planned;
+    K["Kafka externo"] --> I["app · ingesta continua"]
+    I --> M[("MongoDB · raw / inválidos")]
+    I --> O["Prometheus → Grafana"]
+    M -. "lectura y orquestación en prueba HRP-71" .-> T["Clasificar → validar → agrupar → consolidar"]
+    T -. "adapter disponible; fuera de HRP-71" .-> R[("Redis · estado temporal")]
+    T --> P["Mapeo + PersonRepository"]
+    P --> S[("PostgreSQL · curado y auditoría")]
+    S --> A["FastAPI · proceso separado"]
+    A -. "fuera de alcance" .-> F["Frontend"]
 ```
 
-[status-done]: https://img.shields.io/badge/COMPLETADO-2E7D32?style=flat-square
-[status-active]: https://img.shields.io/badge/EN%20CURSO-D97706?style=flat-square
-[status-pending]: https://img.shields.io/badge/PENDIENTE-64748B?style=flat-square
-[status-optional]: https://img.shields.io/badge/OPCIONAL-2563EB?style=flat-square
-[status-done-link]: #estado-frente-al-briefing
-[status-active-link]: #estado-frente-al-briefing
-[status-pending-link]: #estado-frente-al-briefing
-[status-optional-link]: #tecnologías-del-briefing
-
-## Cómo trabajamos: SDD y arnés de ingeniería
-
-El repositorio aplica **Specification-Driven Development**: la tarea no empieza por
-generar código, sino por concretar qué problema resuelve, qué queda fuera, cómo se
-demuestra y qué decisiones siguen pendientes.
-
-```text
-Jira
-  -> paquete de tarea y contexto autorizado
-  -> spec con criterios de aceptación
-  -> rama aislada
-  -> cambio mínimo y tests
-  -> arnés automático
-  -> pull request
-  -> revisión humana
-  -> merge y evidencia de cierre
-  -> Jira
-```
-
-El **arnés** es el conjunto de controles que hace repetible esa forma de trabajar:
-
-| Capa | Artefactos | Función |
-|---|---|---|
-| Guía | `AGENTS.md`, arquitectura, contrato, ADRs | Impide que una IA o persona invente contexto |
-| Especificación | `docs/specs/HRP-*.md` | Convierte Jira en alcance y aceptación comprobables |
-| Aislamiento | Rama por tarea y Compose local | Limita el impacto del cambio |
-| Sensores | pre-commit, Ruff, mypy, pytest, cobertura, CI | Detecta fallos antes del merge |
-| Evidencia | PR, revisión, daily y comentario Jira | Permite auditar por qué se cerró una tarea |
-
-La IA propone y acelera; una persona aprueba contrato, arquitectura, PR y cierre. La
-guía práctica y los prompts reutilizables están en
-[docs/onboarding/ai-assisted-workflow.md](docs/onboarding/ai-assisted-workflow.md).
+Las líneas discontinuas señalan integración de prueba, componentes no conectados
+por el proceso principal o trabajo excluido. El diagrama no representa un despliegue
+completo ejecutado por Compose. [Detalle y contratos](docs/01-architecture.md).
 
 ## Inicio rápido
 
-### 1. Clonar y preparar Python
+### Requisitos
 
-```powershell
+Python 3.11 o superior, Git y Docker con Compose compatible con
+`env_file.required`. Usar bases locales dedicadas al proyecto y configuración Kafka
+autorizada. No acceder al código del generador educativo.
+
+### Preparar el entorno
+
+Desde Git Bash:
+
+```bash
 git clone https://github.com/Bootcamp-IA-MAD-P7/Proyecto-DataEngineer-Grupo1.git
 cd Proyecto-DataEngineer-Grupo1
 git switch develop
-git pull --ff-only
 python -m venv .venv
-.\.venv\Scripts\Activate.ps1
-python -m pip install --upgrade pip
+source .venv/Scripts/activate
 python -m pip install -e ".[dev]"
-pre-commit install
+test -f .env || cp .env.example .env
 ```
 
-### 2. Validar la base del proyecto
+En Linux/macOS la activación es `source .venv/bin/activate`.
+En PowerShell, `.\.venv\Scripts\Activate.ps1`.
+Completar `.env` localmente: broker, topics y credenciales de desarrollo.
+No sobrescribir una configuración existente ni copiarla a documentación.
 
-```powershell
-pre-commit run --all-files
-python scripts/validate_specs.py
-ruff check .
-ruff format --check .
-mypy src
-pytest
-docker compose -f infra/compose.dev.yml config --quiet
-```
+### Iniciar datos y observabilidad
 
-### 3. Arrancar MongoDB local
-
-```powershell
-docker compose -f infra/compose.dev.yml up -d mongo
+```bash
+docker compose -f infra/compose.dev.yml up -d mongo postgres redis prometheus grafana
 docker compose -f infra/compose.dev.yml ps
-docker compose -f infra/compose.dev.yml exec -T mongo `
-  mongosh --quiet --eval "db.adminCommand('ping').ok"
+python -m hr_pro_platform.storage.main
 ```
 
-Para detenerlo sin borrar el volumen:
+El último comando crea las tablas en el PostgreSQL configurado; **no carga eventos**.
+Las variables `POSTGRES_*` de `.env` deben apuntar al puerto del host.
 
-```powershell
-docker compose -f infra/compose.dev.yml down
+### Iniciar ingesta
+
+Con Kafka accesible desde Docker y los topics autorizados configurados:
+
+```bash
+docker compose -f infra/compose.dev.yml --profile app up -d --build app
+docker compose -f infra/compose.dev.yml --profile app ps
 ```
 
-### 4. Construir la imagen de la aplicación
+`localhost` dentro de un contenedor no es el host. En Docker Desktop, un broker
+publicado en el host puede requerir `host.docker.internal`; usar la dirección
+real autorizada. El proceso conserva raw, no inicia automáticamente la carga SQL.
 
-El Dockerfile empaqueta únicamente el consumer Python existente. La configuración se
-inyecta en tiempo de ejecución mediante variables de entorno; la imagen no incluye
-`.env`, secretos, Kafka educativo ni servicios de base de datos.
+### Iniciar API
 
-```powershell
-docker build --tag hr-pro-platform:local .
+En otra terminal con el entorno Python activado y el esquema SQL creado:
+
+```bash
+python -m uvicorn hr_pro_platform.api.main:app --host 127.0.0.1 --port 8000
 ```
 
-Este build no sustituye al Compose final del proyecto. La ejecución integrada con
-MongoDB, PostgreSQL y los demás servicios se implementará en tareas posteriores.
+| Acceso | Uso |
+|---|---|
+| [API /docs](http://localhost:8000/docs) | OpenAPI interactivo |
+| [Health](http://localhost:8000/health) | Consulta `SELECT 1` a PostgreSQL |
+| [Statistics](http://localhost:8000/statistics) | Conteos agregados, sin registros personales |
+| [Prometheus targets](http://localhost:9090/targets) | Target `hr-pro-ingestion` |
+| [Grafana](http://localhost:3000) | Dashboard `HR Pro Ingestion Overview` |
 
-### 5. Configurar el consumer
+Una API saludable puede consultar tablas vacías. El dashboard puede abrir sin datos
+si la ingesta no está activa. [Operación y diagnóstico](docs/07-runbook.md).
 
-Copia `.env.example` como `.env` y completa únicamente valores autorizados. Las
-variables de proceso tienen prioridad y `.env` nunca se versiona.
+## Modelo de datos
 
-```dotenv
-KAFKA_BOOTSTRAP_SERVERS=localhost:29092
-KAFKA_CONSUMER_GROUP=hr-pro-local
-KAFKA_TOPICS=probando
-```
+MongoDB conserva `payload`, `topic`, `partition`, `offset`, `received_at` y
+`processing_status`. Los fallos de UTF-8/JSON se almacenan en `invalid_events`.
+Redis usa Sets bajo una clave opaca, con TTL de 3.600 segundos por defecto,
+renovado al almacenar incluso un duplicado.
 
-#### Catálogo de configuración
+PostgreSQL contiene `employees`, `locations`, `professional_profiles`,
+`bank_accounts`, `network_data` y `processing_audit`.
+`sex` se conserva como JSONB; `salary` e IP como texto, sin inventar normalización
+de negocio. [Diccionario, relaciones y trazabilidad](docs/03-data-model.md).
 
-`.env.example` es la plantilla versionada; `.env` es local y puede contener secretos.
-No copies su contenido a Git, logs, Jira, PRs, chats ni material de presentación. El
-consumer actual carga el archivo local sin sobrescribir valores ya definidos por el
-proceso.
+## Calidad y resultados conocidos
 
-| Variable | Uso | Estado actual | Regla de seguridad |
-|---|---|---|---|
-| `KAFKA_BOOTSTRAP_SERVERS` | Dirección del broker autorizado | Consumida por el consumer Kafka | Configurar solo de forma local o por entorno de ejecución |
-| `KAFKA_TOPICS` | Lista separada por comas de topics autorizados | Consumida por el consumer Kafka | No fijar topics en código; no incluir payloads |
-| `KAFKA_CONSUMER_GROUP` | Identificador del grupo Kafka | Consumida por el consumer Kafka | Usar un nombre operativo local o de despliegue |
-| `MONGODB_URI` | Conexión al almacenamiento raw | Reservada para persistencia raw | Puede contener credenciales; nunca versionarla |
-| `POSTGRES_DB` | Nombre de base curada | Reservada para PostgreSQL | Valor local/de despliegue, no una regla de negocio |
-| `POSTGRES_USER` | Usuario de PostgreSQL | Reservada para PostgreSQL | Nunca versionar credenciales reales |
-| `POSTGRES_PASSWORD` | Contraseña de PostgreSQL | Reservada para PostgreSQL | Mantener exclusivamente fuera de Git |
-| `REDIS_URL` | Conexión al estado temporal | Reservada para Redis | Puede contener credenciales; nunca versionarla |
-| `HRP_REDIS_PARTIAL_STATE_TTL_SECONDS` | Expiración del estado parcial temporal, en segundos | `3600` si no se configura | Debe ser un entero positivo |
-| `LOG_LEVEL` | Nivel de detalle operativo | Reservada para logging estructurado | Los logs nunca exponen secretos ni payloads |
+El último intento local documentado en esta conversación, sobre el código
+`f3a952b`, produjo:
 
-Las variables reservadas describen el contrato operativo objetivo; no significan que
-los servicios o sus consumidores de configuración estén implementados todavía.
+| Resultado | Cantidad |
+|---|---:|
+| Pasan | 246 |
+| Fallan | 21 |
+| Omitidos | 40 |
+| Total | 307 |
+| Cobertura calculada | 82,91 % |
+| Umbral configurado | 75 % |
 
-```powershell
-python -m hr_pro_platform.ingestion.main
-```
+El import aislado de `confluent_kafka` reveló que Windows bloquea su extensión
+nativa por una directiva de Control de aplicaciones. Los `AttributeError` de
+mocks son síntomas secundarios; no demuestran 21 defectos independientes del
+consumer. El resultado **no es una suite en verde**. Las omisiones correspondían
+a servicios MongoDB/PostgreSQL no disponibles y Redis sin configurar.
 
-Detén el consumer con `Ctrl+C`. Sus logs solo deben mostrar topic, partición, offset,
-tamaño y tipo de error; nunca el payload.
+Esta revisión modifica documentación; no repite pruebas de aplicación ni cambia
+seguridad de Windows. [Estrategia y comandos](docs/05-test-harness.md).
 
-## Entorno Kafka educativo
+### Controles de calidad
 
-Kafka vive fuera del repositorio del equipo. El entorno autorizado puede ejecutarse
-en una carpeta independiente siguiendo su documentación pública:
-
-```powershell
-git clone https://github.com/Factoria-F5-madrid/data-engineering-educational-project.git kafka-educational-runtime
-cd kafka-educational-runtime
-docker compose up --build -d
-docker compose ps
-```
-
-### Restricción no negociable
-
-El código que genera los datos es una caja negra. No se abre, lee, inspecciona,
-busca, analiza ni se usa para inferir el contrato. Las fuentes autorizadas son el
-briefing público y los mensajes recibidos del broker mediante observaciones limitadas
-y seguras. Nunca se incluyen payloads, PII, secretos o contenido de `.env` en Git,
-Jira, PRs, chats o presentaciones.
-
-## Calidad y automatización
-
-| Control | Ejecución | Propósito |
+| Control | Ejecución prevista | Resultado o uso actual |
 |---|---|---|
-| Spec validator | Cada PR | Comprueba estructura mínima de specs |
-| Ruff lint y format | Local y CI | Mantiene código consistente y sin errores mecánicos |
-| mypy strict | Local y CI | Verifica contratos de tipos en `src` |
-| pytest + coverage | Local y CI | Exige comportamiento probado y suelo del 75 % |
-| Compose config | CI | Detecta configuración Docker inválida |
-| PR governance | Cada PR | Exige clave Jira y título convencional |
-| PR labels | Cada PR | Clasifica automáticamente el área del cambio |
-| CODEOWNERS + aprobación | Antes del merge | Mantiene revisión humana independiente |
-| Release tags | Bajo workflow | Permite entregas reproducibles y auditables |
+| Spec validator | Local, pre-commit y CI | 60 specs válidas en esta revisión |
+| `git diff --check` | Antes de commit | 0 errores en esta revisión |
+| Ruff lint y format | Local y CI | Sin cambios Python en HRP-93 |
+| mypy strict | Local y CI | Sin cambios Python en HRP-93 |
+| pytest + coverage | Local y CI | Último intento: 246 pasan, 21 fallan, 40 omitidos |
+| Compose config | CI | Stack versionado para datos y observabilidad |
+| PR governance | Cada PR | Título debe cumplir `HRP-XX tipo: resumen` |
+| CODEOWNERS/revisión | Antes de merge | Gaby y Johans como revisores designados |
 
-La matriz completa de pruebas incluye unitarias, contrato, integración, E2E y carga:
-[docs/05-test-harness.md](docs/05-test-harness.md).
+## Seguridad y límites
 
-## Equipo y propiedad
+- Sin payloads reales, credenciales ni capturas de personas en Git o presentación.
+- API sin autenticación/autorización: uso local y controlado; no publicarla como
+  servicio seguro de producción. Las búsquedas pueden devolver datos personales,
+  aunque excluyen IBAN y salario.
+- Grafana tiene acceso anónimo de lectura en localhost, para desarrollo.
+- Redis es efímero; MongoDB y PostgreSQL usan volúmenes. No usar `down -v` para parar.
+- El prefijo de acknowledgement se calcula por lote; no mantiene huecos entre lotes.
+  Los logs genéricos interpolan excepciones sin filtro universal. Véanse los
+  [límites de arquitectura](docs/01-architecture.md) y [logging](docs/06-observability.md).
+- No se afirman alta disponibilidad, recuperación ante desastres, exactly-once
+  extremo a extremo, despliegue AWS ni conformidad WCAG demostrada.
 
-| Persona | Rol principal | Foco actual |
+## Equipo y entrega
+
+| Miembro | Área |
+|---|---|
+| Miguel Redondo | Coordinación, plataforma, Git, calidad y documentación |
+| Anahí | Ingesta Kafka y MongoDB |
+| Gaby | Contrato, transformación, Redis y observabilidad |
+| Johans | PostgreSQL y API |
+
+Gaby y Johans fueron designados revisores de la PR. Miguel autoriza esta revisión
+documental y no requiere una nueva aprobación para editar documentos.
+Las protecciones remotas siguen siendo propiedades de GitHub, no de este README.
+
+### Tecnologías del briefing
+
+| Tecnología | Uso en el proyecto | Estado |
 |---|---|---|
-| Miguel | Plataforma, arquitectura y calidad | CI, Docker, documentación, observabilidad y demo |
-| Anahí | Ingesta y raw storage | Kafka, consumer, MongoDB e idempotencia raw |
-| Gaby | Contrato y transformación | Clasificación, limpieza, agrupación, Redis y métricas |
-| Johans | Modelo curado y serving | PostgreSQL, consultas, API y frontend |
+| Git / GitHub | Ramas, PRs, CI, CODEOWNERS y documentación trazable | Adoptada |
+| Jira | Backlog HRP, trazabilidad por tarea y cierre | Adoptada |
+| Python | Ingesta, transformación, persistencia, API y pruebas | Adoptada |
+| Kafka | Fuente externa de eventos y consumer configurable | Adoptada con broker externo |
+| MongoDB | Almacenamiento raw e inválidos | Adoptada |
+| PostgreSQL | Modelo curado y consultas SQL | Adoptada |
+| Redis | Estado parcial temporal con TTL | Adoptada |
+| Docker / Compose | Servicios de desarrollo y observabilidad | Adoptada |
+| Prometheus / Grafana | Métricas de ingesta y dashboard | Adoptada |
+| FastAPI | API de consulta sobre PostgreSQL | Adoptada |
+| Pandas | Dependencia no incorporada | No necesaria para el diseño actual |
+| Frontend | Consulta visual de clientes | Excluido del cierre |
 
-La propiedad no crea silos: toda PR necesita revisión de otra persona y los cambios
-en límites de componentes se revisan con el área afectada.
+## Documentación y presentación
 
-## Estructura del repositorio
+- [Índice completo y guía de lectura](docs/README.md)
+- [Runbook](docs/07-runbook.md) y [configuración](docs/configuration.md)
+- [Contrato observado](docs/02-data-contract.md), [modelo](docs/03-data-model.md) y [API](docs/api-reference.md)
+- [Dailies y evidencia por jornada](docs/dailies/README.md)
+- [Paquete autocontenido para NotebookLM](docs/presentation-sources/NOTEBOOKLM-PACK.md)
+- [Fuentes oficiales y referencias](docs/presentation-sources/05-references.md)
+- [Cierre y alcance aceptado](docs/project-closeout.md)
+- [Inventario de la revisión documental](docs/documentation-audit.md)
+
+## Estructura
 
 ```text
-.
-├── .github/                  Workflows, plantilla de PR y CODEOWNERS
-├── docs/
-│   ├── adr/                  Decisiones arquitectónicas duraderas
-│   ├── ai/                   Paquetes de tarea y política de asistencia supervisada
-│   ├── dailies/              Evolución diaria, acuerdos y bloqueos
-│   ├── observations/         Evidencia estructural segura
-│   ├── presentation-sources/ Fuentes curadas para NotebookLM
-│   └── specs/                Contrato ejecutable de cada tarea Jira
-├── infra/                    Compose y futura observabilidad
-├── scripts/                  Automatización reproducible
-├── src/hr_pro_platform/      Aplicación Python modular
-├── tests/                    Unitarias, fixtures y futuras integraciones/E2E
-├── AGENTS.md                 Reglas de contexto para asistentes
-├── CONTRIBUTING.md           Flujo Git y Definition of Done
-└── pyproject.toml            Dependencias y configuración Python canónica
+src/hr_pro_platform/   ingesta, transformación, almacenamiento, API y métricas
+infra/                Compose y configuración Prometheus/Grafana
+tests/                unitarias, integración y E2E sintético
+docs/                 guías, contratos, ADRs, specs, dailies y presentación
+ai-specs/             roles y flujos de asistencia al equipo
+.github/              CI, plantillas, CODEOWNERS y workflows
+scripts/              automatización de specs, tareas y dailies
 ```
 
-## Próximos cortes verticales
-
-1. **Revisar sobre raw y frontera ETL.** Confirmar mediante revisión humana que
-   HRP-34 preserve claramente el topic Kafka original, partición, offset, payload,
-   clasificación técnica y estado de procesamiento antes de usarlo como entrada del
-   ETL.
-2. **Análisis de correlación.** HRP-43 compara con evidencia autorizada los candidatos
-   `passport`, `fullname` y `address`, documenta coincidencias, ambigüedades y
-   conflictos y determina si es seguro proponer una estrategia. Si la evidencia no es
-   suficiente, la correlación permanece explícitamente pendiente.
-3. **Clasificación y calidad.** Resolver HRP-44 para clasificar las variantes y HRP-45
-   para validarlas y limpiarlas con reglas exactas y fixtures sanitizados.
-4. **Fragmentos -> persona curada.** Gestionar orden e
-   incompletitud y publicar mediante upsert en PostgreSQL.
-5. **Operación reproducible.** Completar Compose de aplicación, logs estructurados,
-   integración y E2E.
-6. **Observabilidad y producto.** Añadir Redis, Prometheus, API y frontend accesible
-   cuando el flujo esencial ya tenga una referencia estable.
-
-## Frontera raw de HRP-34
-
-Todo JSON object parseable, incluidos `unknown` y `non-conforming`, se persiste en
-`raw_events` antes de clasificación o validación. Los fallos técnicos se enrutan a
-`invalid_events` con `missing_value`, `invalid_utf8`, `invalid_json` o
-`non_object_json`; `None` usa `payload: null` y los bytes inválidos son BSON Binary
-solo dentro de MongoDB. La identidad es `topic + partition + offset`; los conflictos
-no permiten acknowledgement y los offsets avanzan solo por el prefijo durable
-contiguo de cada topic-partition. Las colecciones se configuran con
-`MONGODB_COLLECTION` y `MONGODB_INVALID_COLLECTION`. La colección incompatible
-existente permanece sin cambios.
-
-## Diferenciales del proyecto
-
-- **Evidence-first:** el contrato nace del broker observado, no de conocer el
-  generador ni de adivinar nombres.
-- **Pérdida de datos tratada antes de implementar:** el límite de confirmación Kafka
-  se formula como propuesta revisable y solo se aprobará con evidencia de HRP-34.
-- **Documentación ejecutable:** specs, tests y CI reducen la distancia entre lo escrito
-  y lo que realmente puede demostrarse.
-- **Asistencia IA supervisada:** todos usan el mismo contexto, restricciones y criterios,
-  pero ninguna IA aprueba su propio trabajo ni cierra Jira.
-- **Presentación construida durante el proyecto:** las fuentes de NotebookLM contienen
-  evidencia y evolución, no una reconstrucción apresurada al final.
-
-También mantenemos un [DAFO evolutivo](docs/09-evolving-swot.md) y un
-[benchmark documentado](docs/10-reference-benchmark.md). La referencia externa se
-usa solo para aprender patrones; no es dependencia ni fuente de contrato y no se copia
-su código.
-
-## Índice documental
-
-| Necesidad | Fuente canónica |
-|---|---|
-| Objetivo, alcance y niveles | [Project charter](docs/00-project-charter.md) |
-| Componentes, límites y flujo | [Arquitectura](docs/01-architecture.md) |
-| Hechos observados e incógnitas | [Contrato de datos](docs/02-data-contract.md) |
-| Raw y modelo curado | [Modelo de datos](docs/03-data-model.md) |
-| Flujo Specification-Driven | [SDD](docs/04-sdd-workflow.md) |
-| Pruebas y quality gates | [Test harness](docs/05-test-harness.md) |
-| Logs, métricas y privacidad | [Observabilidad](docs/06-observability.md) |
-| Accesibilidad y sostenibilidad | [ADR-0007](docs/adr/0007-accessibility-and-sustainable-delivery.md) |
-| Arranque y diagnóstico | [Runbook](docs/07-runbook.md) |
-| Ramas, PRs y releases | [Gobernanza Git](docs/08-git-governance.md) |
-| Fortalezas y riesgos vivos | [DAFO evolutivo](docs/09-evolving-swot.md) |
-| Aprendizaje de referencia | [Benchmark](docs/10-reference-benchmark.md) |
-| Trabajo diario | [Dailies](docs/dailies/README.md) |
-| Presentación técnica | [Fuentes NotebookLM](docs/presentation-sources/README.md) |
-| Onboarding y prompts | [Trabajo asistido por IA](docs/onboarding/ai-assisted-workflow.md) |
-
-## Guion de demo final
-
-La demo contará el viaje de un dato, no una lista de herramientas:
-
-1. Mostrar servicios saludables sin abrir el generador educativo.
-2. Recibir eventos en Kafka con logs exclusivamente técnicos.
-3. Comprobar raw e idempotencia en MongoDB.
-4. Mostrar clasificación, agrupación y auditoría del ETL.
-5. Consultar la persona curada en PostgreSQL, API y frontend accesible.
-6. Mostrar métricas de consumo, latencia, persistencia y errores.
-7. Cerrar con CI, PR revisadas, Jira y evolución del DAFO como evidencia del proceso.
-
-Hasta que todos esos pasos existan, el README distingue claramente entre lo
-**completado**, lo **en curso** y lo **planificado**.
+La versión del paquete en `pyproject.toml` es `0.1.0`; no equivale a un tag de
+release publicado. No hay una licencia del proyecto versionada en el checkout
+revisado: esta documentación no concede una licencia nueva.

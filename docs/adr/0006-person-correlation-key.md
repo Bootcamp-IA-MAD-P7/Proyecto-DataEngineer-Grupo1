@@ -2,11 +2,11 @@
 
 ## Status
 
-Accepted in principle - provisional and controlled operational correlation strategy.
+Accepted — provisional and controlled operational correlation strategy.
 This is accepted for constructing the project's consolidated records under the
 documented limitations; it is not a claim of real-world identity truth or universal
-uniqueness. Versioned acceptance of this ADR remains subject to human review and
-merge of PR #42.
+uniqueness. Versioned acceptance is integrated in [PR #42](https://github.com/Bootcamp-IA-MAD-P7/Proyecto-DataEngineer-Grupo1/pull/42),
+commit `0512612` on 2026-09-02. The historical observation limits below remain valid.
 
 ## Context
 
@@ -141,9 +141,8 @@ Observed exact-equality evidence:
 Prior team discussion supported formalizing this provisional and controlled
 operational strategy under the limitations and responsibility boundaries in this ADR.
 The versioned acceptance of ADR-0006 is represented by human review and merge of
-PR #42. While PR #42 remains pending, this document does not claim that the ADR has
-completed its human approval gate. No human reviewer name, approval timestamp, Jira
-comment identifier or other unavailable traceability detail is asserted here.
+PR #42, integrated as `0512612` on 2026-09-02. The Git history establishes integration;
+no unavailable reviewer identity, approval timestamp or Jira comment is asserted.
 
 ## Risks and limitations
 
@@ -192,9 +191,8 @@ specifications define persistence enforcement.
 
 ## Acceptance gate
 
-The decision is `Accepted in principle` for the provisional and controlled
+The decision is `Accepted` for the provisional and controlled
 operational strategy recorded above, based on the authorized evidence and prior team
-discussion. The versioned ADR acceptance gate completes only after human review and
-merge of PR #42. Future changes to the approved edges, comparison policy,
+discussion and the integrated decision in PR #42. Future changes to the approved edges, comparison policy,
 transitivity, identity boundary or responsibility boundaries require a new reviewed
 ADR decision.

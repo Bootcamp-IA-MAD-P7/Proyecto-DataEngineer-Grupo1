@@ -1,7 +1,7 @@
 # Data model entry point
 
-The canonical HR Pro data-model document is
-[`03-data-model.md`](03-data-model.md). HRP-29 and HRP-24 now provide the observed
-structural baseline. Correlation, business semantics and the final relational design
-remain provisional until their own reviewed tasks approve them; no source-code
-inspection of the generator is permitted.
+The canonical [data model](03-data-model.md) documents the implemented schema and
+mapping at 2026-09-08. Operational correlation is defined in
+[ADR-0006](adr/0006-person-correlation-key.md), integrated through PR #42.
+It is not proof of real-world identity or a globally unique business key.
+The educational generator remains out of scope.

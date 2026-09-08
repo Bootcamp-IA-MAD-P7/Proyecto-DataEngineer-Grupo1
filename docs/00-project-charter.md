@@ -1,34 +1,39 @@
-# Project Charter
+# Project charter
 
-## Problema
+## Problema y objetivo
 
-HR Pro necesita integrar eventos de recursos humanos emitidos continuamente a través de Kafka, preservarlos y convertirlos en información preparada para consulta.
+Integrar fragmentos de información de RR. HH. recibidos desde Kafka, conservar su
+procedencia y producir datos curados consultables. La propuesta combina raw MongoDB,
+transformación, PostgreSQL, estado temporal Redis, API y observabilidad.
 
-## Objetivo
+## Alcance de cierre — 2026-09-08
 
-Implementar un pipeline Dockerizado que consuma Kafka, persista eventos crudos en MongoDB, agrupe la información de cada persona y la cargue en PostgreSQL. El proyecto alcanzará los niveles esencial, medio, avanzado y experto definidos en el briefing.
+Miguel, responsable, acepta condiciones de entrega 5/5, esencial 6/6, medio 3/3,
+avanzado 3/3 y experto 1/2. Frontend excluido. Esta es una decisión de aceptación;
+la [matriz técnica](delivery-evidence.md) registra qué evidencia existe en Git.
 
-## Alcance
-
-- Kafka como fuente de eventos.
-- MongoDB como zona raw y de auditoría.
-- PostgreSQL como almacén relacional final.
-- Redis como estado temporal de agrupación.
-- Logs, pruebas, Docker Compose, Prometheus, API y Streamlit.
-
-## Restricción no negociable
-
-No se accede, clona, lee, analiza ni intenta inferir el código que genera los datos. Solo se usan el README autorizado, los mensajes recibidos desde Kafka y los requisitos del briefing.
+La ejecución automática configurada cubre ingesta Kafka–MongoDB. ETL, SQL y API
+tienen componentes y pruebas, pero no se describe un worker continuo MongoDB–SQL
+inexistente en este checkout. La presentación distingue esos límites.
 
 ## Equipo
 
-| Miembro | Responsabilidad principal |
+| Miembro | Responsabilidad |
 |---|---|
-| Miguel | Coordinación, Git, Docker, calidad, documentación y demo |
+| Miguel | Coordinación, plataforma, Git, calidad y documentación |
 | Anahí | Kafka y MongoDB |
-| Gaby | ETL, Redis y monitorización |
-| Johans | PostgreSQL, API y frontend |
+| Gaby | Contrato, ETL, Redis y monitorización |
+| Johans | PostgreSQL y API |
 
-## Criterio de éxito
+## Restricciones
 
-El sistema se puede iniciar de forma reproducible, procesa datos de Kafka de forma continua, permite demostrar trazabilidad del evento crudo al registro SQL final y ofrece consultas desde una API y un frontend sencillo.
+El productor educativo es una caja negra. Solo se emplean briefing/instrucciones
+públicas y observaciones autorizadas; no su código. No publicar secretos ni datos
+personales en artefactos de ingeniería o presentación.
+
+## Entrega documental
+
+[README](../README.md), guías operativas, diccionario, contratos, ADRs, specs,
+dailies y [paquete NotebookLM](presentation-sources/NOTEBOOKLM-PACK.md).
+Miguel autoriza las correcciones documentales sin nueva aprobación. No se infiere
+autorización para alterar datos, implementar frontend o modificar estados externos.

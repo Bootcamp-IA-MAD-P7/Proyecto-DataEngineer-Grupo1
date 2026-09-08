@@ -1,7 +1,11 @@
 # Evidencia — Contrato Kafka y línea base de calidad
 
-**Fecha:** 2026-08-28  
-**Alcance:** transición de descubrimiento a persistencia raw  
+> Evidencia histórica del momento registrado, no inventario actual.
+> No se han reejecutado aquí los comandos originales.
+> Para el cierre usar [evidencia 2026-09-08](2026-09-08-closeout.md).
+
+**Fecha:** 2026-08-28
+**Alcance:** transición de descubrimiento a persistencia raw
 **Estado:** evidencia integrada para Kafka y consumer; persistencia raw pendiente
 
 ## Qué puede demostrarse

@@ -1,8 +1,24 @@
 # HRP-85 — Search people by location or profession
 
-**Status:** Draft; implementation authorised — the four open decisions below were
+**Integration status (2026-09-08):** Task changes integrated in develop; acceptance criteria not re-executed here.
+**Git evidence:** [e0306a1](https://github.com/Bootcamp-IA-MAD-P7/Proyecto-DataEngineer-Grupo1/commit/e0306a1) / [PR #68](https://github.com/Bootcamp-IA-MAD-P7/Proyecto-DataEngineer-Grupo1/pull/68) (2026-09-04).
+**Closeout interpretation:** Location/profession search is integrated; multiple exact filters combine with AND, not fuzzy matching.
+
+This integration record does not assert current Jira status, reviewer approval identity
+or a new passing test run. [Current documentation](../README.md) and
+[acceptance/evidence matrix](../delivery-evidence.md) define the closeout reading.
+
+## Historical specification and task evidence
+
+The scope, criteria, checkboxes and test results below are the task's original record.
+They are not a live progress dashboard. Pending-review/merge references in this
+historical record are superseded by the integration evidence above; unresolved
+functional limitations are not automatically marked as passed.
+
+**Original recorded status:** Draft; implementation authorised — the four open decisions below were
 confirmed by Johans Salas (task owner) on 2026-09-04, adopting every proposed
 default as-is.
+
 **Owner:** Johans Salas
 **Human reviewer:** Miguel or Gaby
 **Jira:** HRP-85 — Crear endpoint para consultar personas por ubicación o profesión

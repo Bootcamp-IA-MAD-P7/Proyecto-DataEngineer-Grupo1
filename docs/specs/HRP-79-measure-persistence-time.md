@@ -1,6 +1,22 @@
 # HRP-79 — Measure ingestion persistence duration
 
-**Status:** In progress
+**Integration status (2026-09-08):** Task changes integrated in develop; acceptance criteria not re-executed here.
+**Git evidence:** [35f3047](https://github.com/Bootcamp-IA-MAD-P7/Proyecto-DataEngineer-Grupo1/commit/35f3047) / [PR #74](https://github.com/Bootcamp-IA-MAD-P7/Proyecto-DataEngineer-Grupo1/pull/74) (2026-09-07).
+**Closeout interpretation:** This measures MongoDB raw persistence attempts, not SQL persistence or whole-pipeline latency.
+
+This integration record does not assert current Jira status, reviewer approval identity
+or a new passing test run. [Current documentation](../README.md) and
+[acceptance/evidence matrix](../delivery-evidence.md) define the closeout reading.
+
+## Historical specification and task evidence
+
+The scope, criteria, checkboxes and test results below are the task's original record.
+They are not a live progress dashboard. Pending-review/merge references in this
+historical record are superseded by the integration evidence above; unresolved
+functional limitations are not automatically marked as passed.
+
+**Original recorded status:** In progress
+
 **Owner:** Gabriela Granja
 **Jira:** HRP-79
 **Branch:** `feature/HRP-79-measure-persistence-time`

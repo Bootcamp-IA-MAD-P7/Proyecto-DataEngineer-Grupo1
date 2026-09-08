@@ -1,45 +1,35 @@
-# Arquitectura — fuente narrativa
+# Arquitectura — fuente para exposición
 
-**Lectura del diagrama:** representa la arquitectura objetivo. A 2026-08-31 están
-validados Kafka, el consumer, MongoDB local y una persistencia inicial de fragmentos.
-El sobre raw definitivo aún debe revisarse antes de usarlo como contrato del ETL.
+## Tres responsabilidades de datos
 
-## Idea principal
+- MongoDB: conserva el objeto raw y sus coordenadas Kafka.
+- Redis: adapter de estado parcial efímero con Sets y TTL, no fuente de verdad.
+- PostgreSQL: tablas curadas para repositorios y API.
 
-La arquitectura separa datos originales, estado temporal y datos listos para consulta.
-Esta separación permite escalar, auditar y reprocesar sin mezclar responsabilidades.
+## Recorrido implementado
 
-```text
-Kafka externo
-   -> ingest-worker
-      -> MongoDB: eventos raw, inmutables y trazables
-      -> process-worker + Redis: correlación temporal de fragmentos
-         -> PostgreSQL: información curada e idempotente
-            -> FastAPI -> frontend accesible
+Kafka externo → proceso app de ingesta → MongoDB. El mismo proceso emite contador
+de mensajes y tiempos de procesamiento/persistencia MongoDB a Prometheus y Grafana.
+Transformación y repositorio SQL son componentes; HRP-71 los une explícitamente
+con MongoDB usando eventos sintéticos equivalentes a Kafka.
+Redis no participa en esa prueba. No hay un worker productivo que conecte
+continuamente MongoDB → ETL → SQL. La API se inicia separadamente.
 
-Todos los componentes emiten logs y métricas para Prometheus.
-```
+## Correlación defendible
 
-## Por qué cada tecnología
+Clasificar por conjunto exacto de claves; validar técnicamente; agrupar; consolidar
+con las cuatro relaciones de ADR-0006. Mantener complete/incomplete/ambiguous,
+entradas no resueltas y procedencia. No normalizar ni fusionar silenciosamente
+datos conflictivos. Las coincidencias son operacionales, no identidad probada.
 
-| Tecnología | Papel | Beneficio |
-|---|---|---|
-| Kafka | Entrada continua | Procesa eventos en tiempo real |
-| MongoDB | Zona raw | Auditoría, reproceso y protección contra duplicados técnicos |
-| Redis | Estado temporal | Agrupa datos que llegan en distinto orden |
-| PostgreSQL | Zona curada | Consultas consistentes y eficientes |
-| Docker Compose | Entorno reproducible | Misma ejecución para desarrollo y demo |
-| Prometheus | Observabilidad | Mide volumen, latencia y errores |
-| FastAPI + frontend accesible | Consulta y demo | Hace visible el valor final sin acoplar la UI al almacenamiento |
+## Visual recomendado
 
-## Invariantes objetivo y propuestas pendientes
+Dos bandas: arriba runtime continuo Kafka → app → MongoDB y monitorización;
+abajo componentes de transformación/Redis/SQL/API. La conexión de prueba debe ir
+discontinua y rotulada «HRP-71 sintético». No dibujar un frontend entregado.
 
-- El evento raw se persiste antes de transformarse.
-- ADR-0005 guía la confirmación Kafka después de persistencia raw o reconocimiento de
-  duplicado técnico; su aplicación debe quedar alineada con el sobre raw final.
-- Reprocesar el mismo evento no duplica información.
-- Un mensaje erróneo no detiene la ingesta.
-- Redis no es fuente de verdad y sus datos expiran.
-- El contrato se basa en mensajes observados, no en el código del productor.
+[Arquitectura canónica](../01-architecture.md), [modelo](../03-data-model.md),
+[API](../api-reference.md), [observabilidad](../06-observability.md).
 
-La documentación técnica completa está en `docs/01-architecture.md`.
+Límite de durabilidad: el prefijo de acknowledgement se evalúa por lote; sin control
+de huecos entre lotes no se acredita ausencia global de pérdida. Evitar esa promesa.

@@ -2,7 +2,9 @@
 
 ## Status
 
-Proposed — requires peer review with the HRP-34 implementation.
+Formal ADR status recorded historically: Proposed. HRP-34 implementation was integrated
+in [PR #33](https://github.com/Bootcamp-IA-MAD-P7/Proyecto-DataEngineer-Grupo1/pull/33),
+commit `d1a2393` on 2026-09-01. This review does not invent a separate formal ADR approval.
 
 ## Context
 
@@ -22,9 +24,11 @@ create an endless redelivery loop unless raw persistence is idempotent.
 2. MongoDB has a unique compound index on `topic`, `partition` and `offset`.
 3. The consumer acknowledges an event only after MongoDB reports either:
    - a successful insert; or
-   - an existing document with the same Kafka coordinates.
+   - an already durable compatible event at the same Kafka coordinates, without a
+     cross-collection destination conflict. A duplicate-key error alone is insufficient.
 4. A timeout, connection failure or unclassified persistence error leaves the offset
-   uncommitted and emits technical-only logs and a failure metric.
+   uncommitted and emits technical-only logs. A dedicated failure metric was proposed
+   but is not exposed by the current metrics registry.
 5. Classification, correlation and curated persistence happen after the raw boundary.
    Their failure must not mutate or delete the raw event.
 6. Batch writers return the exact coordinates durably persisted before the caller can
@@ -52,4 +56,14 @@ The status may change from `Proposed` to `Accepted` only after HRP-34 provides t
 required failure-path and idempotency evidence and a peer reviewer explicitly approves
 the ingestion/storage boundary. The review reference and date must be added here when
 that happens. Until then, surrounding documentation must describe this policy as a
-proposal rather than an implemented invariant.
+formal ADR proposal. Separately, implementation of durable-prefix acknowledgement
+is established in HRP-34; an unchanged ADR status must not hide integrated code.
+This does not establish end-to-end exactly-once or a measured restart guarantee.
+
+## Implementation gap identified at documentary closeout
+
+The helper tracks durable prefixes within the current batch only. There is no
+cross-batch gap ledger, so a later successful batch can advance a commit beyond
+an earlier unresolved event. The intended no-loss policy above is not established
+as a global invariant. Generic consumer exception text also lacks universal
+redaction. These findings are documented, not fixed by HRP-93.

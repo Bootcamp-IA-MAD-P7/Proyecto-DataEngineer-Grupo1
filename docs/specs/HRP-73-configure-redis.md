@@ -1,6 +1,22 @@
 # HRP-73 — Configure Redis in Docker Compose
 
-**Status:** Draft
+**Integration status (2026-09-08):** Task changes integrated in develop; acceptance criteria not re-executed here.
+**Git evidence:** [c39495b](https://github.com/Bootcamp-IA-MAD-P7/Proyecto-DataEngineer-Grupo1/commit/c39495b) / [PR #62](https://github.com/Bootcamp-IA-MAD-P7/Proyecto-DataEngineer-Grupo1/pull/62) (2026-09-04).
+**Closeout interpretation:** Redis is an internal Compose service, no published host port, with ephemeral state; configuration does not connect it to the production ingestion loop.
+
+This integration record does not assert current Jira status, reviewer approval identity
+or a new passing test run. [Current documentation](../README.md) and
+[acceptance/evidence matrix](../delivery-evidence.md) define the closeout reading.
+
+## Historical specification and task evidence
+
+The scope, criteria, checkboxes and test results below are the task's original record.
+They are not a live progress dashboard. Pending-review/merge references in this
+historical record are superseded by the integration evidence above; unresolved
+functional limitations are not automatically marked as passed.
+
+**Original recorded status:** Draft
+
 **Owner:** Gabriela (GG)
 **Jira:** HRP-73
 **Dependencies:** Existing development Compose and Redis temporary-state architecture

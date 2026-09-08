@@ -40,7 +40,7 @@ Instalar estas herramientas antes de clonar:
 | Git | Clonar, ramas y PRs | Sí |
 | Python 3.11 | Aplicación y tests | Sí |
 | VS Code + extensión Python | Edición y terminal | Recomendada |
-| Docker Desktop | MongoDB, PostgreSQL y Redis | Instalar ya; usar desde Sprint 2 |
+| Docker Desktop | MongoDB, PostgreSQL y Redis | Servicios disponibles en Compose; ver runbook |
 
 ## 2. Primera clonación y verificación
 
