@@ -27,7 +27,7 @@ No se ejecutaron servicios, broker, suite funcional, benchmarks ni cambios de se
 | Hallazgo anterior | Corrección |
 |---|---|
 | Varias matrices y un Mermaid antiguo 3/6, 1/3, 0/3, 0/2 | Una matriz de aceptación 18/19 con límites técnicos separados |
-| Diagrama presentaba process-worker completo como entregado | Runtime continuo de ingesta separado de componentes y prueba sintética |
+| Diagrama presentaba process-worker completo antes de existir | Runtime continuo `app` + `etl` + `api`, separado de la prueba sintética HRP-71 |
 | storage.main descrito como ETL | Inicialización de esquema y terminación |
 | HRP-71 etiquetado como Kafka E2E real | Sintético Kafka-equivalente, sin broker ni Redis |
 | Contrato mezclaba tipos observados y clasificador | Observación por claves/tipos frente a clasificación runtime por claves |
@@ -44,11 +44,11 @@ No se ejecutaron servicios, broker, suite funcional, benchmarks ni cambios de se
 
 Miguel autoriza esta edición sin otra confirmación. Se conserva su aceptación
 18/19 con frontend excluido; no se usa para afirmar mediciones inexistentes.
-Gaby y Johans son revisores designados, no aprobadores ya acreditados.
-Jira y reglas remotas no se modificaron. La referencia develop 275131a fue
-comprobada e integrada en la rama local; código técnico f3a952b sin cambios.
+Miguel realiza el merge sin revisores adicionales. Jira no se modificó. La
+extensión incorpora el worker ETL, servicios Compose y su prueba de runtime.
 
-Último intento funcional reportado anteriormente: 246 pasan, 21 fallan, 40 omitidos,
+La extensión supera 270 pruebas unitarias, Ruff, formato y mypy. El intento completo
+reportado anteriormente fue 246 pasan, 21 fallan, 40 omitidos,
 82,91 % cobertura; no se reejecutó ni se reinterpretó como verde. Esta auditoría
 no adjunta el log completo original ni certifica cada fallo como solo ambiental.
 
@@ -259,9 +259,10 @@ las URLs históricas, estados Jira, revisiones individuales o ejecuciones CI rem
 
 ## Límites no resueltos por documentación
 
-No hay worker productivo continuo Mongo→SQL ni benchmark. El prefijo durable de
-offsets es por lote y no conserva huecos entre lotes; los logs genéricos interpolan
-excepciones. API sin auth, Redis efímero y suite local no verde siguen documentados.
+El worker continuo Mongo→Redis→SQL ya forma parte del Compose local. Siguen sin
+acreditarse benchmark, alta disponibilidad ni recuperación ante desastres. El
+prefijo durable de offsets es por lote y no conserva huecos entre lotes; la API
+no tiene auth, Redis es efímero y el resultado local histórico no era verde.
 Esta revisión no los corrige con código ni los oculta tras la aceptación.
 Las dailies faltantes se reconstruyen por integraciones, no por supuestas reuniones.
 El paquete es material de entrada de NotebookLM, no la presentación final generada.

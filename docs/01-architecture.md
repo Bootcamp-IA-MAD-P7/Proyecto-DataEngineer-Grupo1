@@ -8,12 +8,13 @@ y cómo se conectan realmente. [Aceptación del proyecto](delivery-evidence.md).
 | Proceso | Entrada | Trabajo real | Fin |
 |---|---|---|---|
 | `ingestion.main` / Compose `app` | Kafka autorizado | Polling, persistencia raw, confirmaciones y métricas | Señal o error con reintentos acotados |
+| `transformation.main` / Compose `etl` | MongoDB `raw_events` pendiente | Clasificar, correlacionar en Redis y persistir el modelo curado | Señal; espera entre lotes vacíos |
 | `storage.main` | Configuración PostgreSQL | Conectar y crear esquema | Termina; no hace ETL |
-| `uvicorn ...api.main:app` | HTTP | Consultas PostgreSQL | Servidor independiente |
+| `uvicorn ...api.main:app` / Compose `api` | HTTP | Consultas PostgreSQL | Señal |
 
-El Dockerfile define solo el primer entrypoint. No existe un servicio API ni un
-`process-worker` en Compose. Las funciones ETL y el repositorio SQL existen como
-bibliotecas; el encadenamiento está ejercitado por pruebas.
+La misma imagen se reutiliza con tres comandos explícitos en Compose. El perfil
+`app` conecta la ingesta, el worker ETL y la API; Kafka sigue siendo el runtime
+educativo externo y el frontend permanece fuera del alcance.
 
 ## Recorrido del dato
 
@@ -26,17 +27,19 @@ flowchart TD
     M --> D["Resultado durable por coordenada"]
     X --> D
     D --> C["Commit del prefijo durable por partición"]
-    M -. "orquestación explícita en HRP-71" .-> T["Clasificar y validar"]
+    M --> E["Worker ETL continuo"]
+    E --> T["Clasificar y validar"]
     T --> G["Cinco groupers"]
+    G <--> R[("Redis temporal")]
     G --> U["Consolidar con ADR-0006"]
     U --> P["Mapear y persistir"]
     P --> S[("PostgreSQL")]
     S --> A["API"]
 ```
 
-HRP-71 usa coordenadas y datos sintéticos; llama directamente al adaptador MongoDB
-y luego a las funciones ETL y SQL. No prueba el transporte desde un broker,
-el ciclo de vida de un worker ETL ni Redis.
+HRP-71 conserva su alcance histórico: usa coordenadas y datos sintéticos y llama
+directamente a MongoDB, ETL y SQL. La extensión de runtime de HRP-87 añade el
+recorrido continuo real desde los documentos RAW que crea el consumer.
 
 ## Contratos entre componentes
 
@@ -47,7 +50,7 @@ el ciclo de vida de un worker ETL ni Redis.
 | Validador | Mapping soportado y clasificación coherente | No limpia ni normaliza valores |
 | Groupers | Grupos por clave operacional y procedencia | Conservan conflictos y no resueltos |
 | Consolidación | Componentes conectados por cuatro reglas exactas | No prueba identidad real |
-| Redis | Set de fragmentos clasificados bajo identificador opaco | El llamador decide el identificador y cuándo usar el adapter |
+| Redis | Set de fragmentos clasificados bajo hash SHA-256 con TTL | Estado temporal reconstruible desde RAW; no contiene PII en la clave |
 | SQL | Mapeo, transacción y auditoría de referencias | Idempotencia de procedencia, no unicidad de pasaporte |
 | API | Consultas exactas parametrizadas y paginadas | No ingiere ni consolida |
 
@@ -72,9 +75,9 @@ pero no constituye una garantía exactly-once global ni una prueba de tolerancia
 a cualquier carrera entre procesos.
 
 Redis renueva TTL al almacenar. No hay transacción atómica conjunta `SADD+EXPIRE`
-en el adapter; los errores se propagan. Su uso es temporal, con posibilidad de
-reconstrucción diseñada desde raw, no un procedimiento automático de recuperación
-demostrado en esta revisión.
+en el adapter; los errores se propagan. El worker reconstruye componentes desde
+fragmentos RAW nuevos y estado temporal, pero no se acredita recuperación ante
+desastres ni alta disponibilidad.
 
 ## Observabilidad
 
@@ -93,8 +96,8 @@ Prometheus de SQL, Redis o API en el código revisado.
 - [ADR-0006](adr/0006-person-correlation-key.md): correlación operacional.
 - [ADR-0007](adr/0007-accessibility-and-sustainable-delivery.md): accesibilidad y sostenibilidad.
 
-Frontend y AWS son direcciones futuras, no despliegues entregados. El cierre
-documental no implementa el worker ETL ni añade servicios.
+Frontend y AWS son direcciones futuras, no despliegues entregados. El runtime local
+entregado contiene `app`, `etl` y `api` como servicios separados.
 
 ## Límite adicional del acknowledgement
 

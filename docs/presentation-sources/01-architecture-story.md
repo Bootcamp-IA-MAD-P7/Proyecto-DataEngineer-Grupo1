@@ -10,10 +10,10 @@
 
 Kafka externo → proceso app de ingesta → MongoDB. El mismo proceso emite contador
 de mensajes y tiempos de procesamiento/persistencia MongoDB a Prometheus y Grafana.
-Transformación y repositorio SQL son componentes; HRP-71 los une explícitamente
-con MongoDB usando eventos sintéticos equivalentes a Kafka.
-Redis no participa en esa prueba. No hay un worker productivo que conecte
-continuamente MongoDB → ETL → SQL. La API se inicia separadamente.
+El servicio `etl` toma continuamente los RAW pendientes, clasifica los cinco
+dominios, usa Redis como estado temporal de correlación y actualiza PostgreSQL.
+El servicio `api` consulta el resultado curado. HRP-71 conserva su alcance de
+prueba sintética, mientras la extensión de HRP-87 aporta la orquestación real.
 
 ## Correlación defendible
 
@@ -24,9 +24,9 @@ datos conflictivos. Las coincidencias son operacionales, no identidad probada.
 
 ## Visual recomendado
 
-Dos bandas: arriba runtime continuo Kafka → app → MongoDB y monitorización;
-abajo componentes de transformación/Redis/SQL/API. La conexión de prueba debe ir
-discontinua y rotulada «HRP-71 sintético». No dibujar un frontend entregado.
+Una banda continua Kafka → app → MongoDB → etl ↔ Redis → PostgreSQL → API,
+con Prometheus/Grafana observando la ingesta. Rotular HRP-71 como prueba sintética
+histórica y no dibujar un frontend entregado.
 
 [Arquitectura canónica](../01-architecture.md), [modelo](../03-data-model.md),
 [API](../api-reference.md), [observabilidad](../06-observability.md).

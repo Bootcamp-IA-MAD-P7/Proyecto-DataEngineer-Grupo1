@@ -6,11 +6,11 @@ Mostrar barras etiquetadas **aceptación**, no «tests pasados» ni «rendimient
 
 [Detalle de los 19 requisitos y evidencia](../delivery-evidence.md).
 
-La decisión no convierte en acreditados el throughput de miles de mensajes/segundo,
-una demo ejecutada o un worker automático hasta SQL. Esas diferencias no se explican
-por el bloqueo Windows: son límites separados de la evidencia disponible.
+La demo de runtime verificó Kafka → MongoDB → Redis → PostgreSQL → API y la
+monitorización de ingesta. Esto no acredita miles de mensajes/segundo sostenidos,
+alta disponibilidad ni recuperación ante desastres.
 El último intento local conocido es 246 pasan, 21 fallan, 40 omitidos, cobertura 82,91 %;
 no se repitió para este cambio documental.
 
-El cierre entrega documentación y fuentes, no modifica runtime, despliegue, Jira,
-protecciones GitHub ni publica un release.
+El frontend sigue excluido. La extensión posterior al cierre incorpora el worker
+ETL y los servicios API/ETL al Compose local; no modifica Jira ni publica un release.

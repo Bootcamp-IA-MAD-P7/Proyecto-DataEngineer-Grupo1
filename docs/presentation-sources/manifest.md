@@ -17,6 +17,6 @@ La revisión local posterior debe publicarse para que GitHub la muestre.
 
 ## No disponible como evidencia de esta revisión
 
-Deck terminado, grabación de demo, benchmark de miles de mensajes/segundo, ejecución
-con broker real de HRP-71, worker automático hasta SQL, frontend, tag publicado
-y nuevo run completo de CI. No se sustituyen por iconos verdes.
+Deck terminado, grabación de demo, benchmark sostenido de miles de mensajes/segundo,
+alta disponibilidad, recuperación ante desastres, frontend, tag publicado y nuevo
+run completo de CI. No se sustituyen por iconos verdes.

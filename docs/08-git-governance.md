@@ -16,9 +16,8 @@ Rama por tarea → PR contra develop → checks y revisión → merge → eviden
 Prefijos históricos: feature/, docs/, fix/, chore/; la revisión actual usa
 codex/HRP-93-project-closeout. No reescribir historial ni forzar pushes.
 
-Para esta revisión documental Miguel autoriza editar sin otra confirmación.
-Gaby y Johans son revisores designados de PR. Esa autorización no elimina checks
-remotos, no equivale a su aprobación ni permite publicar releases automáticamente.
+Para esta extensión Miguel autoriza editar y fusionar directamente sin revisores.
+Esta excepción de cierre no publica releases automáticamente ni reescribe historial.
 
 ## Título válido y diagnóstico de checks
 

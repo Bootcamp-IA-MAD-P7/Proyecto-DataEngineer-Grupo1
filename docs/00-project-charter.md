@@ -12,9 +12,9 @@ Miguel, responsable, acepta condiciones de entrega 5/5, esencial 6/6, medio 3/3,
 avanzado 3/3 y experto 1/2. Frontend excluido. Esta es una decisión de aceptación;
 la [matriz técnica](delivery-evidence.md) registra qué evidencia existe en Git.
 
-La ejecución automática configurada cubre ingesta Kafka–MongoDB. ETL, SQL y API
-tienen componentes y pruebas, pero no se describe un worker continuo MongoDB–SQL
-inexistente en este checkout. La presentación distingue esos límites.
+La ejecución automática configurada cubre Kafka–MongoDB mediante `app` y el recorrido
+MongoDB–Redis–PostgreSQL mediante `etl`; `api` expone las consultas curadas. Kafka
+permanece como runtime educativo externo y el frontend queda excluido.
 
 ## Equipo
 

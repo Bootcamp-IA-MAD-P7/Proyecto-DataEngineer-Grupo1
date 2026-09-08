@@ -13,8 +13,8 @@ El frontend queda expresamente excluido.
 
 La [matriz canónica](delivery-evidence.md) separa aceptación de evidencia técnica.
 No afirma que todos los requisitos literales hayan sido demostrados por una prueba.
-Gaby y Johans son los revisores designados de la PR; no se les atribuye una aprobación
-ya emitida. Esta decisión no cambia protecciones de GitHub ni cierra Jira por sí sola.
+Miguel, responsable, autoriza el cambio y realiza el merge sin revisores adicionales.
+Esta decisión no cierra Jira por sí sola.
 
 ## Qué se entrega
 
@@ -22,20 +22,22 @@ Documentación de la ingesta Kafka/MongoDB, clasificación y correlación exacta
 componentes Redis y SQL, API, observabilidad, operaciones, calidad, decisiones,
 specs, historia diaria y fuentes para NotebookLM. [Índice completo](README.md).
 
-El contenedor app mantiene ingesta continua; no existe en el checkout un worker
-productivo MongoDB → ETL → SQL. HRP-71 conecta esas capas con eventos sintéticos,
-sin broker real ni Redis. La API se inicia por separado. No se declara una demo
-ejecutada, un deck generado, throughput de miles de mensajes/segundo ni un release
-publicado como resultado de esta revisión.
+El cierre HRP-93 registró históricamente que no existía un worker MongoDB → SQL.
+La extensión posterior de HRP-87 incorpora `etl` y `api` en Compose: el worker
+procesa RAW pendiente, usa Redis como estado temporal y actualiza PostgreSQL.
+La limitación histórica no debe reutilizarse para describir el runtime actual.
+No se declara throughput garantizado, identidad real, frontend ni despliegue cloud.
 
 ## Resultados conocidos y trabajo realizado ahora
 
-Último intento local registrado en la conversación: 246 pasan, 21 fallan,
+La extensión superó Ruff, formato, mypy y 270 pruebas unitarias; además se validó
+el recorrido real en Docker hasta SQL y API. Como referencia histórica, el último
+intento de la suite completa registró 246 pasan, 21 fallan,
 40 omitidos; 307 tests y 82,91 % de cobertura calculada, umbral 75 %.
 El import nativo de confluent-kafka fue bloqueado por Control de aplicaciones en
 Windows. No se convierte ese resultado en verde ni se presenta como ejecución nueva.
-La evidencia de esta revisión consiste en contrastar documentos con código e
-historial y realizar comprobaciones documentales; véase la
+Ese resultado histórico no se presenta como verde. La evidencia actual combina
+controles automáticos y comprobación de runtime; véase la
 [auditoría](documentation-audit.md).
 
 ## Entrega al equipo
@@ -53,7 +55,7 @@ las correcciones posteriores. El estado remoto debe comprobarse tras publicar.
 
 ## Riesgos que no se ocultan
 
-Ausencia de orquestador productivo completo, falta de benchmark, API sin auth,
+Un único worker local sin HA, falta de benchmark, API sin auth,
 Redis efímero, resultados locales no verdes y frontend excluido. Son límites
 documentados; corregirlos requiere tareas funcionales distintas.
 Además, el prefijo de acknowledgement es por lote, sin control de huecos entre lotes,
@@ -63,6 +65,6 @@ El generador educativo no se ha inspeccionado y no es una fuente de contrato.
 
 ## Reversión documental
 
-Usar un revert del commit documental correspondiente, tras identificarlo con
-`git log`; no resetear ramas ni borrar trabajo ajeno. La revisión no altera código,
-servicios, dependencias, esquemas ni datos.
+Usar un revert del commit correspondiente, tras identificarlo con `git log`; no
+resetear ramas ni borrar trabajo ajeno. La extensión añade servicios, código e
+índice técnico MongoDB, pero no elimina datos ni incorpora frontend.
