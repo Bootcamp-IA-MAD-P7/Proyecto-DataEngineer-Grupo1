@@ -1,6 +1,22 @@
 # HRP-70 — Run SQL persistence tests in CI
 
-**Status:** Draft; implemented, PR [#56](https://github.com/Bootcamp-IA-MAD-P7/Proyecto-DataEngineer-Grupo1/pull/56) open for review, real CI evidence gathered
+**Integration status (2026-09-08):** Task changes integrated in develop; acceptance criteria not re-executed here.
+**Git evidence:** [ee977e7](https://github.com/Bootcamp-IA-MAD-P7/Proyecto-DataEngineer-Grupo1/commit/ee977e7) / [PR #56](https://github.com/Bootcamp-IA-MAD-P7/Proyecto-DataEngineer-Grupo1/pull/56) (2026-09-04).
+**Closeout interpretation:** PostgreSQL-backed CI testing is integrated by PR #56. Previously recorded CI evidence is historical, not the result of this documentation review.
+
+This integration record does not assert current Jira status, reviewer approval identity
+or a new passing test run. [Current documentation](../README.md) and
+[acceptance/evidence matrix](../delivery-evidence.md) define the closeout reading.
+
+## Historical specification and task evidence
+
+The scope, criteria, checkboxes and test results below are the task's original record.
+They are not a live progress dashboard. Pending-review/merge references in this
+historical record are superseded by the integration evidence above; unresolved
+functional limitations are not automatically marked as passed.
+
+**Original recorded status:** Draft; implemented, PR [#56](https://github.com/Bootcamp-IA-MAD-P7/Proyecto-DataEngineer-Grupo1/pull/56) open for review, real CI evidence gathered
+
 **Owner:** Johans Salas
 **Human reviewer:** Miguel or Gaby
 **Jira:** HRP-70 — Crear tests de persistencia SQL

@@ -1,6 +1,22 @@
 # HRP-31 — Configurar el consumer para recibir mensajes continuamente
 
-**Estado:** En revisión
+**Estado de integración (2026-09-08):** Task changes integrated in develop; acceptance criteria not re-executed here.
+**Git evidence:** [69a51ce](https://github.com/Bootcamp-IA-MAD-P7/Proyecto-DataEngineer-Grupo1/commit/69a51ce) / [PR #14](https://github.com/Bootcamp-IA-MAD-P7/Proyecto-DataEngineer-Grupo1/pull/14) (2026-08-28).
+**Closeout interpretation:** See current architecture, runbook and test harness for subsequent changes and runtime limits.
+
+This integration record does not assert current Jira status, reviewer approval identity
+or a new passing test run. [Current documentation](../README.md) and
+[acceptance/evidence matrix](../delivery-evidence.md) define the closeout reading.
+
+## Historical specification and task evidence
+
+The scope, criteria, checkboxes and test results below are the task's original record.
+They are not a live progress dashboard. Pending-review/merge references in this
+historical record are superseded by the integration evidence above; unresolved
+functional limitations are not automatically marked as passed.
+
+**Original recorded status:** En revisión
+
 **Responsable:** Anahí
 **Jira:** HRP-31
 **Dependencias:** HRP-28 finalizada; HRP-29 finalizada; consumer configurable integrado por HRP-30.

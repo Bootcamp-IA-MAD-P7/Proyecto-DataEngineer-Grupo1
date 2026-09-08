@@ -1,41 +1,30 @@
-# Fuentes para la presentación en NotebookLM
+# Fuentes de cierre para NotebookLM
 
-Esta carpeta contiene fuentes concisas, ordenadas y aptas para cargar en NotebookLM
-(Gemini) al preparar la presentación técnica solicitada en el briefing. No sustituye
-la documentación de ingeniería: selecciona y resume lo que la presentación necesita.
+## Qué cargar
 
-## Qué subir a NotebookLM
+**Opción recomendada:** cargar únicamente [NOTEBOOKLM-PACK.md](NOTEBOOKLM-PACK.md).
+Contiene historia, arquitectura real, cifras con alcance, cronología, bibliografía,
+guion de 12 diapositivas, notas y prompt listo para usar. Es autocontenido:
+no depende de que NotebookLM recorra enlaces relativos para conocer la historia.
 
-1. `00-project-story.md`: problema, alcance, equipo y criterio de cierre.
-2. `01-architecture-story.md`: recorrido del dato y decisiones técnicas.
-3. `02-evolving-swot.md`: fortalezas, riesgos y evolución medible del proyecto.
-4. `03-delivery-timeline.md`: cronología basada en commits y PRs.
-5. `04-final-acceptance.md`: matriz final y caveats de validación.
-6. `evidence/`: resultados, enlaces y evidencias verificables.
-7. `daily/`: evolución cronológica para la presentación.
-8. `manifest.md`: lista curada de fuentes y estado de actualización.
+**Opción ampliada:** añadir [referencias](05-references.md) y las
+[dailies](daily/README.md) si necesitas más detalle histórico. No cargar plantillas
+vacías ni usar notas antiguas como si describieran el estado actual.
 
-## Regla de calidad
+## Material complementario
 
-- Solo se registran hechos demostrables: enlaces, commits, comandos, métricas o
-  decisiones aprobadas.
-- Nunca incluir secretos, `.env`, payloads completos de Kafka ni datos personales.
-- No describir el generador de datos ni usar información obtenida de su código.
-- Un daily incompleto es preferible a uno que inventa avances.
+[Historia](00-project-story.md) · [Arquitectura](01-architecture-story.md) ·
+[DAFO](02-evolving-swot.md) · [Cronología](03-delivery-timeline.md) ·
+[Aceptación](04-final-acceptance.md) · [Manifest](manifest.md) ·
+[Evidencia](evidence/README.md).
 
-## Automatización disponible
+El paquete es una fuente textual para producir una presentación, no un deck ya
+generado. Los gráficos propuestos tienen datos explícitos; no se inventan métricas
+ni capturas. Frontend excluido. La matriz mide aceptación, no verificación técnica.
 
-Ejecuta desde la raíz del repositorio:
+## Comprobación del resultado generado
 
-```powershell
-.\scripts\new-presentation-daily.ps1
-```
-
-El script crea `daily/YYYY-MM-DD.md` con fecha, participantes, commits recientes y
-estado local de Git. Después cada miembro completa las secciones de Jira, decisiones,
-evidencia y bloqueos. También existe el workflow manual **Generate presentation daily**
-en GitHub Actions: genera el fichero y abre una pull request para revisión humana; no
-puede hacer *push* directo a `develop`.
-
-No se programa un commit diario automático: el contenido de una presentación debe
-representar actividad real y una ejecución vacía añadiría ruido al historial.
+Comprobar que diga «HRP-71 sintético», «ingesta continua» y «aceptación del responsable»;
+que conserve la ausencia de worker productivo SQL y el resultado local no verde;
+que no enseñe PII, credenciales o un frontend ficticio. No sumar resultados de tests
+de fechas distintas. No presentar fuentes históricas como pruebas nuevas.

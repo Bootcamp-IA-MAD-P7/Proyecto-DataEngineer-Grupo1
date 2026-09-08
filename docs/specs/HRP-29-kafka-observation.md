@@ -1,6 +1,22 @@
 # HRP-29 — Observe and document Kafka messages
 
-**Status:** Observation recorded; pending human review
+**Integration status (2026-09-08):** Observation document available; PR #2 is template evidence only.
+**Git evidence:** [0f101fe](https://github.com/Bootcamp-IA-MAD-P7/Proyecto-DataEngineer-Grupo1/commit/0f101fe) / [PR #2](https://github.com/Bootcamp-IA-MAD-P7/Proyecto-DataEngineer-Grupo1/pull/2) (2026-08-27).
+**Closeout interpretation:** PR #2 added a template only, not the observation itself. The versioned observation document records 20 JSON objects; its historical limits remain. No new broker observation was run.
+
+This integration record does not assert current Jira status, reviewer approval identity
+or a new passing test run. [Current documentation](../README.md) and
+[acceptance/evidence matrix](../delivery-evidence.md) define the closeout reading.
+
+## Historical specification and task evidence
+
+The scope, criteria, checkboxes and test results below are the task's original record.
+They are not a live progress dashboard. Pending-review/merge references in this
+historical record are superseded by the integration evidence above; unresolved
+functional limitations are not automatically marked as passed.
+
+**Original recorded status:** Observation recorded; pending human review
+
 **Owner:** Anahí (or a team member with authorised broker access)
 **Jira:** HRP-29
 **Dependencies:** HRP-28 completed

@@ -1,25 +1,16 @@
-# Final acceptance — presentation source
+# Aceptación final — fuente para exposición
 
-## Accepted project status
+Miguel, responsable, comunica aceptación de 18/19 checks: entrega 5/5, esencial 6/6,
+medio 3/3, avanzado 3/3, experto 1/2. Frontend excluido del cierre.
+Mostrar barras etiquetadas **aceptación**, no «tests pasados» ni «rendimiento».
 
-| Briefing block | Result |
-|---|---:|
-| Conditions of delivery | 5/5 |
-| Essential level | 6/6 |
-| Intermediate level | 3/3 |
-| Advanced level | 3/3 |
-| Expert level | 1/2; frontend excluded |
+[Detalle de los 19 requisitos y evidencia](../delivery-evidence.md).
 
-## How to present the caveat
+La decisión no convierte en acreditados el throughput de miles de mensajes/segundo,
+una demo ejecutada o un worker automático hasta SQL. Esas diferencias no se explican
+por el bloqueo Windows: son límites separados de la evidencia disponible.
+El último intento local conocido es 246 pasan, 21 fallan, 40 omitidos, cobertura 82,91 %;
+no se repitió para este cambio documental.
 
-The frontend was outside the project closeout scope. The local Windows test issue is
-an environment caveat caused by the native `confluent-kafka` extension being blocked;
-it must not be presented as a missing functional level. The release environment should
-still record its own validation result.
-
-## Supporting sources
-
-- `../project-closeout.md`
-- `03-delivery-timeline.md`
-- `../README.md`
-- `evidence/2026-09-08-closeout.md`
+El cierre entrega documentación y fuentes, no modifica runtime, despliegue, Jira,
+protecciones GitHub ni publica un release.

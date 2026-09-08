@@ -1,257 +1,120 @@
 # Runbook operativo
 
-## Inicio de un desarrollo
+**Corte:** 2026-09-08. Ejecutar desde la raíz del repositorio HR Pro.
+[Configuración por variable y red](configuration.md).
 
-1. Actualizar `develop`.
-2. Revisar la tarea Jira y su spec.
-3. Crear rama asociada.
-4. Ejecutar las comprobaciones locales antes de abrir PR.
+## 1. Preparar
 
-## Configuración local segura
+Crear venv, instalar `.[dev]` y copiar .env.example solo si .env no existe, siguiendo
+el [README](../README.md#inicio-rápido). Completar configuración autorizada localmente.
+No leer el generador educativo ni cambiar su entorno desde estos procedimientos.
 
-1. Crear el archivo local a partir de la plantilla:
+## 2. Datos y esquema
 
-   ```powershell
-   Copy-Item .env.example .env
-   ```
-
-2. Completar únicamente los valores autorizados para el entorno actual. Nunca
-   registrar el contenido de `.env` en Git, logs, chats, Jira, pull requests o
-   fuentes de presentación.
-3. Para el consumer actual, configurar `KAFKA_BOOTSTRAP_SERVERS`,
-   `KAFKA_CONSUMER_GROUP` y `KAFKA_TOPICS`. Las variables definidas por el proceso
-   tienen prioridad sobre las de `.env`.
-4. `MONGODB_URI`, las variables `POSTGRES_*`, `REDIS_URL` y `LOG_LEVEL` están
-   documentadas en `.env.example` para los componentes futuros. No implican que esos
-   consumidores de configuración estén implementados todavía.
-5. Consultar el catálogo y las reglas de cada variable en la sección
-   [Configurar el consumer](../README.md#4-configurar-el-consumer) del README.
-
-## Entorno Kafka educativo autorizado
-
-Este entorno es externo al repositorio del equipo. Se obtiene únicamente para ejecutar
-el Docker Compose documentado; el código del generador nunca se abre, inspecciona,
-busca, analiza ni se emplea como fuente de contrato.
-
-Los comandos Docker Compose de este entorno deben ejecutarse únicamente desde la raíz
-del repositorio educativo externo, después de cambiar deliberadamente a esa carpeta.
-No ejecutar `docker compose up --build -d` desde la raíz del repositorio HR Pro. Para
-los servicios propiedad de HR Pro, usar siempre `docker compose -f infra/compose.dev.yml`.
-
-1. Crear una carpeta independiente del repositorio del equipo.
-2. Obtener el repositorio educativo y, desde su raíz, ejecutar:
-
-   ```powershell
-   docker compose up --build -d
-   docker compose ps
-   ```
-
-3. Usar el puerto publicado por el servicio Kafka en `docker compose ps` para
-   configurar localmente `KAFKA_BOOTSTRAP_SERVERS` en `.env`.
-4. Mantener `.env` fuera de Git y no copiar credenciales al chat, Jira o una PR.
-5. Para HRP-29, realizar una observación limitada en memoria y registrar solo
-   estructura, tipos aparentes y metadatos agregados. No guardar valores ni capturas
-   completas de mensajes.
-6. Para detener el entorno al finalizar la sesión:
-
-   ```powershell
-   docker compose down
-   ```
-
-No consultar logs del generador como mecanismo de descubrimiento. La evidencia válida
-se registra en `docs/observations/` mediante una tarea HRP-29 revisable.
-
-## Integración local HRP-34
-
-Iniciar solo MongoDB:
-
-```powershell
-docker compose -f infra/compose.dev.yml up -d mongo
-```
-
-Usar colecciones limpias configuradas mediante `MONGODB_COLLECTION` y
-`MONGODB_INVALID_COLLECTION`. No ejecutar teardown global ni `down -v`; el Compose es
-compartido con PostgreSQL. La integración validada usa MongoDB real y mensajes Kafka
-simulados; no es un E2E con broker real.
-
-## Incidencia de datos
-
-1. Localizar el evento con sus metadatos Kafka en `raw_events`.
-2. Consultar `processing_audit`.
-3. Determinar si el error es de contrato, clasificación, agrupación o almacenamiento.
-4. Añadir fixture de regresión antes de corregir la lógica.
-5. Registrar la decisión en una ADR si cambia la estrategia de datos.
-
-## Redis local
-
-Para validar Redis localmente:
-
-```powershell
-docker compose -f infra/compose.dev.yml up -d redis
-docker compose -f infra/compose.dev.yml ps
-docker compose -f infra/compose.dev.yml exec -T redis redis-cli ping
-```
-
-La respuesta esperada es `PONG`. Los servicios de Compose deben usar `redis:6379`,
-no `localhost:6379`; Redis no publica el puerto en el host ni conserva un volumen.
-
-## Incidencia de infraestructura
-
-1. Consultar logs del servicio.
-2. Comprobar conectividad a Kafka y estado de contenedores.
-3. No eliminar volúmenes ni datos sin acuerdo explícito del equipo.
-
-## Validación de la base local
-
-Desde la raíz del repositorio del equipo:
-
-```powershell
-pre-commit run --all-files
-ruff check .
-ruff format --check .
-mypy src
-pytest
+```bash
 docker compose -f infra/compose.dev.yml config --quiet
-docker build --tag hr-pro-platform:local .
-docker compose -f infra/compose.dev.yml up -d mongo postgres
+docker compose -f infra/compose.dev.yml up -d mongo postgres redis
 docker compose -f infra/compose.dev.yml ps
-docker compose -f infra/compose.dev.yml exec -T mongo `
-  mongosh --quiet --eval "db.adminCommand('ping').ok"
-docker compose -f infra/compose.dev.yml exec -T postgres `
-  pg_isready -U hr_pro -d hr_pro
+python -m hr_pro_platform.storage.main
 ```
 
-El umbral inicial de cobertura es 75 %. Un contenedor saludable, un `ping` correcto
-de MongoDB y un `pg_isready` correcto de PostgreSQL solo demuestran disponibilidad
-de esos servicios; todavía no prueban la persistencia raw, la política de
-confirmación de offsets ni ninguna tabla, esquema o dato curado en PostgreSQL (eso
-corresponde a HRP-54).
+El inicializador crea tablas e índices en la base configurada y termina.
+No es un migrador de versiones ni un worker ETL. Un healthcheck de PostgreSQL
+no prueba existencia de tablas o registros. Las contraseñas de un volumen PostgreSQL
+existente no cambian por editar el archivo de entorno.
 
-La imagen de aplicación solo demuestra que el consumer puede empaquetarse sin incluir
-el entorno local. No reemplaza el Compose final ni demuestra conectividad a Kafka.
+## 3. Ingesta continua
 
-## Stack local con aplicacion
+Configurar Kafka para ser accesible desde Docker. El Compose incluye env_file de
+ejemplo y .env opcional; las variables explícitas de app fijan MongoDB interno.
 
-HRP-63 añade el servicio `app` al Compose de desarrollo sin incluir Kafka. Para
-arrancar solo las bases:
-
-```powershell
-docker compose -f infra/compose.dev.yml up -d mongo postgres
-```
-
-Para arrancar la aplicacion, primero crea el `.env` local a partir de
-`.env.example` y configura el broker y topics autorizados. Desde dentro de Docker
-Desktop, un Kafka publicado en el host suele requerir una direccion alcanzable
-desde contenedores, como
-`host.docker.internal:29092`.
-
-```powershell
-docker compose -f infra/compose.dev.yml --profile app up -d --build app
+```bash
+docker compose -f infra/compose.dev.yml --profile app up -d --build app prometheus grafana
 docker compose -f infra/compose.dev.yml --profile app ps
 ```
 
-## Prometheus local
+Este comando mantiene Kafka → MongoDB, no ejecuta continuamente MongoDB → SQL.
+HRP-87 no añadió ese worker. `restart: unless-stopped` es una política de reinicio
+del contenedor, no una garantía de salud, progreso, reconciliación o ausencia de pérdida.
 
-HRP-81 configura Prometheus para observar las métricas de ingesta expuestas por
-la aplicación en `/metrics`.
+## 4. Consultas
 
-Arrancar solo Prometheus:
-
-```powershell
-docker compose -f infra/compose.dev.yml up -d prometheus
+```bash
+python -m uvicorn hr_pro_platform.api.main:app --host 127.0.0.1 --port 8000
 ```
 
-Arrancar aplicación y Prometheus:
+Abrir /docs y /health. /statistics consulta agregados de tablas existentes.
+Una API saludable puede devolver cero registros. Consultar únicamente datos sintéticos
+en presentaciones. [Contrato de endpoints](api-reference.md).
 
-```powershell
-docker compose -f infra/compose.dev.yml --profile app up -d --build app prometheus
+## 5. Observabilidad
+
+- [Prometheus targets](http://localhost:9090/targets): hr-pro-ingestion.
+- [Grafana](http://localhost:3000): HR Pro Ingestion Overview.
+- [Métricas y PromQL](06-observability.md).
+
+Prometheus scrapea app:9464, no localhost:9464. Grafana tiene lectura anónima local.
+Redis no publica 6379 al host; confirmar disponibilidad dentro de su contenedor:
+
+```bash
+docker compose -f infra/compose.dev.yml exec -T redis redis-cli ping
 ```
 
-Abrir `http://localhost:9090` y revisar el target `hr-pro-ingestion`. El target
-usa `app:9464/metrics` dentro de la red Compose y solo estará `UP` si la
-aplicación está ejecutándose y Kafka externo está configurado correctamente. No
-hay que copiar, leer ni inspeccionar el generador educativo para validar esta
-configuración.
+## 6. Comprobación de integración
 
-## Dashboard local
+HRP-71 usa MongoDB/PostgreSQL reales y eventos sintéticos, sin broker ni Redis.
+Solo ejecutar pruebas de integración sobre bases desechables preparadas: sus fixtures
+escriben y eliminan datos. En particular, HRP-71 limpia colecciones en
+hrp71_synthetic; nunca usar esa base para información que deba conservarse.
 
-HRP-82 añade un dashboard Grafana provisionado para la demo técnica de
-observabilidad.
-
-Arrancar Prometheus y Grafana:
-
-```powershell
-docker compose -f infra/compose.dev.yml up -d prometheus grafana
+```bash
+python -m pytest tests/e2e/test_kafka_mongodb_postgresql_flow.py -q --no-cov
 ```
 
-Abrir `http://localhost:3000` y seleccionar el dashboard
-`HR Pro Ingestion Overview`.
+El resultado debe indicar pass, fail o skip. Un skip no demuestra la integración.
+No se ejecutaron estas pruebas de datos en la revisión exclusivamente documental.
 
-El dashboard muestra:
+## 7. Diagnóstico
 
-- estado del target de ingesta;
-- mensajes consumidos;
-- tasa de consumo derivada por Prometheus;
-- duración media de procesamiento;
-- duración media de persistencia MongoDB.
+| Síntoma | Comprobar |
+|---|---|
+| app termina o se reinicia | Kafka autorizado accesible desde Docker; variables no vacías |
+| DLL cimpl bloqueada en Windows | Import aislado de confluent_kafka; política de Control de aplicaciones |
+| AttributeError al parchear consumer en tests | El ImportError original puede estar oculto por unittest.mock |
+| API 503 | PostgreSQL configurado, conexión y esquema; no publicar detalles de excepción |
+| API vacía | Datos curados no cargados; el arranque de app solo guarda raw |
+| Target Prometheus DOWN | app activo y endpoint interno 9464; comprobar reinicios |
+| Grafana sin series | Target UP, tráfico y ventana de consulta suficiente |
+| Redis inaccesible desde host | No publica puerto; usar cliente en red Compose o endpoint de test explícito |
+| Tablas con definición antigua | CREATE IF NOT EXISTS no migra columnas; requiere un cambio de esquema diseñado |
 
-Los paneles solo usan métricas técnicas. No consultan Kafka, MongoDB RAW,
-PostgreSQL ni datos de clientes. Si la aplicación no está activa o Kafka externo
-no está configurado, el dashboard puede estar disponible aunque no muestre datos
-de ingesta.
+La incidencia Windows observada en esta conversación bloqueó la extensión nativa.
+No modificar políticas de seguridad para ocultar el fallo. Un entorno Linux autorizado
+puede permitir otra validación, pero no se presupone que haya pasado.
 
-Si falta configuracion Kafka, que el contenedor `app` termine con error es un fallo
-de entorno esperado, no una razon para hard-codear topics o direcciones en el repo.
+## 8. Parada y conservación
 
-## Pipeline continuo
-
-HRP-87 documenta el modo continuo del pipeline. Este modo usa el servicio `app`
-existente del Compose de desarrollo y mantiene Kafka como runtime externo
-autorizado.
-
-Antes de arrancar, el `.env` local debe contener al menos:
-
-```text
-KAFKA_BOOTSTRAP_SERVERS=host.docker.internal:29092
-KAFKA_TOPICS=probando
-KAFKA_CONSUMER_GROUP=hr-pro-platform
-```
-
-El archivo `.env` es local, está ignorado por Git y no debe copiarse a chats,
-Jira, pull requests ni documentación versionada.
-
-Arrancar el pipeline continuo con observabilidad:
-
-```powershell
-docker compose -f infra/compose.dev.yml --profile app up -d --build app prometheus grafana
-docker compose -f infra/compose.dev.yml ps
-```
-
-Comprobar logs técnicos sin mostrar payloads:
-
-```powershell
-docker compose -f infra/compose.dev.yml logs --tail=80 app
-```
-
-Comprobar monitorización:
-
-- Prometheus: `http://localhost:9090/targets`
-- Grafana: `http://localhost:3000`
-- Dashboard: `HR Pro Ingestion Overview`
-
-El servicio `app` usa `restart: unless-stopped`. Si Kafka externo no está
-disponible o la configuración es incorrecta, Docker puede reiniciar la aplicación.
-Ese comportamiento ayuda a detectar incidencias de runtime, pero no autoriza a
-incluir Kafka educativo, hardcodear topics o modificar el contrato de datos.
-
-Parar solo la aplicación:
-
-```powershell
+```bash
 docker compose -f infra/compose.dev.yml stop app
 ```
 
-Parar la observabilidad:
+O detener todos los servicios HR Pro:
 
-```powershell
-docker compose -f infra/compose.dev.yml stop prometheus grafana
+```bash
+docker compose -f infra/compose.dev.yml stop
 ```
+
+No ejecutar down -v para una parada normal. Los volúmenes MongoDB/PostgreSQL
+conservan datos; Redis es efímero. No hay procedimiento de backup/restore probado
+en esta entrega; no afirmar recuperación ante desastres.
+
+## 9. Guion de demo controlada
+
+1. Explicar el problema y el límite del productor externo.
+2. Mostrar servicios y métricas sin abrir payloads ni .env.
+3. Explicar durabilidad raw y correlación con ejemplos sintéticos.
+4. Mostrar evidencia de HRP-71 indicando “Kafka equivalente, sintético”.
+5. Consultar API/estadísticas sobre una base de demo preparada.
+6. Mostrar aceptación de cierre, límite del frontend y siguientes pasos.
+
+Fuentes y guion de exposición: [NotebookLM](presentation-sources/README.md).

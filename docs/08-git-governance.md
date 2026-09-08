@@ -1,72 +1,71 @@
-# Gobernanza Git, GitHub y releases
+# Gobernanza Git, PRs y releases
 
-## Roles del equipo
+Corte documental2026-09-08. Develop es integración; se han comprobado referencias
+remotas y el historial, no la configuración actual del ruleset ni todos los runs.
 
-| Responsable | Áreas principales |
-|---|---|
-| Miguel | Coordinación, Git, Docker, calidad, documentación y demo |
-| Anahí | Kafka y MongoDB |
-| Gaby | ETL, Redis y monitorización |
-| Johans | PostgreSQL, API y frontend |
+## Evidencia local frente a configuración remota
 
-## Flujo de ramas
+Workflows, CODEOWNERS y labeler están versionados. La revisión independiente y la
+protección de develop forman parte de la política del equipo. El repositorio no
+demuestra por sí solo que una regla esté activada actualmente en GitHub.
+No se atribuyen aprobaciones a revisores sin evidencia.
+
+## Flujo
+
+Rama por tarea → PR contra develop → checks y revisión → merge → evidencia de entrega.
+Prefijos históricos: feature/, docs/, fix/, chore/; la revisión actual usa
+codex/HRP-93-project-closeout. No reescribir historial ni forzar pushes.
+
+Para esta revisión documental Miguel autoriza editar sin otra confirmación.
+Gaby y Johans son revisores designados de PR. Esa autorización no elimina checks
+remotos, no equivale a su aprobación ni permite publicar releases automáticamente.
+
+## Título válido y diagnóstico de checks
+
+El workflow [PR governance](../.github/workflows/pr-governance.yml) exige:
 
 ```text
-feature/docs/fix/chore (HRP-XX) -> pull request + CI + revisión -> develop
-                                                                    |
-                                                                    v
-                                                   tag de hito revisado para demo
+HRP-93 docs: reconcile project documentation and presentation sources
 ```
 
-- `develop` es la integración actual.
-- Cada rama contiene una sola tarea Jira.
-- Las PRs se abren contra `develop`; no se fusionan por cuenta propia.
-- El ruleset **Protect develop** exige pull request, una aprobación, revisión de
-  `CODEOWNERS`, conversaciones resueltas y bloquea borrados y force-pushes.
-- Los checks `quality`, `PR governance` y `PR labels` están detectados y forman parte
-  del control previo al merge.
+Formato real: HRP-número, espacio, tipo (feat/fix/docs/test/refactor/chore/ci),
+dos puntos, espacio y resumen no vacío. Se valida el **título**, no el cuerpo.
+El error mostrado por el usuario corresponde a ese formato. El aviso de Node es
+otro mensaje y no explica ese fallo de validación. Este cambio no modifica actions.
 
-## Automatizaciones activas
+Los checks pueden aparecer en distintos workflows/jobs y estados; sin ver el run no
+se puede concluir por una captura que todos fallen o que todos estén aprobados.
 
-| Automatización | Disparador | Resultado |
-|---|---|---|
-| `quality` | PR o push a `develop` | Specs, pre-commit, formato, lint, tipos, tests y sintaxis de Compose |
-| `PR governance` | PR a `develop` | Rechaza títulos sin clave Jira y tipo convencional |
-| `PR labels` | PR a `develop` | Etiqueta por área modificada |
-| `Generate presentation daily` | Ejecución manual | Genera una daily y abre una PR; nunca hace push directo a `develop` |
-| `Create release tag` | Ejecución manual | Valida y crea un tag anotado inmutable |
+## Automatización versionada
 
-Las etiquetas `area:docs`, `area:quality`, `area:ingestion`, `area:storage`,
-`area:api` y `area:infra` están creadas. La asignación vive en
-`.github/labeler.yml`.
+| Workflow | Función y límite |
+|---|---|
+| quality | Specs, pre-commit, Ruff, mypy, pytest y Compose; resultado del run no inferido |
+| PR governance | Valida título en eventos de PR, incluido edited |
+| PR labels | Etiquetado por rutas; no prueba calidad |
+| Generate presentation daily | Genera borrador diario mediante workflow manual; requiere completar contexto |
+| Create release tag | Workflow manual, valida formato y existencia, crea y publica tag anotado |
 
-## Política de tags y releases
+El workflow de tags no ejecuta por sí mismo una demo ni la suite de release.
+No crea una GitHub Release. No mover un tag publicado.
+0.1.0 en pyproject es versión del paquete, no prueba de un tag.
+Los tags de hitos sugeridos históricamente no se presentan como publicados.
 
-No se etiqueta cada commit. Un tag representa un estado reproducible que puede
-demostrarse en una revisión o demo.
+## Estado de la revisión HRP-93
 
-| Hito | Tag sugerido | Condición |
-|---|---|---|
-| Fundaciones verificadas | `v0.1.0-foundation` | Arquitectura, SDD y CI revisados |
-| Nivel esencial | `v0.2.0-essential` | Kafka → MongoDB → PostgreSQL demostrable |
-| Nivel medio | `v0.3.0-quality` | Docker, logs y tests operativos |
-| Nivel avanzado | `v0.4.0-observability` | Redis, métricas y API operativos |
-| Demo final | `v1.0.0` | Todos los checks del briefing superados |
+PR #80 integró la primera documentación en 275131a; el código permanece en f3a952b.
+Las correcciones posteriores pertenecen a la rama local hasta su push.
+Un archivo editado o un commit local **no se ve en GitHub automáticamente**.
 
-La persona que coordina ejecuta manualmente el workflow **Create release tag** tras
-aprobación del equipo, indicando el tag y el commit o rama validada. El workflow
-comprueba el formato SemVer, rechaza tags existentes y crea un tag anotado. No crea
-releases de GitHub ni modifica ramas.
+Comprobar sin mutar estado remoto:
 
-Un tag publicado es inmutable. Si aparece un error, se crea uno nuevo; no se mueve ni
-se sobrescribe el anterior.
+```bash
+git status --short
+git branch --show-current
+git log -5 --oneline
+git diff --stat
+```
 
-## CODEOWNERS activo
-
-`.github/CODEOWNERS` está configurado con los handles confirmados: Miguel
-(`@miguelRedondoWeb`), Anahí (`@anahi-am`), Gaby (`@gabrielagranja`) y Johans
-(`@johans-salas`). GitHub solicitará automáticamente revisión según las rutas
-modificadas cuando se abra una PR.
-
-El ruleset activo convierte la revisión de `CODEOWNERS` en requisito de merge cuando
-la ruta modificada lo requiere.
+Publicar, fusionar y etiquetar son acciones diferentes de revisar Markdown.
+Esta revisión no las realiza. Para revertir documentos identificar su commit y usar
+un revert acotado, nunca resetear o descartar trabajo ajeno.

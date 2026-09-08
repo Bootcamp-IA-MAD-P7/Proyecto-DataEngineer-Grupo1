@@ -1,5 +1,9 @@
 # Evidencia de presentación — Fundación y MongoDB local
 
+> Evidencia histórica del momento registrado, no inventario actual.
+> No se han reejecutado aquí los comandos originales.
+> Para el cierre usar [evidencia 2026-09-08](2026-09-08-closeout.md).
+
 > Evidencia histórica del 27 de agosto. Las PR y tareas citadas evolucionaron después;
 > el estado vigente está en `2026-08-28-kafka-contract-and-quality-baseline.md`.
 

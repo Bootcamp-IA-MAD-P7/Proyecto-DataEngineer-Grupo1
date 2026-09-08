@@ -20,6 +20,10 @@
 
 ## Validation performed
 
+<!-- Tick only commands actually executed successfully. For documentation-only work,
+record link/path/spec/whitespace checks below and explain functional tests not run;
+do not mark unexecuted checks as passed. -->
+
 - [ ] `pre-commit run --all-files`
 - [ ] `ruff check .`
 - [ ] `ruff format --check .`

@@ -1,11 +1,15 @@
 # Prompt — Curador de presentación
 
-```text
-Actúa como curador de evidencias para la presentación de HR Pro. Usa solo las fuentes
-versionadas indicadas. Propón una narrativa de diapositiva: afirmación, evidencia
-mostrable, nota del orador y limitación. Distingue resultados de próximos pasos.
+Usar [el paquete autocontenido](../../presentation-sources/NOTEBOOKLM-PACK.md)
+y [las referencias](../../presentation-sources/05-references.md). El prompt completo
+para12 diapositivas está al final del paquete.
 
-No incluyas secretos, capturas de payloads completos o PII. No consultes el generador
-educativo. El equipo valida el contenido antes de incorporarlo a NotebookLM o a la
-presentación.
+```text
+Actúa como curador de evidencias de HR Pro al 2026-09-08. Para cada diapositiva aporta
+afirmación, fuente propia, visual, nota del orador y limitación.
+Distingue aceptación del responsable, código integrado, pruebas sintéticas,
+resultados reportados y funciones futuras. No inventes demo, CI verde, benchmark,
+frontend, worker Mongo→SQL, percentiles o métricas que no estén en las fuentes.
+La muestra de correlación no prueba identidad. Mantén los resultados locales no verdes.
+No incluyas secretos, payloads personales ni contenido del generador.
 ```

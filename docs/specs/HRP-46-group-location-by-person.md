@@ -1,6 +1,22 @@
 # HRP-46 - Group Location by person
 
-**Status:** Implemented - pending human review; global identity remains unresolved
+**Integration status (2026-09-08):** Task changes integrated in develop; acceptance criteria not re-executed here.
+**Git evidence:** [c87daf7](https://github.com/Bootcamp-IA-MAD-P7/Proyecto-DataEngineer-Grupo1/commit/c87daf7) / [PR #37](https://github.com/Bootcamp-IA-MAD-P7/Proyecto-DataEngineer-Grupo1/pull/37) (2026-09-02).
+**Closeout interpretation:** Operational domain grouping is integrated. ADR-0006 now authorizes cross-domain exact edges; HRP-96 preserves provenance and group boundaries. Real identity remains unproven.
+
+This integration record does not assert current Jira status, reviewer approval identity
+or a new passing test run. [Current documentation](../README.md) and
+[acceptance/evidence matrix](../delivery-evidence.md) define the closeout reading.
+
+## Historical specification and task evidence
+
+The scope, criteria, checkboxes and test results below are the task's original record.
+They are not a live progress dashboard. Pending-review/merge references in this
+historical record are superseded by the integration evidence above; unresolved
+functional limitations are not automatically marked as passed.
+
+**Original recorded status:** Implemented - pending human review; global identity remains unresolved
+
 **Owner:** Gabriela
 **Jira:** HRP-46
 **Dependencies:** HRP-34 raw persistence boundary; HRP-44 domain classification; HRP-45 validation boundary; HRP-43 correlation evidence

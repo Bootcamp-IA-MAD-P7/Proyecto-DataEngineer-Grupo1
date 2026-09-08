@@ -1,6 +1,22 @@
 # HRP-74 — Store partial person data in Redis
 
-**Status:** Implemented — pending merge
+**Integration status (2026-09-08):** Task changes integrated in develop; acceptance criteria not re-executed here.
+**Git evidence:** [ef69376](https://github.com/Bootcamp-IA-MAD-P7/Proyecto-DataEngineer-Grupo1/commit/ef69376) / [PR #66](https://github.com/Bootcamp-IA-MAD-P7/Proyecto-DataEngineer-Grupo1/pull/66) (2026-09-04).
+**Closeout interpretation:** The adapter is integrated. HRP-76 subsequently added configurable TTL; SADD/EXPIRE are separate operations. No production loop integration is implied.
+
+This integration record does not assert current Jira status, reviewer approval identity
+or a new passing test run. [Current documentation](../README.md) and
+[acceptance/evidence matrix](../delivery-evidence.md) define the closeout reading.
+
+## Historical specification and task evidence
+
+The scope, criteria, checkboxes and test results below are the task's original record.
+They are not a live progress dashboard. Pending-review/merge references in this
+historical record are superseded by the integration evidence above; unresolved
+functional limitations are not automatically marked as passed.
+
+**Original recorded status:** Implemented — pending merge
+
 **Jira:** HRP-74
 **Owner:** Gabriela Granja
 **Pull request:** [#66](https://github.com/Bootcamp-IA-MAD-P7/Proyecto-DataEngineer-Grupo1/pull/66)

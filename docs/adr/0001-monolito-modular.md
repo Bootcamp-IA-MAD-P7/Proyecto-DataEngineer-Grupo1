@@ -17,3 +17,10 @@ Se utilizará un único repositorio Python, organizado por módulos. Los compone
 - Menor complejidad operativa que una arquitectura de microservicios.
 - Separación clara de responsabilidades y posibilidad de escalar workers.
 - Docker Compose coordinará los servicios locales.
+
+## Implementación al cierre — 2026-09-08
+
+La decisión permite procesos independientes; no acredita que todos existan.
+Compose `app` ejecuta ingesta. La API se arranca separadamente; no hay un
+`process-worker` productivo ni frontend en este corte. Véase la
+[arquitectura vigente](../01-architecture.md).

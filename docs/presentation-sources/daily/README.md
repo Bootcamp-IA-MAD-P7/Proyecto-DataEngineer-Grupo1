@@ -1,12 +1,18 @@
-# Dailies como fuente de presentación
+# Fuentes diarias para la presentación
 
-Cada fichero recoge el relato verificable de un día: qué se entregó, qué evidencia
-existe, qué decisión se tomó y qué bloquea el siguiente paso. El generador crea la
-estructura; el equipo completa únicamente los datos reales.
+Resúmenes retrospectivos preparados el 2026-09-08. Para una presentación de cierre
+cargar primero [NOTEBOOKLM-PACK](../NOTEBOOKLM-PACK.md); añadir estas fuentes solo
+si interesa ampliar la evolución. No son nuevas actas de reuniones.
 
-No subas todos los dailies a NotebookLM por defecto. Para cada presentación elige los
-que expliquen mejor una decisión, un bloqueo resuelto, una prueba o un hito.
+- [2026-08-27: Fundación y primeras integraciones](2026-08-27.md)
+- [2026-08-28: Contrato y consumo continuo](2026-08-28.md)
+- [2026-08-31: Persistencia inicial e infraestructura](2026-08-31.md)
+- [2026-09-01: Frontera raw y clasificación](2026-09-01.md)
+- [2026-09-02: Validación técnica y consolidación](2026-09-02.md)
+- [2026-09-03: Persistencia SQL y pruebas](2026-09-03.md)
+- [2026-09-04: API, Redis e integración sintética](2026-09-04.md)
+- [2026-09-07: TTL y observabilidad de ingesta](2026-09-07.md)
+- [2026-09-08: Cierre y reconciliación documental](2026-09-08.md)
 
-El conjunto incluye ahora los hitos del 27 y 28 de agosto, 31 de agosto, 1–4 de
-septiembre, 7 de septiembre y el cierre del 8 de septiembre. Los resúmenes se basan
-en los dailies canónicos de `docs/dailies/` y no inventan actividad sin evidencia.
+[Dailies canónicas y días sin registro](../../dailies/README.md).
+[Plantilla para nuevas jornadas](_template.md).

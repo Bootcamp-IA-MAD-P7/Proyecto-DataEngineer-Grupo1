@@ -1,6 +1,22 @@
 # HRP-61 - Group Personal Data by person
 
-**Status:** Implementation complete; pending human review
+**Integration status (2026-09-08):** Task changes integrated in develop; acceptance criteria not re-executed here.
+**Git evidence:** [cc19d24](https://github.com/Bootcamp-IA-MAD-P7/Proyecto-DataEngineer-Grupo1/commit/cc19d24) / [PR #41](https://github.com/Bootcamp-IA-MAD-P7/Proyecto-DataEngineer-Grupo1/pull/41) (2026-09-02).
+**Closeout interpretation:** Personal grouping is integrated; HRP-96 subsequently hardened provenance/duplicate semantics.
+
+This integration record does not assert current Jira status, reviewer approval identity
+or a new passing test run. [Current documentation](../README.md) and
+[acceptance/evidence matrix](../delivery-evidence.md) define the closeout reading.
+
+## Historical specification and task evidence
+
+The scope, criteria, checkboxes and test results below are the task's original record.
+They are not a live progress dashboard. Pending-review/merge references in this
+historical record are superseded by the integration evidence above; unresolved
+functional limitations are not automatically marked as passed.
+
+**Original recorded status:** Implementation complete; pending human review
+
 **Owner:** Gabriela Granja
 **Jira:** HRP-61
 **Branch:** `feature/HRP-61-group-personal-by-person`

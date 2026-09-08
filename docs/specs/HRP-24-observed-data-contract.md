@@ -1,6 +1,22 @@
 # HRP-24 — Define the observed Kafka data contract
 
-**Status:** Draft; documentary implementation authorised
+**Integration status (2026-09-08):** Task changes integrated in develop; acceptance criteria not re-executed here.
+**Git evidence:** [3085244](https://github.com/Bootcamp-IA-MAD-P7/Proyecto-DataEngineer-Grupo1/commit/3085244) / [PR #12](https://github.com/Bootcamp-IA-MAD-P7/Proyecto-DataEngineer-Grupo1/pull/12) (2026-08-28).
+**Closeout interpretation:** Observed conformance and runtime classification differ: HRP-44 uses exact key sets, not value types. See the current data contract.
+
+This integration record does not assert current Jira status, reviewer approval identity
+or a new passing test run. [Current documentation](../README.md) and
+[acceptance/evidence matrix](../delivery-evidence.md) define the closeout reading.
+
+## Historical specification and task evidence
+
+The scope, criteria, checkboxes and test results below are the task's original record.
+They are not a live progress dashboard. Pending-review/merge references in this
+historical record are superseded by the integration evidence above; unresolved
+functional limitations are not automatically marked as passed.
+
+**Original recorded status:** Draft; documentary implementation authorised
+
 **Owner:** Gaby
 **Human reviewer:** Anahí
 **Jira:** HRP-24

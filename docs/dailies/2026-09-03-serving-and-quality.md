@@ -1,26 +1,35 @@
-# Daily — 2026-09-03 — Serving and quality evidence
+# Daily — 2026-09-03 — Persistencia SQL y pruebas
 
-## Evidence basis
+## Naturaleza del registro
 
-This daily is reconstructed from the merged commits and PR history for 2026-09-03.
+Reconstrucción retrospectiva el 2026-09-08 basada en integraciones Git; no es un acta de reunión ni una reconstrucción de horas trabajadas.
+La fecha es la de integración en develop; puede diferir de la fecha de autoría.
+No se atribuyen conversaciones, aprobaciones personales ni bloqueos sin evidencia.
 
-## Delivered
+## Resultado de la jornada
 
-- Connected the consolidated person record to the PostgreSQL mapping layer through
-  HRP-55.
-- Added insertion, update and source-reference idempotency behaviour through HRP-56,
-  HRP-57 and HRP-58.
-- Added grouped-data persistence verification through HRP-60.
-- Added read-only SQL validation queries through HRP-59.
-- Added ETL unit-test coverage through HRP-69.
-- Hardened concurrency, isolation and reconciliation evidence.
+Conexión, inserción, actualización e idempotencia por referencia de origen; consultas de validación SQL y pruebas ETL. Evidencia final HRP-51.
 
-## Outcome
+## Evidencia integrada
 
-The project gained a documented curated-storage and serving path with SQL validation,
-idempotency and concurrency evidence.
+| Commit | Integración registrada |
+|---|---|
+| [1be8405](https://github.com/Bootcamp-IA-MAD-P7/Proyecto-DataEngineer-Grupo1/commit/1be8405) | HRP-59 feat: add read-only SQL validation query library (#55) |
+| [97d3b2b](https://github.com/Bootcamp-IA-MAD-P7/Proyecto-DataEngineer-Grupo1/commit/97d3b2b) | Merge pull request #54 from Bootcamp-IA-MAD-P7/feature/HRP-60-grouped-data-persistence-verification |
+| [57d609d](https://github.com/Bootcamp-IA-MAD-P7/Proyecto-DataEngineer-Grupo1/commit/57d609d) | Merge pull request #52 from Bootcamp-IA-MAD-P7/feature/HRP-57-update-records-on-new-data |
+| [28d777e](https://github.com/Bootcamp-IA-MAD-P7/Proyecto-DataEngineer-Grupo1/commit/28d777e) | HRP-69 test: add ETL unit tests (#53) |
+| [2675dfa](https://github.com/Bootcamp-IA-MAD-P7/Proyecto-DataEngineer-Grupo1/commit/2675dfa) | HRP-58 feat: avoid duplicate records via source-reference idempotency (#51) |
+| [3197ba6](https://github.com/Bootcamp-IA-MAD-P7/Proyecto-DataEngineer-Grupo1/commit/3197ba6) | HRP-56 feat: insert processed person records into PostgreSQL (#50) |
+| [a6101c2](https://github.com/Bootcamp-IA-MAD-P7/Proyecto-DataEngineer-Grupo1/commit/a6101c2) | Merge pull request #49 from Bootcamp-IA-MAD-P7/feature/HRP-55-etl-postgres-connection |
+| [58c04ea](https://github.com/Bootcamp-IA-MAD-P7/Proyecto-DataEngineer-Grupo1/commit/58c04ea) | HRP-51 docs: record final implementation evidence (#48) |
+| [f175fd9](https://github.com/Bootcamp-IA-MAD-P7/Proyecto-DataEngineer-Grupo1/commit/f175fd9) | Merge pull request #47 from Bootcamp-IA-MAD-P7/feature/HRP-51-reconciliation-tests |
 
-## Open point
+## Límites y decisiones
 
-The complete runtime path still depended on the configured integration services and
-the final release validation environment.
+No confundir acceso/repositorio SQL con API HTTP: la API se integra el día 4. La existencia de pruebas no acredita una ejecución nueva.
+
+## Continuidad
+
+Consultar la [siguiente jornada disponible y el índice](README.md).
+Las tareas y estados actuales de Jira no se han consultado en esta revisión.
+El historial acredita commits, no asistencia a una daily ni validación de cada criterio.

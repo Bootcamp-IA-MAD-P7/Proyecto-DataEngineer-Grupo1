@@ -1,97 +1,68 @@
-# Project closeout — HR Pro Data Platform
+# Cierre documental — HRP-93
 
-**Closeout date:** 2026-09-08  
-**Integration branch:** `develop`  
-**Reviewed commit:** `f3a952b` (`HRP-88 docs: document Docker restart policy (#79)`)
+**Fecha:** 2026-09-08. **Responsable:** Miguel.
+**Código revisado:** `f3a952b`. **Develop remoto comprobado:** `275131a`,
+merge de PR #80 con la primera documentación de cierre.
 
-## Executive conclusion
+## Decisión y alcance
 
-The project closes with a documented and reviewable backend/data-platform baseline on
-`develop`. The repository contains the ingestion, raw storage, transformation state,
-curated-storage, API, observability, testing and Git-governance foundations required
-to explain and maintain the solution.
+Miguel ha aceptado el cierre documental del proyecto y autoriza actualizar todos
+los documentos sin solicitar otra aprobación para editar. La aceptación comunicada
+es 18/19 checks: entrega 5/5, esencial 6/6, medio 3/3, avanzado 3/3 y experto 1/2.
+El frontend queda expresamente excluido.
 
-The frontend is explicitly outside this closeout. It is recorded as a known product
-limitation and must not be presented as an implemented capability.
+La [matriz canónica](delivery-evidence.md) separa aceptación de evidencia técnica.
+No afirma que todos los requisitos literales hayan sido demostrados por una prueba.
+Gaby y Johans son los revisores designados de la PR; no se les atribuye una aprobación
+ya emitida. Esta decisión no cambia protecciones de GitHub ni cierra Jira por sí sola.
 
-## Delivered baseline
+## Qué se entrega
 
-| Area | Evidence in `develop` | Closeout status |
-|---|---|---|
-| Kafka ingestion | HRP-29, HRP-30, HRP-31 and ingestion modules | Documented and implemented |
-| Raw persistence | HRP-34, MongoDB repositories and idempotency tests | Documented and implemented |
-| Transformation and partial state | HRP-43–HRP-51 and Redis HRP-73–HRP-76 | Documented and implemented in the available scope |
-| PostgreSQL persistence | HRP-52–HRP-60 and integration tests | Documented and implemented in the available scope |
-| API serving | HRP-83–HRP-86 | Documented with endpoint tests |
-| Observability | HRP-65–HRP-67 and HRP-77–HRP-82 | Metrics, Prometheus and dashboard documented |
-| Runtime and operations | HRP-62–HRP-64 and HRP-87–HRP-88 | Docker and restart behaviour documented |
-| Quality gates | `.github/workflows/`, `pre-commit`, Ruff, mypy and pytest | Versioned and reproducible |
-| Presentation evidence | `docs/presentation-sources/` | Curated and traceable |
-| Frontend | No completed implementation in the reviewed baseline | Out of scope for this closeout |
+Documentación de la ingesta Kafka/MongoDB, clasificación y correlación exacta,
+componentes Redis y SQL, API, observabilidad, operaciones, calidad, decisiones,
+specs, historia diaria y fuentes para NotebookLM. [Índice completo](README.md).
 
-## Verification snapshot
+El contenedor app mantiene ingesta continua; no existe en el checkout un worker
+productivo MongoDB → ETL → SQL. HRP-71 conecta esas capas con eventos sintéticos,
+sin broker real ni Redis. La API se inicia por separado. No se declara una demo
+ejecutada, un deck generado, throughput de miles de mensajes/segundo ni un release
+publicado como resultado de esta revisión.
 
-The test suite currently collects **307 tests**. The local validation run recorded
-**246 passed, 21 failed and 40 skipped**, with **82.91%** calculated coverage against
-a minimum threshold of **75%**. The failures are concentrated in existing ingestion
-unit tests that patch `hr_pro_platform.ingestion.consumer` and
-`hr_pro_platform.ingestion.main`; they require a code/test alignment decision before
-claiming a fully green release. CI also validates specifications, formatting, lint,
-types and Docker Compose configuration.
+## Resultados conocidos y trabajo realizado ahora
 
-The reviewed working tree was clean on `develop`. The local `.env` file and generated
-coverage/cache artefacts are excluded from version control; no credentials or raw
-payloads are included in the closeout documentation.
+Último intento local registrado en la conversación: 246 pasan, 21 fallan,
+40 omitidos; 307 tests y 82,91 % de cobertura calculada, umbral 75 %.
+El import nativo de confluent-kafka fue bloqueado por Control de aplicaciones en
+Windows. No se convierte ese resultado en verde ni se presenta como ejecución nueva.
+La evidencia de esta revisión consiste en contrastar documentos con código e
+historial y realizar comprobaciones documentales; véase la
+[auditoría](documentation-audit.md).
 
-## Documentation map
+## Entrega al equipo
 
-- [README](../README.md): onboarding, architecture, operation and current limitations.
-- [Architecture](01-architecture.md): component boundaries and data flow.
-- [Data contract](02-data-contract.md): observed facts and explicit unknowns.
-- [Runbook](07-runbook.md): local operation and diagnosis.
-- [Git governance](08-git-governance.md): branches, reviews and release tags.
-- [Dailies](dailies/README.md): chronological delivery record.
-- [Presentation sources](presentation-sources/README.md): curated material for the deck.
-- [HRP-93 closeout daily](dailies/2026-09-08-project-closeout.md): final working record.
+1. [README](../README.md): entrada y límites.
+2. [Runbook](07-runbook.md): comandos separados por proceso, sin borrar volúmenes.
+3. [Dailies](dailies/README.md): registros originales y reconstrucciones identificadas.
+4. [Paquete NotebookLM](presentation-sources/NOTEBOOKLM-PACK.md): narrativa, guion,
+   fuentes y cautelas para elaborar la presentación.
+5. [Specs](specs/README.md): alcance original y evidencia de integración.
 
-## Known limitations and handoff
+La versión del paquete es 0.1.0; no implica tag. Los cambios de esta revisión son
+locales hasta su publicación. El merge de PR #80 no contiene automáticamente
+las correcciones posteriores. El estado remoto debe comprobarse tras publicar.
 
-1. The educational data generator remains a black box by project policy.
-2. Any claim about production-scale throughput requires a dedicated load run; unit or
-   integration tests do not establish that claim.
-3. The frontend is not part of this delivery and must remain labelled pending/out of
-   scope in presentations and Jira.
-4. Human review remains required for Jira closure, pull-request approval, merge and
-   release-tag creation according to the repository governance.
+## Riesgos que no se ocultan
 
-## Closure recommendation
+Ausencia de orquestador productivo completo, falta de benchmark, API sin auth,
+Redis efímero, resultados locales no verdes y frontend excluido. Son límites
+documentados; corregirlos requiere tareas funcionales distintas.
+Además, el prefijo de acknowledgement es por lote, sin control de huecos entre lotes,
+y el consumer interpola excepciones sin redacción universal. No se promete ausencia
+global de pérdida ni seguridad de todo mensaje de log.
+El generador educativo no se ha inspeccionado y no es una fuente de contrato.
 
-HRP-93 can be closed after the responsible reviewer confirms the final repository
-state, attaches the final presentation or its link, records the validation result and
-decides whether the 21 ingestion-test failures are accepted as a separate follow-up.
-Follow-up work should be opened as new Jira tasks rather than leaving the closeout task
-open for the deferred frontend.
+## Reversión documental
 
-## Closure documentation decision
-
-This document, the final README state, the presentation-source manifest and the
-2026-09-08 closeout daily are the valid documentation set for closing HRP-93 and the
-project documentation phase. The Windows `confluent-kafka` loading issue and the
-resulting ingestion-test failures remain explicitly recorded as an environment/release
-validation caveat; they are not silently reclassified as passing results.
-
-## Final acceptance matrix
-
-For project closure, the accepted status is:
-
-| Briefing block | Accepted result |
-|---|---:|
-| Conditions of delivery | 5/5 |
-| Essential level | 6/6 |
-| Intermediate level | 3/3 |
-| Advanced level | 3/3 |
-| Expert level | 1/2; frontend explicitly excluded |
-
-This is the project acceptance decision. The Windows native-library issue remains a
-local validation caveat and is tracked separately from the functional acceptance of
-the delivered baseline.
+Usar un revert del commit documental correspondiente, tras identificarlo con
+`git log`; no resetear ramas ni borrar trabajo ajeno. La revisión no altera código,
+servicios, dependencias, esquemas ni datos.

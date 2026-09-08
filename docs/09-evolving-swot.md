@@ -1,51 +1,36 @@
-# Evolving SWOT and delivery health
+# DAFO de cierre y evolución
 
-## Purpose
+**Corte:** 2026-09-08. [Cronología verificable](dailies/README.md).
 
-This is a living project-control artifact, not marketing copy. It is updated after
-every functional milestone and before each presentation rehearsal. Every claim must
-point to merged code, a reviewed document, a test result or a Jira state.
-
-## Current snapshot — 2026-08-31
-
-| Strengths | Weaknesses |
+| Fortalezas | Debilidades |
 |---|---|
-| Evidence-first Kafka contract prevents invented semantics. | The essential Kafka-to-Mongo-to-ETL-to-PostgreSQL path is incomplete. |
-| SDD, ADRs, CODEOWNERS, CI and human review are operational. | The executable codebase is still small and currently has 17 tests. |
-| Kafka connectivity, safe observation, continuous consumption and initial MongoDB persistence are validated. | Person correlation, ETL grouping and SQL persistence are not yet demonstrable. |
-| Team ownership and presentation evidence have canonical locations. | Contribution and integration load is currently concentrated on Miguel. |
+| Raw con coordenadas e idempotencia técnica | Falta un worker de producción MongoDB–ETL–SQL en el checkout |
+| Groupers y consolidación conservan procedencia y ambigüedad | Correlación operacional no prueba identidad real |
+| SQL, Redis, API y observabilidad versionados | Prueba E2E sintética; no benchmark de broker real |
+| CI, specs y decisiones con historial Git | Validación Windows bloqueada por dependencia nativa |
 
-| Opportunities | Threats |
+| Oportunidades | Amenazas |
 |---|---|
-| Deliver a reliable raw envelope and idempotency as the next vertical slice. | Scope expansion into Redis, API, Airflow or dashboards before Essential is stable. |
-| Add E2E integration tests and healthchecks incrementally. | Long-lived multi-task branches can overwrite reviewed implementations. |
-| Turn CI, Jira evidence and the live pipeline into a differentiated technical demo. | Weak correlation evidence could merge records from different people. |
-| Ratchet coverage and performance evidence as the codebase grows. | Documentation can drift and describe target capabilities as current behaviour. |
+| Preparar una demo reproducible con datos sintéticos | Presentar una aceptación como garantía de rendimiento |
+| Añadir orquestación operativa y pruebas de recuperación | Confundir coincidencia de nombres con identidad |
+| Construir frontend en tarea separada | Exponer API sin control de acceso |
+| Medir capacidad y latencias en entorno dedicado | Deriva entre docs, código y slides generadas |
 
-## Delivery health
+No se publican puntuaciones subjetivas de personas o del reparto de trabajo.
+La matriz de aceptación está en [delivery-evidence.md](delivery-evidence.md).
 
-| Dimension | Score | Evidence | Target for next review |
-|---|---:|---|---|
-| Functional completeness | 3/5 | Kafka and initial MongoDB path validated; curated path incomplete | ETL grouping and PostgreSQL write proven |
-| Data correctness | 3/5 | Observed contract reviewed; correlation remains unknown | HRP-43 candidate analysis; strategy and tests only if evidence supports them |
-| Quality automation | 4/5 | CI, Ruff, mypy, pytest, spec validation and reviews | Keep coverage above threshold as code grows |
-| Operability | 3/5 | Consumer and Mongo client have tests and CI evidence | Failure/acknowledgement integration test |
-| Documentation and traceability | 4/5 | Specs, ADRs, dailies, PR and Jira evidence | Eliminate stale completion markers |
-| Team flow | 2/5 | Four owners assigned; review is active | Each area contributes a reviewed PR |
+## Evolución
 
-Scores measure current evidence, not ambition: 1 is absent, 3 is usable but incomplete,
-and 5 is demonstrated, automated and repeatable.
+| Fecha | Cambio | Evidencia |
+|---|---|---|
+| 27–28 agosto | Gobernanza, observación, consumer continuo | Dailies iniciales y PR #14 |
+| 31 agosto | Modelo SQL, Docker y esquema | PR #31 y #32 |
+| 1 septiembre | Raw alineado y clasificación | PR #33–35 |
+| 2 septiembre | Correlación operacional, groupers y consolidación | PR #36–45 |
+| 3 septiembre | Persistencia, idempotencia y tests | PR #47–55 |
+| 4 septiembre | Compose, logging, Redis y API | PR #56–69 |
+| 7 septiembre | TTL, métricas y operación de ingesta | PR #70, #72–79 |
+| 8 septiembre | Cierre documental y auditoría de coherencia | HRP-93 |
 
-## Review protocol
-
-1. Update the snapshot after each level of the briefing or material architecture change.
-2. Replace resolved weaknesses and threats instead of deleting history.
-3. Add a row to the history with the evidence that changed a score.
-4. Use the presentation adaptation in `docs/presentation-sources/02-evolving-swot.md`.
-
-## Evolution history
-
-| Date | Milestone | Change in assessment | Evidence |
-|---|---|---|---|
-| 2026-08-28 | Kafka foundation and benchmark | Baseline created; quality is ahead of functional completeness | PRs #10, #12 and #14; 7 tests; Kafka runtime validation |
-| 2026-08-31 | Ingestion and MongoDB baseline | Initial storage, deduplication and error handling are integrated; raw envelope alignment remains a follow-up | PRs #27, #28 and #29; CI run 33388729942; 17 tests; 80.10 % coverage |
+Los documentos fechados conservan el conocimiento de su jornada; no se usan como
+estado actual ni se reescriben para fingir que siempre estuvo todo implementado.

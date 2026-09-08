@@ -28,3 +28,8 @@ Dejar una base reproducible, documentada y conectable a Kafka para observar mens
 - Pull requests vinculadas a Jira.
 - Daily compartida.
 - Log o captura de conexión a Kafka sin exponer datos innecesarios.
+
+## Alcance histórico
+
+Plan del primer sprint; no es el estado del cierre2026-09-08. Consultar
+[índice de integración de specs](README.md) y [matriz de cierre](../delivery-evidence.md).

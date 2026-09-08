@@ -6,7 +6,8 @@ Aceptada.
 
 ## Decisión
 
-MongoDB conservará cada evento recibido sin modificar. PostgreSQL almacenará los datos agrupados, normalizados e idempotentes para consultas.
+MongoDB conservará cada evento recibido sin modificar. PostgreSQL almacenará los datos agrupados y mapeados para consultas, con idempotencia técnica según el
+contrato del repositorio; no se presupone normalización semántica de negocio.
 
 ## Motivo
 

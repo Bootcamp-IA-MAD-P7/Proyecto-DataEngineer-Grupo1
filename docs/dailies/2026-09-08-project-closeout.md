@@ -1,47 +1,31 @@
-# Daily — 2026-09-08 — Project closeout
+# Daily — 2026-09-08 — Cierre y reconciliación documental
 
-## Sprint
+## Naturaleza del registro
 
-Project closeout — HRP-93
+Reconstrucción retrospectiva el 2026-09-08 basada en integraciones Git; no es un acta de reunión ni una reconstrucción de horas trabajadas.
+La fecha es la de integración en develop; puede diferir de la fecha de autoría.
+No se atribuyen conversaciones, aprobaciones personales ni bloqueos sin evidencia.
 
-## Objective
+## Resultado de la jornada
 
-Consolidate the final documentation, presentation evidence and repository hygiene
-before closing the project. The frontend is explicitly excluded from this closeout.
+PR #80 integra la primera documentación. La revisión posterior reconcilia README, contrato, runtime, specs, dailies y fuentes NotebookLM con el código; mantiene 18/19 aceptados y frontend excluido.
 
-## Work completed
+## Evidencia integrada
 
-- Reviewed the `develop` branch and the latest integrated history through `f3a952b`.
-- Confirmed the repository has the expected documentation, specifications, ADRs,
-  dailies, presentation sources, CI workflows and operational files.
-- Added a formal project closeout document with delivered scope, evidence boundaries,
-  limitations and handoff guidance.
-- Added a final daily so the last project state is represented in the chronological
-  record.
-- Updated the presentation-source index with the closeout evidence.
-- Recorded the frontend as out of scope instead of presenting it as complete.
-
-## Evidence reviewed
-
-| Evidence | Result |
+| Commit | Integración registrada |
 |---|---|
-| `develop` history | Latest reviewed commit: `f3a952b` |
-| Test run | 307 collected; 246 passed, 21 failed, 40 skipped; 82.91% calculated coverage |
-| CI configuration | Quality, PR governance, labels, presentation daily and release workflows present |
-| Runtime | Docker Compose includes application, MongoDB, PostgreSQL, Redis, Prometheus and Grafana services |
-| Documentation | README, architecture, contract, model, runbook, Git governance, ADRs, specs and sources present |
+| [275131a](https://github.com/Bootcamp-IA-MAD-P7/Proyecto-DataEngineer-Grupo1/commit/275131a) | Merge pull request #80 from Bootcamp-IA-MAD-P7/codex/HRP-93-project-closeout |
 
-## Blockers and limitations
+## Límites y decisiones
 
-- Final test pass/fail evidence depends on the environment used for the release run;
-  the current local run has 21 existing ingestion-test failures involving module
-  patching and is not treated as a green release result.
-- The frontend remains outside the closeout scope.
-- Human approval is still required before Jira closure, merge or release tagging.
+Resultados locales anteriores: 246 pasan, 21 fallan, 40 omitidos, cobertura 82,91 %. No son una suite verde ni una prueba ejecutada en esta revisión.
 
-## Final decision
+## Continuidad
 
-The documented backend/data-platform baseline is ready for final human review, but the
-release is not fully green until the ingestion-test failures are either fixed or
-accepted and tracked explicitly. Any future frontend work or additional production
-hardening should be tracked as a new task.
+Consultar la [siguiente jornada disponible y el índice](README.md).
+Las tareas y estados actuales de Jira no se han consultado en esta revisión.
+El historial acredita commits, no asistencia a una daily ni validación de cada criterio.
+
+Miguel autoriza esta revisión documental sin una nueva aprobación para editar. Gaby y
+Johans son los revisores designados de PR, sin atribuirles aprobación ya realizada.
+Véanse [cierre](../project-closeout.md) y [auditoría](../documentation-audit.md).
